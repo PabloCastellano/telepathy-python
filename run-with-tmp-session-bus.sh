@@ -14,36 +14,31 @@ function die()
     exit 1
 }
 
-if test -z "$DBUS_TOP_BUILDDIR" ; then
-    die "Must set DBUS_TOP_BUILDDIR"
-fi
 
 ## convenient to be able to ctrl+C without leaking the message bus process
 trap 'die "Received SIGINT"' SIGINT
 
 CONFIG_FILE=./run-with-tmp-session-bus.conf
-SERVICE_DIR="$DBUS_TOP_BUILDDIR/test/data/valid-service-files"
+SERVICE_DIR="$PWD/services"
 ESCAPED_SERVICE_DIR=`echo $SERVICE_DIR | sed -e 's/\//\\\\\\//g'`
 echo "escaped service dir is: $ESCAPED_SERVICE_DIR" >&2
 
 ## create a configuration file based on the standard session.conf
-cat $DBUS_TOP_BUILDDIR/bus/session.conf |  \
+cat session.conf |  \
     sed -e 's/<servicedir>.*$/<servicedir>'$ESCAPED_SERVICE_DIR'<\/servicedir>/g' |  \
     sed -e 's/<include.*$//g'                \
   > $CONFIG_FILE
 
 echo "Created configuration file $CONFIG_FILE" >&2
 
-export PATH=$DBUS_TOP_BUILDDIR/bus:$PATH
-## the libtool script found by the path search should already do this, but
-export LD_LIBRARY_PATH=$DBUS_TOP_BUILDDIR/dbus/.libs:$LD_LIBRARY_PATH
+export PATH=$PWD:$PATH
 
 unset DBUS_SESSION_BUS_ADDRESS
 unset DBUS_SESSION_BUS_PID
 
-echo "Running $DBUS_TOP_BUILDDIR/tools/dbus-launch --sh-syntax --config-file=$CONFIG_FILE" >&2
+echo "Running dbus-launch --sh-syntax --config-file=$CONFIG_FILE" >&2
 
-eval `$DBUS_TOP_BUILDDIR/tools/dbus-launch --sh-syntax --config-file=$CONFIG_FILE`
+eval `dbus-launch --sh-syntax --config-file=$CONFIG_FILE`
 
 if test -z "$DBUS_SESSION_BUS_PID" ; then
     die "Failed to launch message bus for introspection generation to run"
