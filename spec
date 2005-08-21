@@ -36,21 +36,31 @@ Person -> list of Accounts
 Interface Specifications:
 
 org.freedesktop.ipcf.connectionmanager:
-        make_connection(s:proto,s:account, a{ss}:connect_info)
-           proto: protocol name
-           account: account name
-           connect_info: the rest of how to connect to the server
-               e.g. {server:jabber.org, port:55555, password:s3cr1t}
-           return (s:protocol specific account identifier)
+        methods:
+                make_connection(s:proto,s:account, a{ss}:connect_info)
+                proto: protocol name
+                account: account name
+                connect_info: the rest of how to connect to the server
+                        e.g. {server:jabber.org, port:55555, password:s3cr1t}
+                return (s:protocol specific account identifier)
 
 
 org.freedesktop.ipcf.connection:
-        create_channel(s:contact_account, as:caps)
-                contact_account: contacts account name
-                caps: capabilities you would like the channel to have
+        methods:
+                create_channel(in:s:proto specific endpoint id, in:as:capabilities, out:s:objectname)
                 
-                returns: (s:channel identifier, as: caps actually implemented)
+        signals:
+                channel_created(out:s: proto specific endpoint id, out:as:caps, out:objectname)
                 
                 
+org.freedesktop.ipcf.channel:
+        signals:
+                caps_changed(as:caps)
+        methods:
+                as:caps get_caps()
+                close()
 
-
+org.freedesktop.ipcf.channel.text:
+        
+       i:msgid send(s:text)
+       
