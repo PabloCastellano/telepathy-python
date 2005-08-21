@@ -20,6 +20,7 @@ trap 'die "Received SIGINT"' SIGINT
 
 CONFIG_FILE=./run-with-tmp-session-bus.conf
 SERVICE_DIR="$PWD/services"
+EXEC_DIR=`echo $PWD | sed -e 's/\//\\\\\\//g'`
 ESCAPED_SERVICE_DIR=`echo $SERVICE_DIR | sed -e 's/\//\\\\\\//g'`
 echo "escaped service dir is: $ESCAPED_SERVICE_DIR" >&2
 
@@ -28,6 +29,13 @@ cat session.conf |  \
     sed -e 's/<servicedir>.*$/<servicedir>'$ESCAPED_SERVICE_DIR'<\/servicedir>/g' |  \
     sed -e 's/<include.*$//g'                \
   > $CONFIG_FILE
+
+rm -rf services
+mkdir -p services
+for i in services.in/*; do
+    echo mangling $i
+    cat $i | sed -e "s/@EXEC_DIR@/$EXEC_DIR/g" > ${i/services.in\//services\//}
+done
 
 echo "Created configuration file $CONFIG_FILE" >&2
 
