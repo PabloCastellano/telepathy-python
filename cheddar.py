@@ -28,13 +28,14 @@ class JabberConnection(dbus.service.Object):
     count = 0
 
     def __init__(self, manager, id, account, conn_info):
-        self.bus_name = dbus.service.BusName(CONN_SERVICE+'.jabber'+str(JabberConnection.count), bus=dbus.SessionBus())
+        self.manager = manager
+        self.id = id
+        self.service_name = CONN_SERVICE+'.jabber'+str(JabberConnection.count)
         self.object_path = CONN_OBJECT+'/jabber'+str(JabberConnection.count)
+        self.bus_name = dbus.service.BusName(CONN_SERVICE+'.jabber'+str(JabberConnection.count), bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, self.object_path)
         JabberConnection.count += 1
 
-        self.manager = manager
-        self.id = id
         self.jid = xmpp.protocol.JID(account)
         self.password = conn_info['password']
 
@@ -73,11 +74,15 @@ class JabberConnection(dbus.service.Object):
         self.client.RegisterHandler('presence', self.presenceHandler)
         self.client.sendInitPresence()
 
-        self.manager.Connected(self.id, self.object_path)
+        self.manager.Connected(self.id, self.service_name, self.object_path)
 
         gobject.idle_add(self.poll)
 
         return False
+
+    @dbus.service.method(CONN_INTERFACE)
+    def woot(self):
+        print 'woot'
 
 class JabberConnectionManager(dbus.service.Object):
     protos = set(['jabber'])
@@ -103,8 +108,8 @@ class JabberConnectionManager(dbus.service.Object):
             raise IOError('Unknown protocol %s' % (proto))
 
     @dbus.service.signal(CONN_MGR_INTERFACE)
-    def Connected(self, identifier, objpath):
-        print 'Sending Connected signal: %s connected as %s' % (identifier, objpath)
+    def Connected(self, identifier, serv_name, obj_path):
+        print 'Sending Connected signal: %s connected as (%s, %s)' % (identifier, serv_name, obj_path)
 
     @dbus.service.signal(CONN_MGR_INTERFACE)
     def ConnectionError(self, identifier, message):
