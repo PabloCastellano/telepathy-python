@@ -16,6 +16,14 @@ CONN_MGR_INTERFACE = 'org.freedesktop.ipcf.connectionmanager'
 CONN_MGR_OBJECT = '/org/freedesktop/ipcf/connectionmanager'
 CONN_MGR_SERVICE = 'org.freedesktop.ipcf.connectionmanager'
 
+class JabberTextChannel(dbus.service.Object):
+    def __init__(self, conn):
+        self.conn = conn
+        self.service_name = CHANNEL_SERVICE
+        self.object_path = CHANNEL_OBJECT
+#        self.bus_name = dbus.service.BusName(CHANNEL_SERVICE+
+        pass
+
 class JabberConnection(dbus.service.Object):
     count = 0
 
