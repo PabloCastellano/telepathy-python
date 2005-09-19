@@ -7,36 +7,37 @@ import getpass
 import gobject
 import sys
 
-CONN_INTERFACE = 'org.freedesktop.ipcf.connection'
-CONN_OBJECT = '/org/freedesktop/ipcf/connection'
-CONN_SERVICE = 'org.freedesktop.ipcf.connection'
+CONN_INTERFACE = 'org.freedesktop.ipcf.Connection'
+CONN_OBJECT = '/org/freedesktop/ipcf/Connection'
+CONN_SERVICE = 'org.freedesktop.ipcf.Connection'
 
-CONN_MGR_INTERFACE = 'org.freedesktop.ipcf.connectionmanager'
-CONN_MGR_OBJECT = '/org/freedesktop/ipcf/connectionmanager'
-CONN_MGR_SERVICE = 'org.freedesktop.ipcf.connectionmanager'
+CONN_MGR_INTERFACE = 'org.freedesktop.ipcf.ConnectionManager'
+CONN_MGR_OBJECT = '/org/freedesktop/ipcf/ConnectionManager'
+CONN_MGR_SERVICE = 'org.freedesktop.ipcf.ConnectionManager'
 
 class Connection:
-    def connected_callback(self, identifier, serv_name, obj_path):
-        if identifier == self.id:
-            print 'Connected: %s' % (obj_path)
-            self.conn_obj = self.bus.get_object(serv_name, obj_path)
-            self.conn = dbus.Interface(self.conn_obj, CONN_INTERFACE)
-            self.conn.woot()
-
-    def connection_error_callback(self, identifier, message):
-        if identifier == pending_conn:
-            print 'Connection error: %s' % (message)
+    def status_callback(self, status, messages):
+        if status == 'connected':
+            self.conn.Disconnect()
+        if status == 'disconnected':
             self.mainloop.quit()
+        print 'StatusChanged', status, messages
 
     def __init__(self, mainloop, manager, proto, account, conn_opts):
         self.bus = dbus.SessionBus()
-        self.conn_mgr_obj = self.bus.get_object(CONN_MGR_SERVICE+'.'+manager, CONN_MGR_OBJECT+'/'+manager)
-        self.conn_mgr = dbus.Interface(self.conn_mgr_obj, CONN_MGR_INTERFACE)
+        self.mainloop = mainloop
 
-        self.conn_mgr.connect_to_signal('Connected', self.connected_callback)
-        self.conn_mgr.connect_to_signal('ConnectionError', self.connection_error_callback)
+        mgr_serv_name = CONN_MGR_SERVICE+'.'+manager
+        mgr_obj_path = CONN_MGR_OBJECT+'/'+manager
+        mgr_obj = self.bus.get_object(mgr_serv_name, mgr_obj_path)
+        mgr = dbus.Interface(mgr_obj, CONN_MGR_INTERFACE)
+        serv_name, obj_path = mgr.Connect(proto, account, conn_opts)
 
-        self.id = self.conn_mgr.make_connection(proto, account, conn_opts)
+        self.conn_obj = self.bus.get_object(serv_name, obj_path)
+        self.conn = dbus.Interface(self.conn_obj, CONN_INTERFACE)
+
+        self.conn.connect_to_signal('StatusChanged', self.status_callback)
+        self.status_callback(self.conn.GetStatus(), '')
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
