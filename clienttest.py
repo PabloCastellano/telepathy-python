@@ -7,6 +7,9 @@ import getpass
 import gobject
 import sys
 
+CHANNEL_INTERFACE = 'org.freedesktop.ipcf.Channel'
+TEXT_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.TextChannel'
+
 CONN_INTERFACE = 'org.freedesktop.ipcf.Connection'
 CONN_OBJECT = '/org/freedesktop/ipcf/Connection'
 CONN_SERVICE = 'org.freedesktop.ipcf.Connection'
@@ -15,7 +18,27 @@ CONN_MGR_INTERFACE = 'org.freedesktop.ipcf.ConnectionManager'
 CONN_MGR_OBJECT = '/org/freedesktop/ipcf/ConnectionManager'
 CONN_MGR_SERVICE = 'org.freedesktop.ipcf.ConnectionManager'
 
+class Channel:
+    def __init__(self, conn, obj_path):
+        self.bus = conn.bus
+        self.conn = conn
+        self.mainloop = conn.mainloop
+
+        self.chan_obj = self.bus.get_object(self.conn.serv_name, obj_path)
+        self.chan = dbus.Interface(self.chan_obj, CHANNEL_INTERFACE)
+
+class TextChannel(Channel):
+    def __init__(self, conn, obj_path):
+        Channel.__init__(self, conn, obj_path)
+        self.text_chan = dbus.Interface(self.chan_obj, TEXT_CHANNEL_INTERFACE)
+
 class Connection:
+    def channel_callback(self, type, obj_path):
+        print 'NewChannel', type, obj_path
+        if type == TEXT_CHANNEL_INTERFACE:
+            channel = TextChannel(self, obj_path)
+            self.channels.append(channel)
+
     def status_callback(self, status):
         if self.status == status:
             return
@@ -23,7 +46,7 @@ class Connection:
             self.status = status
 
         if status == 'connected':
-            self.conn.Disconnect()
+            obj_path = self.conn.RequestChannel(TEXT_CHANNEL_INTERFACE, {'recipient':'test2@localhost'})
         if status == 'disconnected':
             self.mainloop.quit()
 
@@ -37,11 +60,13 @@ class Connection:
         mgr_obj_path = CONN_MGR_OBJECT+'/'+manager
         mgr_obj = self.bus.get_object(mgr_serv_name, mgr_obj_path)
         mgr = dbus.Interface(mgr_obj, CONN_MGR_INTERFACE)
-        serv_name, obj_path = mgr.Connect(proto, account, conn_opts)
+        self.serv_name, obj_path = mgr.Connect(proto, account, conn_opts)
 
-        self.conn_obj = self.bus.get_object(serv_name, obj_path)
+        self.conn_obj = self.bus.get_object(self.serv_name, obj_path)
         self.conn = dbus.Interface(self.conn_obj, CONN_INTERFACE)
+        self.channels = []
 
+        self.conn.connect_to_signal('NewChannel', self.channel_callback)
         self.conn.connect_to_signal('StatusChanged', self.status_callback)
 
         # handle race condition when connecting completes before this method completes
