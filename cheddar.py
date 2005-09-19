@@ -24,14 +24,17 @@ class JabberTextChannel(dbus.service.Object):
         pass
 
 class JabberConnection(dbus.service.Object):
-    def __init__(self, manager, id, account, conn_info):
-        self.service_name = CONN_SERVICE+'.jabber'+str(id)
-        self.object_path = CONN_OBJECT+'/jabber'+str(id)
-        self.bus_name = dbus.service.BusName(CONN_SERVICE+'.jabber'+str(id), bus=dbus.SessionBus())
+    def __init__(self, manager, account, conn_info):
+        self.jid = xmpp.protocol.JID(account)
+        if self.jid.getResource() == '':
+            self.jid.setResource('IPCF')
+
+        self.service_name = '.'.join((CONN_SERVICE, 'jabber', self.jid.getDomain(), self.jid.getNode(), self.jid.getResource()))
+        self.object_path = '/'.join((CONN_OBJECT, 'jabber', self.jid.getDomain(), self.jid.getNode(), self.jid.getResource()))
+        self.bus_name = dbus.service.BusName(self.service_name, bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, self.object_path)
 
         self.manager = manager
-        self.jid = xmpp.protocol.JID(account)
         self.password = conn_info['password']
 
         if conn_info.has_key('server'):
@@ -115,7 +118,6 @@ class JabberConnectionManager(dbus.service.Object):
         self.bus_name = dbus.service.BusName(CONN_MGR_SERVICE+'.cheddar', bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/cheddar')
 
-        self.count = 0
         self.connections = []
         self.protos = set(['jabber'])
 
@@ -126,9 +128,8 @@ class JabberConnectionManager(dbus.service.Object):
     @dbus.service.method(CONN_MGR_INTERFACE)
     def Connect(self, proto, account, connect_info):
         if proto in self.protos:
-            conn = JabberConnection(self, self.count, account, connect_info)
+            conn = JabberConnection(self, account, connect_info)
             self.connections.append(conn)
-            self.count += 1
             return (conn.service_name, conn.object_path)
         else:
             raise IOError('Unknown protocol %s' % (proto))
