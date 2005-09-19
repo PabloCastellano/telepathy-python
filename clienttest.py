@@ -16,12 +16,18 @@ CONN_MGR_OBJECT = '/org/freedesktop/ipcf/ConnectionManager'
 CONN_MGR_SERVICE = 'org.freedesktop.ipcf.ConnectionManager'
 
 class Connection:
-    def status_callback(self, status, messages):
+    def status_callback(self, status):
+        if self.status == status:
+            return
+        else:
+            self.status = status
+
         if status == 'connected':
             self.conn.Disconnect()
         if status == 'disconnected':
             self.mainloop.quit()
-        print 'StatusChanged', status, messages
+
+        print 'StatusChanged', status
 
     def __init__(self, mainloop, manager, proto, account, conn_opts):
         self.bus = dbus.SessionBus()
@@ -37,7 +43,10 @@ class Connection:
         self.conn = dbus.Interface(self.conn_obj, CONN_INTERFACE)
 
         self.conn.connect_to_signal('StatusChanged', self.status_callback)
-        self.status_callback(self.conn.GetStatus(), '')
+
+        # handle race condition when connecting completes before this method completes
+        self.status = 'connecting'
+        self.status_callback(self.conn.GetStatus())
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:

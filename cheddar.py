@@ -48,13 +48,13 @@ class JabberConnection(dbus.service.Object):
         gobject.idle_add(self.connect)
 
     def connect(self):
-        self.StatusChanged('connecting', {})
+        self.StatusChanged('connecting')
 
         if not self.client.connect():
-            self.StatusChange('disconnected', {'reason':'Connection failed'})
+            self.StatusChange('disconnected')
 
         if not self.client.auth(self.jid.getNode(), self.password, self.jid.getResource()):
-            self.StatusChanged('disconnected', {'reason':'Authenticaton failed'})
+            self.StatusChanged('disconnected')
 
         self.client.RegisterDisconnectHandler(self.disconnectHandler)
         self.client.RegisterHandler('iq', self.iqHandler)
@@ -62,7 +62,7 @@ class JabberConnection(dbus.service.Object):
         self.client.RegisterHandler('presence', self.presenceHandler)
         self.client.sendInitPresence()
 
-        self.StatusChanged('connected', {})
+        self.StatusChanged('connected')
 
         gobject.idle_add(self.poll)
 
@@ -77,9 +77,9 @@ class JabberConnection(dbus.service.Object):
 
     def disconnectHandler(self):
         if self.die:
-            self.StatusChanged('disconnected', {})
+            self.StatusChanged('disconnected')
         else:
-            self.StatusChanged('connecting', {})
+            self.StatusChanged('connecting')
             self.client.reconnectAndReauth()
 
     def iqHandler(self, conn, node):
@@ -92,8 +92,8 @@ class JabberConnection(dbus.service.Object):
         pass
 
     @dbus.service.signal(CONN_INTERFACE)
-    def StatusChanged(self, status, messages):
-        print 'service_name: %s object_path: %s signal: StatusChanged (%s, %s)' % (self.service_name, self.object_path, status, messages)
+    def StatusChanged(self, status):
+        print 'service_name: %s object_path: %s signal: StatusChanged %s' % (self.service_name, self.object_path, status)
         self.status = status
 
     @dbus.service.method(CONN_INTERFACE)
