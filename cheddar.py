@@ -80,8 +80,11 @@ class JabberConnection(dbus.service.Object):
         if self.jid.getResource() == '':
             self.jid.setResource('IPCF')
 
-        self.service_name = '.'.join((CONN_SERVICE, 'jabber', self.jid.getDomain(), self.jid.getNode(), self.jid.getResource()))
-        self.object_path = '/'.join((CONN_OBJECT, 'jabber', self.jid.getDomain(), self.jid.getNode(), self.jid.getResource()))
+        parts = []
+        for j in ['jabber', self.jid.getDomain(), self.jid.getNode(), self.jid.getResource()]:
+            parts += j.split('.')[::-1]
+        self.service_name = '.'.join([CONN_SERVICE] + parts)
+        self.object_path = '/'.join([CONN_OBJECT] + parts)
         self.bus_name = dbus.service.BusName(self.service_name, bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, self.object_path)
 
