@@ -5,6 +5,7 @@ if getattr(dbus, 'version', (0,0,0)) >= (0,41,0):
     import dbus.glib
 import getpass
 import gobject
+import signal
 import sys
 
 CHANNEL_INTERFACE = 'org.freedesktop.ipcf.Channel'
@@ -100,4 +101,18 @@ if __name__ == '__main__':
 
     mainloop = gobject.MainLoop()
     connection = Connection(mainloop, manager, protocol, account, {'password':pw})
-    mainloop.run()
+
+    def quit():
+        connection.conn.Disconnect()
+        mainloop.quit()
+
+    def handler():
+        mainloop.idle_add(quit)
+
+    signal.signal(signal.SIGTERM, handler)
+
+    while mainloop.is_running():
+        try:
+            mainloop.run()
+        except KeyboardInterrupt:
+            quit()
