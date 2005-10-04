@@ -38,9 +38,16 @@ class JabberChannel(dbus.service.Object):
     @dbus.service.method(CHANNEL_INTERFACE)
     def GetType(self):
         if self.type == '':
-            raise IOError('Channel type not defined!')
+            raise IOError('Channel type not defined.')
 
         return self.type
+
+    @dbus.service.method(CHANNEL_INTERFACE)
+    def GetInterfaces(self):
+        if self.interfaces == None:
+            raise IOError('Channel interfaces not defined.')
+
+        return self.interfaces.keys()
 
 class JabberTextChannel(JabberChannel):
     def __init__(self, conn, interfaces):
@@ -48,6 +55,7 @@ class JabberTextChannel(JabberChannel):
 
         self.msgid = 0
         self.type = TEXT_CHANNEL_INTERFACE
+        self.interfaces = interfaces
 
         for i in interfaces.keys():
             if i == 'recipient':
@@ -71,7 +79,7 @@ class JabberTextChannel(JabberChannel):
         pass
 
     @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
-    def Recieved(self, text):
+    def Received(self, text):
         pass
 
 class JabberConnection(dbus.service.Object):
@@ -88,7 +96,7 @@ class JabberConnection(dbus.service.Object):
         self.bus_name = dbus.service.BusName(self.service_name, bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, self.object_path)
 
-        self.channels = []
+        self.channels = set()
         self.manager = manager
         self.password = conn_info['password']
 
@@ -136,6 +144,7 @@ class JabberConnection(dbus.service.Object):
     def disconnectHandler(self):
         if self.die:
             self.StatusChanged('disconnected')
+            gobject.idle_add(self.manager.disconnected, self)
         else:
             self.StatusChanged('connecting')
             self.client.reconnectAndReauth()
@@ -144,7 +153,12 @@ class JabberConnection(dbus.service.Object):
         pass
 
     def messageHandler(self, conn, node):
-        pass
+        # todo: match by resource/subject if possible
+        sender = node.getFrom()
+        for chan in self.channels:
+            if (chan.type == TEXT_CHANNEL_INTERFACE
+            and sender.bareMatch(chan.interfaces['recipient'])):
+                chan.Received(dbus.String(node.getBody()))
 
     def presenceHandler(self, conn, node):
         pass
@@ -179,7 +193,7 @@ class JabberConnection(dbus.service.Object):
     def RequestChannel(self, type, interfaces):
         if type == TEXT_CHANNEL_INTERFACE:
             channel = JabberTextChannel(self, interfaces)
-            self.channels.append(channel)
+            self.channels.add(channel)
             self.NewChannel(type, channel.object_path)
             return channel.object_path
         else:
@@ -190,8 +204,16 @@ class JabberConnectionManager(dbus.service.Object):
         self.bus_name = dbus.service.BusName(CONN_MGR_SERVICE+'.cheddar', bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/cheddar')
 
-        self.connections = []
+        self.connections = set()
         self.protos = set(['jabber'])
+
+    def __del__(self):
+        print "explodes"
+        dbus.service.Object.__del__(self)
+
+    def disconnected(self, conn):
+        self.connections.remove(conn)
+        del conn
 
     @dbus.service.method(CONN_MGR_INTERFACE)
     def ListProtocols(self):
@@ -201,7 +223,7 @@ class JabberConnectionManager(dbus.service.Object):
     def Connect(self, proto, account, connect_info):
         if proto in self.protos:
             conn = JabberConnection(self, account, connect_info)
-            self.connections.append(conn)
+            self.connections.add(conn)
             return (conn.service_name, conn.object_path)
         else:
             raise IOError('Unknown protocol %s' % (proto))
