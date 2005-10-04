@@ -37,16 +37,12 @@ class JabberChannel(dbus.service.Object):
 
     @dbus.service.method(CHANNEL_INTERFACE)
     def GetType(self):
-        if self.type == '':
-            raise IOError('Channel type not defined.')
-
+        assert(self.type != '')
         return self.type
 
     @dbus.service.method(CHANNEL_INTERFACE)
     def GetInterfaces(self):
-        if self.interfaces == None:
-            raise IOError('Channel interfaces not defined.')
-
+        assert(self.interfaces != None)
         return self.interfaces.keys()
 
 class JabberTextChannel(JabberChannel):
