@@ -50,8 +50,10 @@ class JabberTextChannel(JabberChannel):
         JabberChannel.__init__(self, conn)
 
         self.msgid = 0
+        self.recvmsgid =0
         self.type = TEXT_CHANNEL_INTERFACE
         self.interfaces = interfaces
+        self.bufferedmessages={};
 
         for i in interfaces.keys():
             if i == 'recipient':
@@ -69,13 +71,31 @@ class JabberTextChannel(JabberChannel):
         self.msgid += 1
         gobject.idle_add(self.send_callback, id, text)
         return id
+    
+    @dbus.service.method(TEXT_CHANNEL_INTERFACE)
+    def AckReceivedMessage(self, id):
+        if self.bufferedmessages.has_key(id):
+            del self.bufferedmessages[id]
+            return True
+        else:
+            return False
+
+    @dbus.service.method(TEXT_CHANNEL_INTERFACE)
+    def ListReceivedMessages(self):
+        return self.bufferedmessages;
+
+    def ReceivedMessage(self, text):
+        id = self.recvmsgid
+        self.recvmsgid += 1
+        self.bufferedmessages[id]=msg;
+        self.Received(self, id, text)
 
     @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
     def Sent(self, id, text):
         pass
 
     @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
-    def Received(self, text):
+    def Received(self, id, text):
         pass
 
 class JabberConnection(dbus.service.Object):
@@ -154,7 +174,7 @@ class JabberConnection(dbus.service.Object):
         for chan in self.channels:
             if (chan.type == TEXT_CHANNEL_INTERFACE
             and sender.bareMatch(chan.interfaces['recipient'])):
-                chan.Received(dbus.String(node.getBody()))
+                chan.ReceivedMessage(dbus.String(node.getBody()))
 
     def presenceHandler(self, conn, node):
         pass

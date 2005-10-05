@@ -33,9 +33,13 @@ class TextChannel(Channel):
         Channel.__init__(self, conn, obj_path)
         self.text = dbus.Interface(self.chan_obj, TEXT_CHANNEL_INTERFACE)
         self.text.connect_to_signal('Received', self.received_callback)
+        self.doack = True
 
-    def received_callback(self, message):
+    def received_callback(self, id, message):
         print "Received", message
+        if self.doack:
+            print "Acknowledging.."
+            self.text.AckReceivedMessage(id)
 
 class Connection:
     def channel_callback(self, type, obj_path):
