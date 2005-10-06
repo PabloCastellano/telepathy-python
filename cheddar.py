@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
+import calendar
 import dbus
 import dbus.service
 if getattr(dbus, 'version', (0,0,0)) >= (0,41,0):
     import dbus.glib
 import gobject
+import time
 import xmpp
 
 CONN_MGR_INTERFACE = 'org.freedesktop.ipcf.ConnectionManager'
@@ -33,7 +35,7 @@ class JabberChannel(dbus.service.Object):
 
     @dbus.service.signal(CHANNEL_INTERFACE)
     def Closed(self):
-        pass
+        print 'object_path: %s signal: Closed' % (self.object_path)
 
     @dbus.service.method(CHANNEL_INTERFACE)
     def GetType(self):
@@ -49,11 +51,12 @@ class JabberTextChannel(JabberChannel):
     def __init__(self, conn, interfaces):
         JabberChannel.__init__(self, conn)
 
-        self.msgid = 0
-        self.recvmsgid =0
         self.type = TEXT_CHANNEL_INTERFACE
         self.interfaces = interfaces
-        self.bufferedmessages={};
+
+        self.send_id = 0
+        self.recv_id = 0
+        self.pending_messages = {}
 
         for i in interfaces.keys():
             if i == 'recipient':
@@ -63,40 +66,66 @@ class JabberTextChannel(JabberChannel):
     def send_callback(self, id, text):
         msg = xmpp.protocol.Message(self.recipient, text)
         self.conn.client.send(msg)
-        self.Sent(id, text)
+        timestamp = int(time.time())
+        self.Sent(id, timestamp, text)
+
+    def receive_callback(self, node):
+        # todo: match by resource/subject if possible?
+        # only handle message if it's for us
+        sender = node.getFrom()
+        if not sender.bareMatch(self.interfaces['recipient']):
+            return False
+
+        id = self.recv_id
+        timestamp = int(time.time())
+        text = node.getBody()
+        self.recv_id += 1
+
+        delaytime = node.getTimestamp()
+        if delaytime != None:
+            try:
+                tuple = time.strptime(delaytime, '%Y%m%dT%H:%M:%S')
+                timestamp = int(calendar.timegm(tuple))
+            except ValueError:
+                print "Delayed message timestamp %s invalid, using current time" % delaytime
+
+        self.pending_messages[id] = (timestamp, text)
+        self.Received(id, timestamp, text)
+
+        return True
 
     @dbus.service.method(TEXT_CHANNEL_INTERFACE)
     def Send(self, text):
-        id = self.msgid
-        self.msgid += 1
+        id = self.send_id
+        self.send_id += 1
         gobject.idle_add(self.send_callback, id, text)
         return id
-    
+
     @dbus.service.method(TEXT_CHANNEL_INTERFACE)
-    def AckReceivedMessage(self, id):
-        if self.bufferedmessages.has_key(id):
-            del self.bufferedmessages[id]
+    def AcknowledgePendingMessage(self, id):
+        if self.pending_messages.has_key(id):
+            del self.pending_messages[id]
             return True
         else:
             return False
 
     @dbus.service.method(TEXT_CHANNEL_INTERFACE)
-    def ListReceivedMessages(self):
-        return self.bufferedmessages;
-
-    def ReceivedMessage(self, text):
-        id = self.recvmsgid
-        self.recvmsgid += 1
-        self.bufferedmessages[id]=msg;
-        self.Received(self, id, text)
-
-    @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
-    def Sent(self, id, text):
-        pass
+    def ListPendingMessages(self):
+        messages = []
+        for id in self.pending_messages.keys():
+            (timestamp, text) = self.pending_messages[id]
+            message = (id, timestamp, text)
+            messages.append(message)
+        messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
+        return dbus.Array(messages, signature='(iis)h')
 
     @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
-    def Received(self, id, text):
-        pass
+    def Sent(self, id, timestamp, text):
+        print 'object_path: %s signal: Sent %d %d %s' % (self.object_path, id, timestamp, text)
+
+    @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
+    def Received(self, id, timestamp, text):
+        print 'object_path: %s signal: Received %d %d %s' % (self.object_path, id, timestamp, text)
 
 class JabberConnection(dbus.service.Object):
     def __init__(self, manager, account, conn_info):
@@ -157,6 +186,15 @@ class JabberConnection(dbus.service.Object):
         else:
             return False # stop running
 
+    def createChannel(self, type, interfaces):
+        if type == TEXT_CHANNEL_INTERFACE:
+            channel = JabberTextChannel(self, interfaces)
+            self.channels.add(channel)
+            self.NewChannel(type, channel.object_path)
+            return channel
+        else:
+            return None
+
     def disconnectHandler(self):
         if self.die:
             self.StatusChanged('disconnected')
@@ -169,12 +207,18 @@ class JabberConnection(dbus.service.Object):
         pass
 
     def messageHandler(self, conn, node):
-        # todo: match by resource/subject if possible
-        sender = node.getFrom()
+        handled = False
+
         for chan in self.channels:
-            if (chan.type == TEXT_CHANNEL_INTERFACE
-            and sender.bareMatch(chan.interfaces['recipient'])):
-                chan.ReceivedMessage(dbus.String(node.getBody()))
+            if chan.type == TEXT_CHANNEL_INTERFACE:
+                handled = chan.receive_callback(node)
+                if handled:
+                    break
+
+        if not handled:
+            interfaces = {'recipient':node.getFrom()}
+            chan = self.createChannel(TEXT_CHANNEL_INTERFACE, interfaces)
+            chan.receive_callback(node)
 
     def presenceHandler(self, conn, node):
         pass
@@ -202,16 +246,15 @@ class JabberConnection(dbus.service.Object):
     def ListChannels(self):
         ret = []
         for channel in self.channels:
-            ret.append(channel.object_path)
-        return ret
+            chan = (channel.type, channel.object_path)
+            ret.append(chan)
+        return dbus.Array(ret, signature='(ss)')
 
     @dbus.service.method(CONN_INTERFACE)
     def RequestChannel(self, type, interfaces):
-        if type == TEXT_CHANNEL_INTERFACE:
-            channel = JabberTextChannel(self, interfaces)
-            self.channels.add(channel)
-            self.NewChannel(type, channel.object_path)
-            return channel.object_path
+        chan = self.createChannel(type, interfaces)
+        if chan != None:
+            return chan.object_path
         else:
             raise IOError('Unknown channel type %s' % type)
 
