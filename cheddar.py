@@ -19,12 +19,20 @@ CONN_SERVICE = 'org.freedesktop.ipcf.Connection'
 
 CHANNEL_INTERFACE = 'org.freedesktop.ipcf.Channel'
 TEXT_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.TextChannel'
+PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.PresenceChannel'
+
+INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.IndividualChannelInterface'
+GROUP_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.GroupChannelInterface'
+NAMED_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.NamedChannelInterface'
 
 class JabberChannel(dbus.service.Object):
     count = 0
 
-    def __init__(self, conn):
+    def __init__(self, conn, type):
         self.conn = conn
+        self.type = type
+        self.interfaces = set()
+        self.members = set()
         self.object_path = self.conn.object_path+'/channel'+str(JabberChannel.count)
         JabberChannel.count += 1
         dbus.service.Object.__init__(self, self.conn.bus_name, self.object_path)
@@ -39,29 +47,30 @@ class JabberChannel(dbus.service.Object):
 
     @dbus.service.method(CHANNEL_INTERFACE)
     def GetType(self):
-        assert(self.type != '')
-        return self.type
+        return dbus.String(self.type)
 
     @dbus.service.method(CHANNEL_INTERFACE)
     def GetInterfaces(self):
-        assert(self.interfaces != None)
-        return self.interfaces.keys()
+        return dbus.Array(self.interfaces, signature='s')
 
-class JabberTextChannel(JabberChannel):
-    def __init__(self, conn, interfaces):
-        JabberChannel.__init__(self, conn)
+    @dbus.service.method(CHANNEL_INTERFACE)
+    def GetMembers(self):
+        return dbus.Array(self.members, signature='s')
 
-        self.type = TEXT_CHANNEL_INTERFACE
-        self.interfaces = interfaces
+class IndividualInterface(object):
+    def __init__(self, recipient):
+        self.interfaces.add(INDIVIDUAL_CHANNEL_INTERFACE)
+        self.members.add(recipient)
+        self.recipient = recipient
+
+class JabberIMChannel(JabberChannel, IndividualInterface):
+    def __init__(self, conn, recipient):
+        JabberChannel.__init__(self, conn, TEXT_CHANNEL_INTERFACE)
+        IndividualInterface.__init__(self, recipient)
 
         self.send_id = 0
         self.recv_id = 0
         self.pending_messages = {}
-
-        for i in interfaces.keys():
-            if i == 'recipient':
-                self.recipient = interfaces[i]
-            print i, interfaces[i]
 
     def send_callback(self, id, text):
         msg = xmpp.protocol.Message(self.recipient, text)
@@ -73,7 +82,7 @@ class JabberTextChannel(JabberChannel):
         # todo: match by resource/subject if possible?
         # only handle message if it's for us
         sender = node.getFrom()
-        if not sender.bareMatch(self.interfaces['recipient']):
+        if not sender.bareMatch(self.recipient):
             return False
 
         id = self.recv_id
@@ -144,6 +153,7 @@ class JabberConnection(dbus.service.Object):
         self.channels = set()
         self.manager = manager
         self.password = conn_info['password']
+        self.roster = {}
 
         if conn_info.has_key('server'):
             if conn_info.has_key('port'):
@@ -186,14 +196,9 @@ class JabberConnection(dbus.service.Object):
         else:
             return False # stop running
 
-    def createChannel(self, type, interfaces):
-        if type == TEXT_CHANNEL_INTERFACE:
-            channel = JabberTextChannel(self, interfaces)
-            self.channels.add(channel)
-            self.NewChannel(type, channel.object_path)
-            return channel
-        else:
-            return None
+    def addChannel(self, channel):
+        self.channels.add(channel)
+        self.NewChannel(channel.type, channel.object_path)
 
     def disconnectHandler(self):
         if self.die:
@@ -210,14 +215,14 @@ class JabberConnection(dbus.service.Object):
         handled = False
 
         for chan in self.channels:
-            if chan.type == TEXT_CHANNEL_INTERFACE:
+            if isinstance(chan, JabberIMChannel):
                 handled = chan.receive_callback(node)
                 if handled:
                     break
 
         if not handled:
-            interfaces = {'recipient':node.getFrom()}
-            chan = self.createChannel(TEXT_CHANNEL_INTERFACE, interfaces)
+            chan = JabberIMChannel(self, node.getFrom())
+            self.addChannel(chan)
             chan.receive_callback(node)
 
     def presenceHandler(self, conn, node):
@@ -252,8 +257,14 @@ class JabberConnection(dbus.service.Object):
 
     @dbus.service.method(CONN_INTERFACE)
     def RequestChannel(self, type, interfaces):
-        chan = self.createChannel(type, interfaces)
+        chan = None
+
+        if type == TEXT_CHANNEL_INTERFACE:
+            if interfaces.keys() == [INDIVIDUAL_CHANNEL_INTERFACE]:
+                chan = JabberIMChannel(self, interfaces[INDIVIDUAL_CHANNEL_INTERFACE])
+
         if chan != None:
+            self.addChannel(chan)
             return chan.object_path
         else:
             raise IOError('Unknown channel type %s' % type)
