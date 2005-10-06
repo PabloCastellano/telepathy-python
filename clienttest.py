@@ -35,19 +35,40 @@ class TextChannel(Channel):
         self.text.connect_to_signal('Received', self.received_callback)
         self.doack = True
 
-    def received_callback(self, id, message):
-        print "Received", message
+        self._handled_pending_message = None
+        pending_messages = self.text.ListPendingMessages()
+        print pending_messages
+        for msg in pending_messages:
+            (id, timestamp, message) = msg
+            print "Handling pending message", id
+            self.received_callback(id, timestamp, message)
+            self._handled_pending_message = id
+
+    def received_callback(self, id, timestamp, message):
+        if self._handled_pending_message != None:
+            if id > self._handled_pending_message:
+                print "Now handling messages directly"
+                self._handled_pending_message = None
+            else:
+                print "Skipping already handled message", id
+                return
+
+        print "Received", id, timestamp, message
+        self.text.Send('got message ' + str(id) + '(' + message + ')')
         if self.doack:
-            print "Acknowledging.."
-            self.text.AckReceivedMessage(id)
+            print "Acknowledging...", id
+            self.text.AcknowledgePendingMessage(id)
 
 class Connection:
     def channel_callback(self, type, obj_path):
+        if self.channels.has_key(obj_path):
+            return
+
         print 'NewChannel', type, obj_path
+
         if type == TEXT_CHANNEL_INTERFACE:
             channel = TextChannel(self, obj_path)
-            self.channels.append(channel)
-            channel.text.Send('foo')
+            self.channels[obj_path] = channel
 
     def status_callback(self, status):
         if self.status == status:
@@ -55,8 +76,8 @@ class Connection:
         else:
             self.status = status
 
-        if status == 'connected':
-            obj_path = self.conn.RequestChannel(TEXT_CHANNEL_INTERFACE, {'recipient':'test2@localhost'})
+        #if status == 'connected':
+            #obj_path = self.conn.RequestChannel(TEXT_CHANNEL_INTERFACE, {'recipient':'test2@localhost'})
         if status == 'disconnected':
             self.mainloop.quit()
 
@@ -74,14 +95,23 @@ class Connection:
 
         self.conn_obj = self.bus.get_object(self.serv_name, obj_path)
         self.conn = dbus.Interface(self.conn_obj, CONN_INTERFACE)
-        self.channels = []
 
-        self.conn.connect_to_signal('NewChannel', self.channel_callback)
+        self.status = 'connecting'
         self.conn.connect_to_signal('StatusChanged', self.status_callback)
 
-        # handle race condition when connecting completes before this method completes
-        self.status = 'connecting'
+        # handle race condition when connecting completes before the
+        # status changed signal handler is registered
         self.status_callback(self.conn.GetStatus())
+
+        self.channels = {}
+        self.conn.connect_to_signal('NewChannel', self.channel_callback)
+
+        # handle race condition when a channel arrives before the new
+        # channel signature 
+        channels = self.conn.ListChannels()
+        for channel in channels:
+            (type, obj_path) = channel
+            self.channel_callback(type, obj_path)
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
