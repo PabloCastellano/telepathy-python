@@ -8,9 +8,6 @@ import gobject
 import signal
 import sys
 
-CHANNEL_INTERFACE = 'org.freedesktop.ipcf.Channel'
-TEXT_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.TextChannel'
-
 CONN_INTERFACE = 'org.freedesktop.ipcf.Connection'
 CONN_OBJECT = '/org/freedesktop/ipcf/Connection'
 CONN_SERVICE = 'org.freedesktop.ipcf.Connection'
@@ -19,7 +16,16 @@ CONN_MGR_INTERFACE = 'org.freedesktop.ipcf.ConnectionManager'
 CONN_MGR_OBJECT = '/org/freedesktop/ipcf/ConnectionManager'
 CONN_MGR_SERVICE = 'org.freedesktop.ipcf.ConnectionManager'
 
-class Channel:
+CHANNEL_INTERFACE = 'org.freedesktop.ipcf.Channel'
+TEXT_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.TextChannel'
+LIST_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.ListChannel'
+
+INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.IndividualChannelInterface'
+GROUP_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.GroupChannelInterface'
+NAMED_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.NamedChannelInterface'
+PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.PresenceChannelInterface'
+
+class Channel(object):
     def __init__(self, conn, obj_path):
         self.bus = conn.bus
         self.conn = conn
@@ -27,6 +33,10 @@ class Channel:
 
         self.chan_obj = self.bus.get_object(self.conn.serv_name, obj_path)
         self.chan = dbus.Interface(self.chan_obj, CHANNEL_INTERFACE)
+
+class ListChannel(Channel):
+    def __init__(self, conn, obj_path):
+        Channel.__init__(self, conn, obj_path)
 
 class TextChannel(Channel):
     def __init__(self, conn, obj_path):
@@ -66,9 +76,17 @@ class Connection:
 
         print 'NewChannel', type, obj_path
 
+        channel = None
+
         if type == TEXT_CHANNEL_INTERFACE:
             channel = TextChannel(self, obj_path)
+        elif type == LIST_CHANNEL_INTERFACE:
+            channel = ListChannel(self, obj_path)
+
+        if channel != None:
             self.channels[obj_path] = channel
+        else:
+            print 'Unknown channel type', type
 
     def status_callback(self, status):
         if self.status == status:
