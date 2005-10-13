@@ -73,74 +73,51 @@ class GroupInterface(object):
     def __init__(self):
         self.interfaces.add(GROUP_CHANNEL_INTERFACE)
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='as')
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE)
     def InviteMembers(self, members):
         pass
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='as')
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE)
     def RemoveMembers(self, members):
         pass
 
-    @dbus.service.signal(GROUP_CHANNEL_INTERFACE, signature='asas')
+    @dbus.service.signal(GROUP_CHANNEL_INTERFACE)
     def MembersChanged(self, added, removed):
         self.members.update(added)
         self.members.difference_update(removed)
-        pass
 
-class JabberRosterChannel(Channel, GroupInterface, PresenceInterface):
-    def __init__(self, conn):
-        Channel.__init__(self, conn, LIST_CHANNEL_INTERFACE)
-        GroupInterface.__init__(self)
-        PresenceInterface.__init__(self)
-
-    def InviteMembers(self, members):
-        print members
-
-class JabberIMChannel(Channel, IndividualInterface):
-    def __init__(self, conn, recipient):
-        Channel.__init__(self, conn, TEXT_CHANNEL_INTERFACE)
-        IndividualInterface.__init__(self, recipient)
+"""
+Base class for a simple TextChannel implementation.
+to use, override sendCallback to send a mesage,
+"""
+class TextChannel(Channel):
+    def __init__(self, connection):
+        Channel.__init__(self, connection, TEXT_CHANNEL_INTERFACE)
 
         self.send_id = 0
         self.recv_id = 0
         self.pending_messages = {}
 
-    def send_callback(self, id, text):
-        msg = xmpp.protocol.Message(self.recipient, text)
-        self.conn.client.send(msg)
+    def sendCallback(self, id, text):
+        pass
+
+    def stampMessage(self, id):
         timestamp = int(time.time())
         self.Sent(id, timestamp, text)
 
-    def messageHandler(self, node):
-        # todo: match by resource/subject if possible?
-        # only handle message if it's for us
-        sender = node.getFrom()
-        if not sender.bareMatch(self.recipient):
-            return False
-
+    def queueMessage(self, timestamp, text):
         id = self.recv_id
-        timestamp = int(time.time())
-        text = node.getBody()
         self.recv_id += 1
-
-        delaytime = node.getTimestamp()
-        if delaytime != None:
-            try:
-                tuple = time.strptime(delaytime, '%Y%m%dT%H:%M:%S')
-                timestamp = int(calendar.timegm(tuple))
-            except ValueError:
-                print "Delayed message timestamp %s invalid, using current time" % delaytime
 
         self.pending_messages[id] = (timestamp, text)
         self.Received(id, timestamp, text)
 
-        return True
 
     @dbus.service.method(TEXT_CHANNEL_INTERFACE)
     def Send(self, text):
         id = self.send_id
         self.send_id += 1
-        gobject.idle_add(self.send_callback, id, text)
+        gobject.idle_add(self.sendCallback, id, text)
         return id
 
     @dbus.service.method(TEXT_CHANNEL_INTERFACE)
@@ -159,7 +136,7 @@ class JabberIMChannel(Channel, IndividualInterface):
             message = (id, timestamp, text)
             messages.append(message)
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
-        return dbus.Array(messages, signature='(iis)h')
+        return dbus.Array(messages, signature='(iis)')
 
     @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
     def Sent(self, id, timestamp, text):
@@ -169,98 +146,27 @@ class JabberIMChannel(Channel, IndividualInterface):
     def Received(self, id, timestamp, text):
         print 'object_path: %s signal: Received %d %d %s' % (self.object_path, id, timestamp, text)
 
-class JabberConnection(dbus.service.Object):
-    def __init__(self, manager, account, conn_info):
-        self.jid = xmpp.protocol.JID(account)
-        if self.jid.getResource() == '':
-            self.jid.setResource('IPCF')
+"""
+Base class to implement a connection object. 
+override Disconnect to disconnect this connection
+override RequestChannel to create the reuested channel types, or IOError if not
+possible
+"""
 
-        parts = []
-        for j in ['jabber', self.jid.getDomain(), self.jid.getNode(), self.jid.getResource()]:
-            parts += j.split('.')[::-1]
-        self.service_name = '.'.join([CONN_SERVICE] + parts)
-        self.object_path = '/'.join([CONN_OBJECT] + parts)
+class Connection(dbus.service.Object):
+    def __init__(self, manager, name_parts):
+        self.service_name = '.'.join([CONN_SERVICE] + name_parts)
+        self.object_path = '/'.join([CONN_OBJECT] + name_parts)
         self.bus_name = dbus.service.BusName(self.service_name, bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, self.object_path)
 
         self.channels = set()
         self.lists = {}
         self.manager = manager
-        self.password = conn_info['password']
-
-        if conn_info.has_key('server'):
-            if conn_info.has_key('port'):
-                self.client = xmpp.client.Client(conn_info['server'], conn_info['port'])
-            else:
-                self.client = xmpp.client.Client(conn_info['server'])
-        else:
-            if conn_info.has_key('port'):
-                self.client = xmpp.client.Client(self.jid.getDomain(), conn_info['port'])
-            else:
-                self.client = xmpp.client.Client(self.jid.getDomain())
-
-        gobject.idle_add(self.connect)
-
-    def connect(self):
-        self.StatusChanged('connecting')
-
-        if not self.client.connect():
-            self.StatusChange('disconnected')
-
-        if not self.client.auth(self.jid.getNode(), self.password, self.jid.getResource()):
-            self.StatusChanged('disconnected')
-
-        self.client.RegisterDisconnectHandler(self.disconnectHandler)
-        self.client.RegisterHandler('iq', self.iqHandler)
-        self.client.RegisterHandler('message', self.messageHandler)
-        self.client.RegisterHandler('presence', self.presenceHandler)
-        self.client.sendInitPresence()
-
-        self.StatusChanged('connected')
-
-        gobject.idle_add(self.poll)
-
-        return False # run once
-
-    def poll(self):
-        if self.client.isConnected():
-            self.client.Process(0.01)
-            return True # keep running
-        else:
-            return False # stop running
 
     def addChannel(self, channel):
         self.channels.add(channel)
         self.NewChannel(channel.type, channel.object_path)
-
-    def disconnectHandler(self):
-        if self.die:
-            self.StatusChanged('disconnected')
-            gobject.idle_add(self.manager.disconnected, self)
-        else:
-            self.StatusChanged('connecting')
-            self.client.reconnectAndReauth()
-
-    def iqHandler(self, conn, node):
-        pass
-
-    def messageHandler(self, conn, node):
-        handled = False
-
-        for chan in self.channels:
-            if chan.has_key('messageHandler'):
-                handled = chan.messageHandler(node)
-                if handled:
-                    break
-
-        if not handled:
-            chan = JabberIMChannel(self, node.getFrom())
-            self.addChannel(chan)
-            chan.messageHandler(node)
-
-    def presenceHandler(self, conn, node):
-        print "presence", node
-        pass
 
     @dbus.service.signal(CONN_INTERFACE)
     def StatusChanged(self, status):
@@ -273,9 +179,7 @@ class JabberConnection(dbus.service.Object):
 
     @dbus.service.method(CONN_INTERFACE)
     def Disconnect(self):
-        print "Disconnect called"
-        self.die = True
-        self.client.disconnect()
+        self.disconnect()
 
     @dbus.service.signal(CONN_INTERFACE)
     def NewChannel(self, type, object_path):
@@ -291,31 +195,15 @@ class JabberConnection(dbus.service.Object):
 
     @dbus.service.method(CONN_INTERFACE)
     def RequestChannel(self, type, interfaces):
-        chan = None
+        raise IOError('Unknown channel type %s' % type)
 
-        if type == LIST_CHANNEL_INTERFACE:
-            pass
-#            if self.lists.has_key( == None:
-#                self.contact_list = JabberRosterChannel(self)
-#            chan = self.contact_list
-        if type == TEXT_CHANNEL_INTERFACE:
-            if interfaces.keys() == [INDIVIDUAL_CHANNEL_INTERFACE]:
-                chan = JabberIMChannel(self, interfaces[INDIVIDUAL_CHANNEL_INTERFACE])
-
-        if chan != None:
-            if not chan in self.channels:
-                self.addChannel(chan)
-            return chan.object_path
-        else:
-            raise IOError('Unknown channel type %s' % type)
-
-class JabberConnectionManager(dbus.service.Object):
+class ConnectionManager(dbus.service.Object):
     def __init__(self):
         self.bus_name = dbus.service.BusName(CONN_MGR_SERVICE+'.cheddar', bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/cheddar')
 
         self.connections = set()
-        self.protos = set(['jabber'])
+        self.protos = {}
 
     def __del__(self):
         print "explodes"
@@ -327,18 +215,14 @@ class JabberConnectionManager(dbus.service.Object):
 
     @dbus.service.method(CONN_MGR_INTERFACE)
     def ListProtocols(self):
-        return self.protos
+        return self.protos.keys()
 
     @dbus.service.method(CONN_MGR_INTERFACE)
     def Connect(self, proto, account, connect_info):
-        if proto in self.protos:
-            conn = JabberConnection(self, account, connect_info)
+        if self.protos.has_key(proto):
+            conn = self.protos[proto](self, account, connect_info)
             self.connections.add(conn)
             return (conn.service_name, conn.object_path)
         else:
             raise IOError('Unknown protocol %s' % (proto))
 
-if __name__ == '__main__':
-    manager = JabberConnectionManager()
-    mainloop = gobject.MainLoop()
-    mainloop.run()
