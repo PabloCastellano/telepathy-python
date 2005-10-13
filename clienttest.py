@@ -141,17 +141,17 @@ if __name__ == '__main__':
     mainloop = gobject.MainLoop()
     connection = Connection(mainloop, manager, protocol, account, {'password':pw})
 
-    def quit():
+    def quit_cb():
         connection.conn.Disconnect()
         mainloop.quit()
 
-    def handler():
-        mainloop.idle_add(quit)
+    def sigterm_cb():
+        gobject.idle_add(quit_cb)
 
-    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGTERM, sigterm_cb)
 
     while mainloop.is_running():
         try:
             mainloop.run()
         except KeyboardInterrupt:
-            quit()
+            quit_cb()
