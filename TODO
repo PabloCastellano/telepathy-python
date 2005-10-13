@@ -1,0 +1,17 @@
+new connection signal
+list channels for subscription, publish and privacy
+presence interface for reporting presence
+add sender names to Receive signals
+proof of concept logger
+setting of own presence
+registration of channel handlers to mission control
+named channel interface
+topic channel interface
+user id canonicalisation method
+versioned interfaces
+files on disk to discover available connection managers
+
+ponder:
+typing notification?
+editing/recieving vcards?
+jabber conferences?
