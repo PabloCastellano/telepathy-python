@@ -8,22 +8,22 @@ if getattr(dbus, 'version', (0,0,0)) >= (0,41,0):
 import gobject
 import time
 import xmpp
+
 import server
 
-
-class JabberRosterChannel(server.Channel, server.GroupInterface, server.PresenceInterface):
+class JabberRosterChannel(server.Channel, server.GroupChannelInterface, server.PresenceChannelInterface):
     def __init__(self, conn):
         server.Channel.__init__(self, conn, LIST_CHANNEL_INTERFACE)
-        server.GroupInterface.__init__(self)
-        server.PresenceInterface.__init__(self)
+        server.GroupChannelInterface.__init__(self)
+        server.PresenceChannelInterface.__init__(self)
 
     def InviteMembers(self, members):
         print members
 
-class JabberIMChannel(server.TextChannel, server.IndividualInterface):
+class JabberIMChannel(server.TextChannel, server.IndividualChannelInterface):
     def __init__(self, conn, recipient):
         server.TextChannel.__init__(self, conn)
-        server.IndividualInterface.__init__(self, recipient)
+        server.IndividualChannelInterface.__init__(self, recipient)
 
     def sendCallback(self, id, text):
         msg = xmpp.protocol.Message(self.recipient, text)

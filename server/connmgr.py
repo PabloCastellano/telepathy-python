@@ -23,6 +23,7 @@ INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.IndividualChannelInter
 GROUP_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.GroupChannelInterface'
 NAMED_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.NamedChannelInterface'
 PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.PresenceChannelInterface'
+SUBJECT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.SubjectChannelInterface'
 
 class Channel(dbus.service.Object):
     count = 0
@@ -57,17 +58,13 @@ class Channel(dbus.service.Object):
     def GetMembers(self):
         return dbus.Array(self.members, signature='s')
 
-class IndividualInterface(object):
+class IndividualChannelInterface(object):
     def __init__(self, recipient):
         self.interfaces.add(INDIVIDUAL_CHANNEL_INTERFACE)
         self.members.add(recipient)
         self.recipient = recipient
 
-class PresenceInterface(object):
-    def __init__(self):
-        self.interfaces.add(PRESENCE_CHANNEL_INTERFACE)
-
-class GroupInterface(object):
+class GroupChannelInterface(object):
     def __init__(self):
         self.interfaces.add(GROUP_CHANNEL_INTERFACE)
 
@@ -83,6 +80,18 @@ class GroupInterface(object):
     def MembersChanged(self, added, removed):
         self.members.update(added)
         self.members.difference_update(removed)
+
+class NamedChannelInterface(object):
+    def __init__(self):
+        self.interfaces.add(NAMED_CHANNEL_INTERFACE)
+
+class PresenceChannelInterface(object):
+    def __init__(self):
+        self.interfaces.add(PRESENCE_CHANNEL_INTERFACE)
+
+class SubjectChannelInterface(object):
+    def __init__(self):
+        self.interfaces.add(SUBJECT_CHANNEL_INTERFACE)
 
 """
 Base class for a simple TextChannel implementation.
