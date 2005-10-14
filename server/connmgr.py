@@ -101,7 +101,7 @@ class TextChannel(Channel):
     def sendCallback(self, id, text):
         pass
 
-    def stampMessage(self, id):
+    def stampMessage(self, id, text):
         timestamp = int(time.time())
         self.Sent(id, timestamp, text)
 
