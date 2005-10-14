@@ -100,8 +100,13 @@ class GroupChannelInterface(object):
         self.invited.difference_update(removed)
 
 class NamedChannelInterface(object):
-    def __init__(self):
+    def __init__(self, name):
         self.interfaces.add(NAMED_CHANNEL_INTERFACE)
+        self.name = name
+
+    @dbus.service.method(NAMED_CHANNEL_INTERFACE)
+    def GetName(self):
+        return self.name
 
 class PresenceChannelInterface(object):
     def __init__(self):
