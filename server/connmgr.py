@@ -113,8 +113,21 @@ class PresenceChannelInterface(object):
         self.interfaces.add(PRESENCE_CHANNEL_INTERFACE)
 
 class SubjectChannelInterface(object):
-    def __init__(self):
+    def __init__(self, subject):
         self.interfaces.add(SUBJECT_CHANNEL_INTERFACE)
+        self.subject = subject
+
+    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE)
+    def GetSubject(self):
+        return self.subject
+
+    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE)
+    def SetSubject(self, subject):
+        pass
+
+    @dbus.service.signal(SUBJECT_CHANNEL_INTERFACE)
+    def SubjectChanged(self, subject):
+        self.subject = subject
 
 """
 Base class for a simple TextChannel implementation.
