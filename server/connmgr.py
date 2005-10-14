@@ -262,5 +262,5 @@ class ConnectionManager(dbus.service.Object):
             raise IOError('Unknown protocol %s' % (proto))
 
     @dbus.service.signal(CONN_MGR_INTERFACE)
-    def NewConnection(self, service_name, object_path, proto, account)
+    def NewConnection(self, service_name, object_path, proto, account):
         pass

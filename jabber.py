@@ -70,7 +70,7 @@ class JabberConnection(server.Connection):
         for j in ['jabber', self.jid.getDomain(), self.jid.getNode(), self.jid.getResource()]:
             parts += j.split('.')[::-1]
 
-        server.Connection.__init__(self, manager, parts)
+        server.Connection.__init__(self, manager, 'jabber', account, parts)
 
         self.password = conn_info['password']
 
