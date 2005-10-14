@@ -1,30 +1,28 @@
 #!/usr/bin/env python
 
-import calendar
 import dbus
 import dbus.service
 if getattr(dbus, 'version', (0,0,0)) >= (0,41,0):
     import dbus.glib
 import gobject
 import time
-import xmpp
 
-CONN_MGR_INTERFACE = 'org.freedesktop.ipcf.ConnectionManager'
-CONN_MGR_OBJECT = '/org/freedesktop/ipcf/ConnectionManager'
-CONN_MGR_SERVICE = 'org.freedesktop.ipcf.ConnectionManager'
+CONN_MGR_INTERFACE = 'org.freedesktop.telepathy.ConnectionManager'
+CONN_MGR_OBJECT = '/org/freedesktop/telepathy/ConnectionManager'
+CONN_MGR_SERVICE = 'org.freedesktop.telepathy.ConnectionManager'
 
-CONN_INTERFACE = 'org.freedesktop.ipcf.Connection'
-CONN_OBJECT = '/org/freedesktop/ipcf/Connection'
-CONN_SERVICE = 'org.freedesktop.ipcf.Connection'
+CONN_INTERFACE = 'org.freedesktop.telepathy.Connection'
+CONN_OBJECT = '/org/freedesktop/telepathy/Connection'
+CONN_SERVICE = 'org.freedesktop.telepathy.Connection'
 
-CHANNEL_INTERFACE = 'org.freedesktop.ipcf.Channel'
-TEXT_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.TextChannel'
-LIST_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.ListChannel'
+CHANNEL_INTERFACE = 'org.freedesktop.telepathy.Channel'
+TEXT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.TextChannel'
+LIST_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.ListChannel'
 
-INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.IndividualChannelInterface'
-GROUP_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.GroupChannelInterface'
-NAMED_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.NamedChannelInterface'
-PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.PresenceChannelInterface'
+INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.IndividualChannelInterface'
+GROUP_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.GroupChannelInterface'
+NAMED_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.NamedChannelInterface'
+PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.PresenceChannelInterface'
 
 class Channel(dbus.service.Object):
     count = 0
@@ -112,7 +110,6 @@ class TextChannel(Channel):
         self.pending_messages[id] = (timestamp, text)
         self.Received(id, timestamp, text)
 
-
     @dbus.service.method(TEXT_CHANNEL_INTERFACE)
     def Send(self, text):
         id = self.send_id
@@ -149,8 +146,8 @@ class TextChannel(Channel):
 """
 Base class to implement a connection object. 
 override Disconnect to disconnect this connection
-override RequestChannel to create the reuested channel types, or IOError if not
-possible
+override RequestChannel to create the requested channel types,
+or IOError if not possible
 """
 
 class Connection(dbus.service.Object):

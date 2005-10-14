@@ -6,6 +6,7 @@ add sender names to Receive signals
 setting of own presence
 named channel interface
 subject channel interface
+error handling
 
 need to do at some point:
 account registration

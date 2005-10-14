@@ -38,9 +38,9 @@ class JabberIMChannel(server.TextChannel, server.IndividualInterface):
         sender = node.getFrom()
         if not sender.bareMatch(self.recipient):
             return False
-        
-        #ignore typing notifications et al
-        #todo, get active tag and check this properly
+
+        # ignore typing notifications et al
+        # todo, get active tag and check this properly
         if not node.getBody():
             return True
 

@@ -8,22 +8,22 @@ import gobject
 import signal
 import sys
 
-CONN_INTERFACE = 'org.freedesktop.ipcf.Connection'
-CONN_OBJECT = '/org/freedesktop/ipcf/Connection'
-CONN_SERVICE = 'org.freedesktop.ipcf.Connection'
+CONN_INTERFACE = 'org.freedesktop.telepathy.Connection'
+CONN_OBJECT = '/org/freedesktop/telepathy/Connection'
+CONN_SERVICE = 'org.freedesktop.telepathy.Connection'
 
-CONN_MGR_INTERFACE = 'org.freedesktop.ipcf.ConnectionManager'
-CONN_MGR_OBJECT = '/org/freedesktop/ipcf/ConnectionManager'
-CONN_MGR_SERVICE = 'org.freedesktop.ipcf.ConnectionManager'
+CONN_MGR_INTERFACE = 'org.freedesktop.telepathy.ConnectionManager'
+CONN_MGR_OBJECT = '/org/freedesktop/telepathy/ConnectionManager'
+CONN_MGR_SERVICE = 'org.freedesktop.telepathy.ConnectionManager'
 
-CHANNEL_INTERFACE = 'org.freedesktop.ipcf.Channel'
-TEXT_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.TextChannel'
-LIST_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.ListChannel'
+CHANNEL_INTERFACE = 'org.freedesktop.telepathy.Channel'
+TEXT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.TextChannel'
+LIST_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.ListChannel'
 
-INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.IndividualChannelInterface'
-GROUP_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.GroupChannelInterface'
-NAMED_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.NamedChannelInterface'
-PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.ipcf.PresenceChannelInterface'
+INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.IndividualChannelInterface'
+GROUP_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.GroupChannelInterface'
+NAMED_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.NamedChannelInterface'
+PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.PresenceChannelInterface'
 
 class Channel(object):
     def __init__(self, conn, obj_path):
