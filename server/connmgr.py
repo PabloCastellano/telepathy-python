@@ -178,7 +178,7 @@ or IOError if not possible
 """
 
 class Connection(dbus.service.Object):
-    def __init__(self, manager, name_parts):
+    def __init__(self, manager, proto, account, name_parts):
         self.service_name = '.'.join([CONN_SERVICE] + name_parts)
         self.object_path = '/'.join([CONN_OBJECT] + name_parts)
         self.bus_name = dbus.service.BusName(self.service_name, bus=dbus.SessionBus())
@@ -187,10 +187,20 @@ class Connection(dbus.service.Object):
         self.channels = set()
         self.lists = {}
         self.manager = manager
+        self.proto = proto
+        self.account = account
 
     def addChannel(self, channel):
         self.channels.add(channel)
         self.NewChannel(channel.type, channel.object_path)
+
+    @dbus.service.method(CONN_INTERFACE)
+    def GetProtocol(self):
+        return self.proto
+
+    @dbus.service.method(CONN_INTERFACE)
+    def GetAccount(self):
+        return self.account
 
     @dbus.service.signal(CONN_INTERFACE)
     def StatusChanged(self, status):
@@ -246,7 +256,11 @@ class ConnectionManager(dbus.service.Object):
         if self.protos.has_key(proto):
             conn = self.protos[proto](self, account, connect_info)
             self.connections.add(conn)
+            self.NewConnection(conn.service_name, conn.object_path, conn.proto, conn.account)
             return (conn.service_name, conn.object_path)
         else:
             raise IOError('Unknown protocol %s' % (proto))
 
+    @dbus.service.signal(CONN_MGR_INTERFACE)
+    def NewConnection(self, service_name, object_path, proto, account)
+        pass

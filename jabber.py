@@ -173,7 +173,7 @@ class JabberConnection(server.Connection):
 class JabberConnectionManager(server.ConnectionManager):
     def __init__(self):
         server.ConnectionManager.__init__(self)
-        self.protos['jabber']=JabberConnection
+        self.protos['jabber'] = JabberConnection
 
 if __name__ == '__main__':
     manager = JabberConnectionManager()
