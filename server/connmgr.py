@@ -231,7 +231,7 @@ class Connection(dbus.service.Object):
 
     @dbus.service.method(CONN_INTERFACE)
     def Disconnect(self):
-        self.disconnect()
+        pass
 
     @dbus.service.signal(CONN_INTERFACE)
     def NewChannel(self, type, object_path):

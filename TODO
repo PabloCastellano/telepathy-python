@@ -3,19 +3,19 @@ list channels for subscription, publish and privacy
 presence interface for reporting presence
 add sender names to Receive signals
 setting of own presence
-named channel interface
-subject channel interface
 error handling
 think about service/object naming conventions
+files on disk to discover available connection managers
+annotate methods/signatures with types
 
 need to do at some point:
 account registration
 password changing
 registration of channel handlers to mission control
 user id canonicalisation method
-files on disk to discover available connection managers
 nickname setting
 mapping people in chats to real identifiers
+user info
 
 nice to have:
 proof of concept logger
