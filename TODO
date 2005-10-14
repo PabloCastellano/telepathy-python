@@ -1,4 +1,6 @@
 spec essential:
+document methods
+give methods type signatures
 list channels for subscription, publish and privacy
 presence interface for reporting presence
 add sender names to Receive signals
