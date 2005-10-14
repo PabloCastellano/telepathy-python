@@ -250,9 +250,9 @@ class Connection(dbus.service.Object):
         raise IOError('Unknown channel type %s' % type)
 
 class ConnectionManager(dbus.service.Object):
-    def __init__(self):
-        self.bus_name = dbus.service.BusName(CONN_MGR_SERVICE+'.cheddar', bus=dbus.SessionBus())
-        dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/cheddar')
+    def __init__(self, name):
+        self.bus_name = dbus.service.BusName(CONN_MGR_SERVICE+'.'+name, bus=dbus.SessionBus())
+        dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/'+name')
 
         self.connections = set()
         self.protos = {}
