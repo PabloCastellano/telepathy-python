@@ -178,7 +178,7 @@ class TextChannel(Channel):
             message = (id, timestamp, text)
             messages.append(message)
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
-        return dbus.Array(messages, signature='(iis)')
+        return dbus.Array(messages, signature='(uus)')
 
     @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
     def Sent(self, id, timestamp, text):
