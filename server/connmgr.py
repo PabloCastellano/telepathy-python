@@ -67,6 +67,8 @@ class IndividualChannelInterface(object):
 class GroupChannelInterface(object):
     def __init__(self):
         self.interfaces.add(GROUP_CHANNEL_INTERFACE)
+        self.requested = set()
+        self.invited = set()
 
     @dbus.service.method(GROUP_CHANNEL_INTERFACE)
     def InviteMembers(self, members):
@@ -76,10 +78,26 @@ class GroupChannelInterface(object):
     def RemoveMembers(self, members):
         pass
 
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE)
+    def GetRequestedMembers(self):
+        return requested
+
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE)
+    def GetInvitedMembers(self):
+        return invited
+
     @dbus.service.signal(GROUP_CHANNEL_INTERFACE)
-    def MembersChanged(self, added, removed):
+    def MembersChanged(self, added, removed, requested, invited):
         self.members.update(added)
         self.members.difference_update(removed)
+
+        self.requested.update(requested)
+        self.requested.difference_update(added)
+        self.requested.difference_update(removed)
+
+        self.invited.update(invited)
+        self.invited.difference_update(added)
+        self.invited.difference_update(removed)
 
 class NamedChannelInterface(object):
     def __init__(self):
