@@ -60,7 +60,7 @@ class JabberConnection(server.Connection):
     def __init__(self, manager, account, conn_info):
         self.jid = xmpp.protocol.JID(account)
         if self.jid.getResource() == '':
-            self.jid.setResource('IPCF')
+            self.jid.setResource('Telepathy')
 
         parts = []
         for j in ['jabber', self.jid.getDomain(), self.jid.getNode(), self.jid.getResource()]:

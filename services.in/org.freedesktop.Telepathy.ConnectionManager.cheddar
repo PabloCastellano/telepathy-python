@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.freedesktop.Telepathy.ConnectionManager.cheddar
+Exec=@EXEC_DIR@/cheddar.py
