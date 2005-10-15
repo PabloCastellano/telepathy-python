@@ -19,6 +19,8 @@ user id canonicalisation method
 nickname setting
 mapping people in chats to real identifiers
 user info
+list of protocol identifiers
+list of sugggested parameters
 
 nice to have:
 proof of concept logger
