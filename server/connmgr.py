@@ -251,9 +251,10 @@ class TextChannel(Channel):
         timestamp = int(time.time())
         self.Sent(id, timestamp, text)
 
-    def queueMessage(self, timestamp, text):
+    def queueMessage(self, timestamp, sender, text):
         """
-        Place a message into the messagequeue with the given timestamp,
+        Place a message 'text' from 'sender' 
+        into the messagequeue with the given timestamp,
         and signal it as received
         """
         id = self.recv_id
@@ -311,11 +312,11 @@ class TextChannel(Channel):
         """
         print 'object_path: %s signal: Sent %d %d %s' % (self.object_path, id, timestamp, text)
 
-    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, sigature="uus")
-    def Received(self, id, timestamp, text):
+    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature="uuss")
+    def Received(self, id, timestamp, sender, text):
         """
-        Signals that a message with the given id, timestamp and text has 
-        been received on the parent connection.
+        Signals that a message with the given id, timestamp, sender and text 
+        has been received on the parent connection.
 
         Applications that catch this signal and reliably inform the user should
         acknowledge that they have dealt with the message.

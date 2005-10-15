@@ -55,8 +55,8 @@ class JabberIMChannel(server.TextChannel, server.IndividualChannelInterface):
                 print "Delayed message timestamp %s invalid, using current time" % delaytime
 
         text = node.getBody()
-        print "queuingMessage", timestamp, text
-        self.queueMessage(timestamp, text)
+        print "queuingMessage", timestamp, sender, text
+        self.queueMessage(timestamp, sender, text)
 
         return True
 
