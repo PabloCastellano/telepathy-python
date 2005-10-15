@@ -428,8 +428,8 @@ class Connection(dbus.service.Object):
             ret.append(chan)
         return dbus.Array(ret, signature='(ss)')
 
-    @dbus.service.method(CONN_INTERFACE, in_signature="sasa{sv}}",out_signature="s")
-    def RequestChannel(self, type, interfaces, params):
+    @dbus.service.method(CONN_INTERFACE, in_signature='sa{sv}', out_signature='o')
+    def RequestChannel(self, type, interfaces):
         """
         Attempt to create a new channel.
     
