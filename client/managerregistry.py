@@ -37,14 +37,18 @@ Clients should use the Proto sections to query the user for necessary informatoi
 
 Telepathy defines a common subset of paramter names to facilitate GUI design.
 
-server - a fully qualified domain name or numeric IPv4 or IPv6 address. Using the fully-qualified domain name form is RECOMMENDED whenever possible. If this paramter is specified and the user id for that service also specifies a server, this parameter should override that in the user id.
+s:server - a fully qualified domain name or numeric IPv4 or IPv6 address. Using the fully-qualified domain name form is RECOMMENDED whenever possible. If this paramter is specified and the user id for that service also specifies a server, this parameter should override that in the user id.
 
-port - a TCP or UDP port number. If this paramter is specified and the user id for that service also specifies a port, this parameter should override that in the user id.
+q:port - a TCP or UDP port number. If this paramter is specified and the user id for that service also specifies a port, this parameter should override that in the user id.
 
-password - A password associated with the user. 
+s:password - A password associated with the user. 
 
-proxy-server - a uri for a proxyserver to use for this connection
+s:proxy-server - a uri for a proxyserver to use for this connection
 
+b:require-encryption - require encryption for this connection. A connection 
+should fail if require-encryption is set and encryption is not possible.
+
+UIs should display any default values, but should *not* store them.
 """
 
 class ManagerRegistry:
