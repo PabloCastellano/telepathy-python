@@ -1,9 +1,8 @@
 spec essential:
 RobT TODO:
-document methods
-give methods type signatures
 files on disk to discover available connection managers
 add sender names to Receive signals
+draw sequence diagrams
 
 RobM TODO:
 list channels for subscription, publish and privacy
