@@ -2,6 +2,51 @@ import ConfigParser, os
 import dircache
 import dbus
 
+"""
+The registry of managers takes the form of any number of .manager files, which
+are searched for in /usr/share/telepathy/services or in ~/.telepathy.
+
+.manager files should have an initial stanza of the form:
+
+[ConnectionManager]
+Name = value
+ServiceName = value
+ManagerObject = value
+
+
+where:
+'Name' field sets the name of connection manager.
+'ServiceName' sets the DBus bus name of this connetion manager.
+'ManagerObject' sets the Dbus object path to the ConnectionManager object under this service.
+
+Then any number of proctol support declarators of the form:
+
+[Proto (name of supported protocol)]
+MandatoryParams = list of values
+OptionalParams = list of values
+default-(paramater name) = value
+
+Where:
+MandatoryParams is a comma-seperated list of mandatory parameters that must be passed to Connections created by this ConnectionManager for this protocol. Each should be of the form dbus type signature:name, eg s:password, indicating a paramater called 'password' of type string.
+OptionalParams is a comma-separated list of optional params, of same form as MandatoryParams.
+default-(paramater name) sets the default value for that parameter. e.g. default-port=522 sets te default value of the 'port' parameter to 522.
+ 
+All connection managers should register as activatable dbus services. They should also close themselves down after an idle time with no open connections.
+
+Clients should use the Proto sections to query the user for necessary informatoin.
+
+Telepathy defines a common subset of paramter names to facilitate GUI design.
+
+server - a fully qualified domain name or numeric IPv4 or IPv6 address. Using the fully-qualified domain name form is RECOMMENDED whenever possible. If this paramter is specified and the user id for that service also specifies a server, this parameter should override that in the user id.
+
+port - a TCP or UDP port number. If this paramter is specified and the user id for that service also specifies a port, this parameter should override that in the user id.
+
+password - A password associated with the user. 
+
+proxy-server - a uri for a proxyserver to use for this connection
+
+"""
+
 class ManagerRegistry:
     def __init__(self):
         self.services = {}
