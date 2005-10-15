@@ -38,7 +38,7 @@ class Channel(dbus.service.Object):
         connection - the parent Connection object
         type - 
         """
-        self.conn = conn
+        self.conn = connection
         self.object_path = self.conn.object_path+'/channel'+str(Channel.count)
         Channel.count += 1
         dbus.service.Object.__init__(self, self.conn.bus_name, self.object_path)
