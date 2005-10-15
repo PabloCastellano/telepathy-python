@@ -1,0 +1,12 @@
+[ConnectionManager]
+Name = cheddar
+ServiceName = org.freedesktop.telepathy.ConnectionManager.cheddar
+ManagerObject = /org/freedesktop/telepathy/ConnectionManager/cheddar
+
+[jabber]
+MandatoryParams = s:password
+OptionalParams  = s:server, q:port
+default-port = 522
+
+
+

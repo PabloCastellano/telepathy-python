@@ -8,6 +8,8 @@ import gobject
 import signal
 import sys
 
+import client
+
 CONN_INTERFACE = 'org.freedesktop.telepathy.Connection'
 CONN_OBJECT = '/org/freedesktop/telepathy/Connection'
 CONN_SERVICE = 'org.freedesktop.telepathy.Connection'
@@ -132,19 +134,32 @@ class Connection:
             self.channel_callback(type, obj_path)
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        manager = sys.argv[1]
-    else:
-        manager = raw_input('Manager [cheddar]: ')
-        if manager == '':
-            manager = 'cheddar'
+   
+    reg = client.ManagerRegistry()
+    reg.LoadManagers()
 
-    if len(sys.argv) > 2:
-        protocol = sys.argv[2]
-    else:
-        protocol = raw_input('Protocol [jabber]: ')
-        if protocol == '':
-            protocol = 'jabber'
+    protocol=''
+    protos=reg.GetProtos()
+
+    while (protocol not in protos):
+        if len(sys.argv) > 2:
+            protocol = sys.argv[2]
+        else:
+            protocol = raw_input('Protocol (one of %s) [%s]: ' % (join(protos," "),protos[0])
+            if protocol == '':
+                protocol = protos[0]
+
+    manager=''
+    managers=reg.GetManagers(protocol)
+    
+    while (manager not in managers):
+        if len(sys.argv) > 1:
+            manager = sys.argv[1]
+        else:
+            manager = raw_input('Manager (one of %s) [%s]: ' % (join(managers," "),managers[0])
+            if manager == '':
+                manager = managers[0]
+
 
     if len(sys.argv) > 3:
         account = sys.argv[3]
