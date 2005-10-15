@@ -52,7 +52,7 @@ class JabberIMChannel(server.TextChannel, server.IndividualChannelInterface):
 
         text = node.getBody()
         print "queuingMessage", timestamp, sender, text
-        self.queueMessage(timestamp, sender, text)
+        self.queueMessage(timestamp, sender.getStripped(), text)
 
         return True
 

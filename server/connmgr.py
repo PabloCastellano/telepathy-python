@@ -260,8 +260,8 @@ class TextChannel(Channel):
         id = self.recv_id
         self.recv_id += 1
 
-        self.pending_messages[id] = (timestamp, text)
-        self.Received(id, timestamp, text)
+        self.pending_messages[id] = (timestamp, sender, text)
+        self.Received(id, timestamp, sender, text)
 
     @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature="s", out_signature="u")
     def Send(self, text):
@@ -294,15 +294,15 @@ class TextChannel(Channel):
         """
         List the messages currently in the pending queue.
 
-        Returns an array of structs conataining (id, timestamp, text)
+        Returns an array of structs conataining (id, timestamp, sender, text)
         """
         messages = []
         for id in self.pending_messages.keys():
-            (timestamp, text) = self.pending_messages[id]
-            message = (id, timestamp, text)
+            (timestamp, sender, text) = self.pending_messages[id]
+            message = (id, timestamp, sender, text)
             messages.append(message)
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
-        return dbus.Array(messages, signature='(uus)')
+        return dbus.Array(messages, signature='(uuss)')
 
     @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature="uus")
     def Sent(self, id, timestamp, text):
@@ -321,8 +321,7 @@ class TextChannel(Channel):
         Applications that catch this signal and reliably inform the user should
         acknowledge that they have dealt with the message.
         """
-        print 'object_path: %s signal: Received %d %d %s' % (self.object_path, id, timestamp, text)
-
+        print 'object_path: %s signal: Received %d %d %s %s' % (self.object_path, id, timestamp, sender, text)
 
 class Connection(dbus.service.Object):
     """

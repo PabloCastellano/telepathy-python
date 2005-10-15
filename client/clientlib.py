@@ -49,12 +49,12 @@ class TextChannel(Channel):
         pending_messages = self.text.ListPendingMessages()
         print pending_messages
         for msg in pending_messages:
-            (id, timestamp, message) = msg
+            (id, timestamp, sender, message) = msg
             print "Handling pending message", id
-            self.received_callback(id, timestamp, message)
+            self.received_callback(id, timestamp, sender, message)
             self._handled_pending_message = id
 
-    def received_callback(self, id, timestamp, message):
+    def received_callback(self, id, timestamp, sender, message):
         if self._handled_pending_message != None:
             if id > self._handled_pending_message:
                 print "Now handling messages directly"
@@ -63,7 +63,7 @@ class TextChannel(Channel):
                 print "Skipping already handled message", id
                 return
 
-        print "Received", id, timestamp, message
+        print "Received", id, timestamp, sender, message
         self.text.Send('got message ' + str(id) + '(' + message + ')')
         if self.doack:
             print "Acknowledging...", id
