@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
 import calendar
-import dbus
-import dbus.service
-if getattr(dbus, 'version', (0,0,0)) >= (0,41,0):
-    import dbus.glib
 import gobject
 import time
 import xmpp
