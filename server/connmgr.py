@@ -26,9 +26,18 @@ PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.PresenceChannelInterface
 SUBJECT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.SubjectChannelInterface'
 
 class Channel(dbus.service.Object):
+    """
+    Base type for all Channels.
+    """
     count = 0
 
-    def __init__(self, conn, type):
+    def __init__(self, connection, type):
+        """
+        Channel constructor. 
+        Paramters:
+        connection - the parent Connection object
+        type - 
+        """
         self.conn = conn
         self.object_path = self.conn.object_path+'/channel'+str(Channel.count)
         Channel.count += 1
@@ -38,56 +47,116 @@ class Channel(dbus.service.Object):
         self.interfaces = set()
         self.members = set()
 
-    @dbus.service.method(CHANNEL_INTERFACE)
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature="", out_signature="")
     def Close(self):
+        """ Close this channel. """
         pass
 
-    @dbus.service.signal(CHANNEL_INTERFACE)
+    @dbus.service.signal(CHANNEL_INTERFACE, signature="")
     def Closed(self):
+        """ Emitted when this channel is closed. """
         print 'object_path: %s signal: Closed' % (self.object_path)
 
-    @dbus.service.method(CHANNEL_INTERFACE)
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature="", out_signature="s")
     def GetType(self):
+        """ Returns an interface name for the type of this channel """
         return dbus.String(self.type)
 
-    @dbus.service.method(CHANNEL_INTERFACE)
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature="", out_signature="as")
     def GetInterfaces(self):
+        """ 
+        Get the interfaces this channel implements.
+    
+        returns an array of interface names.
+        """
         return dbus.Array(self.interfaces, signature='s')
 
-    @dbus.service.method(CHANNEL_INTERFACE)
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature="", out_signature="as")
     def GetMembers(self):
+        """ Returns an array of identifiers for the members of this channel."""
         return dbus.Array(self.members, signature='s')
 
 class IndividualChannelInterface(object):
+    """ 
+    A mixin that implements channels that have only
+    you and another as members.
+    implemented by dbus interface 
+    org.freedesktop.telepathy.IndividualChannelInterface
+    """
     def __init__(self, recipient):
+        """
+        recipient parameter is an identifier for the other member of 
+        the channel
+        """
         self.interfaces.add(INDIVIDUAL_CHANNEL_INTERFACE)
         self.members.add(recipient)
         self.recipient = recipient
 
 class GroupChannelInterface(object):
+    """
+    Interface for channels which have multiple members.
+
+    implemented by dbus interface
+    org.freedesktop.telepathy.GroupChannelInterface
+
+    Channels implementing this interface may have multiple members.
+    If a  contact is in the channel, they may have the states:
+    Invited - they were invited to the channel, but have not yet accepted the 
+              invitation.
+    Requested - they requested membership of the channel, but the request has
+                not yet been granted.
+    Present - they are currently present in the channel
+
+    If a contact accepts an invitation, this is signalled by that contact going
+    from Invited to Present.
+    If the user wishes to acknowlege a Requested contact, they simply invite 
+    them and they will become Present. If they wish do decline a request, they
+    remove that member from the channel
+    If the user opens a groupchannel which they need to request membership of, 
+    they will be placed in the Requested state and be unable to send messages
+    until an authorizing party acknowledges their rewuest, at wich pouint they 
+    will transition to Present.
+    """
+ 
     def __init__(self):
         self.interfaces.add(GROUP_CHANNEL_INTERFACE)
         self.requested = set()
         self.invited = set()
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE)
-    def InviteMembers(self, members):
-        pass
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature="as", out_signature="")
+    def InviteMembers(self, contacts):
+        """ Invite all the contacts in contacts into the channel 
+        """
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE)
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signatiure="as", out_signature="")
     def RemoveMembers(self, members):
+        """
+        Requests the removal of members from a channel
+        """
         pass
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE)
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature="", out_signature="as")
     def GetRequestedMembers(self):
+        """ Returns an array of the currently requested members"""
         return requested
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE)
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature="", out_signature="as")
     def GetInvitedMembers(self):
+        """ Returns an array of the currently invited members"""
         return invited
 
-    @dbus.service.signal(GROUP_CHANNEL_INTERFACE)
+    @dbus.service.signal(GROUP_CHANNEL_INTERFACE, signature="asasasas")
     def MembersChanged(self, added, removed, requested, invited):
+        """
+        Emitted when members change state.
+
+        members in added became Present
+        members in removed left the channel (and hence are no longer
+        Present, Requested or Invited)
+        members in requested became Requested
+        members in invited became Invited
+        """
+
         self.members.update(added)
         self.members.difference_update(removed)
 
@@ -100,38 +169,63 @@ class GroupChannelInterface(object):
         self.invited.difference_update(removed)
 
 class NamedChannelInterface(object):
+    """
+    Interface for channels which have an immutable name
+
+    Implemented by dbus interface
+    org.freedesktop.telepathy.NamedChannelInterface
+    """
     def __init__(self, name):
+        """ name is the immutable name of this channel. """
         self.interfaces.add(NAMED_CHANNEL_INTERFACE)
         self.name = name
 
-    @dbus.service.method(NAMED_CHANNEL_INTERFACE)
+    @dbus.service.method(NAMED_CHANNEL_INTERFACE, in_signature="", out_signature="s")
     def GetName(self):
+        """ Get the immutable name of this channel. """
         return self.name
 
 class PresenceChannelInterface(object):
+    """ 
+    Interface for channels that can signal presence changes
+
+    Implemented by dbus interface
+    org.freedesktop.telepathy.NamedChannelInterface
+    """
     def __init__(self):
         self.interfaces.add(PRESENCE_CHANNEL_INTERFACE)
 
 class SubjectChannelInterface(object):
+    """ 
+    Interface for channels that have a modifiable subject or topic
+
+    Implemented by dbus interface
+    org.freedesktop.telepathy.SubjectChannelInterface
+    """
     def __init__(self, subject):
+        """ subject is a string for the initial subject of the channel"""
         self.interfaces.add(SUBJECT_CHANNEL_INTERFACE)
         self.subject = subject
 
-    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE)
+    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE, in_signature="", out_signature="s")
     def GetSubject(self):
+        """ Get this channel's current subject. """
         return self.subject
 
-    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE)
-    def SetSubject(self, subject):
+    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE, in_signature="s", out_signature="")
+    def SetSubject(self, subject)
+        """ Set this channels subject."""
         pass
 
-    @dbus.service.signal(SUBJECT_CHANNEL_INTERFACE)
+    @dbus.service.signal(SUBJECT_CHANNEL_INTERFACE, signature="s")
     def SubjectChanged(self, subject):
+        """ Emitted when the subject changes. """
         self.subject = subject
 
 """
 Base class for a simple TextChannel implementation.
-to use, override sendCallback to send a mesage,
+to use,  mixin the appropriate interfaces and
+override sendCallback to send a mesage,
 """
 class TextChannel(Channel):
     def __init__(self, connection):
