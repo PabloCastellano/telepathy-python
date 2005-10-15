@@ -128,7 +128,7 @@ class GroupChannelInterface(object):
         """ Invite all the contacts in contacts into the channel 
         """
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signatiure="as", out_signature="")
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature="as", out_signature="")
     def RemoveMembers(self, members):
         """
         Requests the removal of members from a channel
@@ -213,7 +213,7 @@ class SubjectChannelInterface(object):
         return self.subject
 
     @dbus.service.method(SUBJECT_CHANNEL_INTERFACE, in_signature="s", out_signature="")
-    def SetSubject(self, subject)
+    def SetSubject(self, subject):
         """ Set this channels subject."""
         pass
 
@@ -303,7 +303,7 @@ class TextChannel(Channel):
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
         return dbus.Array(messages, signature='(uus)')
 
-    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature="uus"))
+    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature="uus")
     def Sent(self, id, timestamp, text):
         """
         Signals that a message with the given id, timestamp and text has 
@@ -362,7 +362,7 @@ class Connection(dbus.service.Object):
         self.channels.add(channel)
         self.NewChannel(channel.type, channel.object_path)
 
-    @dbus.service.method(CONN_INTERFACE, in_signatures="",out_signature="s")
+    @dbus.service.method(CONN_INTERFACE, in_signature="",out_signature="s")
     def GetProtocol(self):
         """
         Get the protocol this connection is using
@@ -460,7 +460,7 @@ class ConnectionManager(dbus.service.Object):
         with this object as /org/freedesktop/telepathy/ConnectionManager/name
         """
         self.bus_name = dbus.service.BusName(CONN_MGR_SERVICE+'.'+name, bus=dbus.SessionBus())
-        dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/'+name')
+        dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/'+name)
 
         self.connections = set()
         self.protos = {}
