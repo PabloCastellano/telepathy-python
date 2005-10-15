@@ -1,6 +1,5 @@
 spec essential:
 RobT TODO:
-files on disk to discover available connection managers (20min)
 draw sequence diagrams (2hrs)
 SDP channel spec (sip connmgr prototyping?) (1hr)
 
