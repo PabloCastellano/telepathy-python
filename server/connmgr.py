@@ -222,13 +222,20 @@ class SubjectChannelInterface(object):
         """ Emitted when the subject changes. """
         self.subject = subject
 
-"""
-Base class for a simple TextChannel implementation.
-to use,  mixin the appropriate interfaces and
-override sendCallback to send a mesage,
-"""
 class TextChannel(Channel):
+    """
+    Base class for Text type Channel implementation.
+    to use,  mixin the appropriate interfaces and
+    override sendCallback to send a mesage,
+
+    If a message has been received on a text channel, a 'Received' signal is
+    emitted and the message is placed in a pending queue. Any appliaction that
+    has reliably informed the user of that message can then acknowledge that
+    pending message with its ID. The message will then be removed from the
+    pending queue.
+    """
     def __init__(self, connection):
+        """ connection is the parent telepathy Connection object """
         Channel.__init__(self, connection, TEXT_CHANNEL_INTERFACE)
 
         self.send_id = 0
@@ -236,36 +243,58 @@ class TextChannel(Channel):
         self.pending_messages = {}
 
     def sendCallback(self, id, text):
+        """ Ovveride this stub to send a message over the parent Connection. """
         pass
 
     def stampMessage(self, id, text):
+        """Stamp a message's timestamp signal it as sent"""
         timestamp = int(time.time())
         self.Sent(id, timestamp, text)
 
     def queueMessage(self, timestamp, text):
+        """
+        Place a message into the messagequeue with the given timestamp,
+        and signal it as received
+        """
         id = self.recv_id
         self.recv_id += 1
 
         self.pending_messages[id] = (timestamp, text)
         self.Received(id, timestamp, text)
 
-    @dbus.service.method(TEXT_CHANNEL_INTERFACE)
+    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature="s", out_signature="u")
     def Send(self, text):
+        """ 
+        Send a message on this channel.
+        
+        Returns a numeric id for the message
+        """
         id = self.send_id
         self.send_id += 1
         gobject.idle_add(self.sendCallback, id, text)
         return id
 
-    @dbus.service.method(TEXT_CHANNEL_INTERFACE)
+    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature="u", out_signature="b")
     def AcknowledgePendingMessage(self, id):
+        """
+        Inform the channel that you have responsibly dealt with a pending 
+        message id
+
+        Returns true if message was pending, false if the id was unknown
+        """
         if self.pending_messages.has_key(id):
             del self.pending_messages[id]
             return True
         else:
             return False
-
-    @dbus.service.method(TEXT_CHANNEL_INTERFACE)
+    
+    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature="", out_signature="a(uus)")
     def ListPendingMessages(self):
+        """
+        List the messages currently in the pending queue.
+
+        Returns an array of structs conataining (id, timestamp, text)
+        """
         messages = []
         for id in self.pending_messages.keys():
             (timestamp, text) = self.pending_messages[id]
@@ -274,22 +303,33 @@ class TextChannel(Channel):
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
         return dbus.Array(messages, signature='(uus)')
 
-    @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
+    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature="uus"))
     def Sent(self, id, timestamp, text):
+        """
+        Signals that a message with the given id, timestamp and text has 
+        been sent on the parent connection.
+        """
         print 'object_path: %s signal: Sent %d %d %s' % (self.object_path, id, timestamp, text)
 
-    @dbus.service.signal(TEXT_CHANNEL_INTERFACE)
+    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, sigature="uus")
     def Received(self, id, timestamp, text):
+        """
+        Signals that a message with the given id, timestamp and text has 
+        been received on the parent connection.
+
+        Applications that catch this signal and reliably inform the user should
+        acknowledge that they have dealt with the message.
+        """
         print 'object_path: %s signal: Received %d %d %s' % (self.object_path, id, timestamp, text)
 
-"""
-Base class to implement a connection object. 
-override Disconnect to disconnect this connection
-override RequestChannel to create the requested channel types,
-or IOError if not possible
-"""
 
 class Connection(dbus.service.Object):
+    """
+    Base class to implement a connection object. 
+    override Disconnect to disconnect this connection
+    override RequestChannel to create the requested channel types,
+    or IOError if not possible
+    """
     def __init__(self, manager, proto, account, name_parts):
         self.service_name = '.'.join([CONN_SERVICE] + name_parts)
         self.object_path = '/'.join([CONN_OBJECT] + name_parts)
