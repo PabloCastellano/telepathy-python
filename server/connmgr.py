@@ -325,12 +325,27 @@ class TextChannel(Channel):
 
 class Connection(dbus.service.Object):
     """
-    Base class to implement a connection object. 
+    Base class to implement org.freedesktop.telepathy.Connection. 
+
+    This models a connection to a single user account on a communication
+    service. Its basic capability is to create channels on which to communicate.
+
+    Other interfaces may also be added for conncetion services that provide
+    extra connection-wide functionality. (eg ???)
+
     override Disconnect to disconnect this connection
     override RequestChannel to create the requested channel types,
-    or IOError if not possible
+
     """
     def __init__(self, manager, proto, account, name_parts):
+        """
+        parameters:
+        manager - the Telepathy ConectionManager that created this Connection.
+        proto - the name of the protcol this conection should be handling. 
+        account - a protocol-specific account name
+        name_parts - a list of strings with which to form the service and      
+        object names.
+        """
         self.service_name = '.'.join([CONN_SERVICE] + name_parts)
         self.object_path = '/'.join([CONN_OBJECT] + name_parts)
         self.bus_name = dbus.service.BusName(self.service_name, bus=dbus.SessionBus())
@@ -343,48 +358,107 @@ class Connection(dbus.service.Object):
         self.account = account
 
     def addChannel(self, channel):
+        """ add a new channel and signal its creation""" 
         self.channels.add(channel)
         self.NewChannel(channel.type, channel.object_path)
 
-    @dbus.service.method(CONN_INTERFACE)
+    @dbus.service.method(CONN_INTERFACE, in_signatures="",out_signature="s")
     def GetProtocol(self):
+        """
+        Get the protocol this connection is using
+        
+        returns the name of the protocol as a string
+        """
         return self.proto
 
-    @dbus.service.method(CONN_INTERFACE)
+    @dbus.service.method(CONN_INTERFACE, in_signature="", out_signature="s")
     def GetAccount(self):
+        """
+        Get the acount this connection is using
+        """
         return self.account
 
-    @dbus.service.signal(CONN_INTERFACE)
+    @dbus.service.signal(CONN_INTERFACE, signature="s")
     def StatusChanged(self, status):
+        """ 
+        Emitted when the status of the connection changes with a string
+        indicating the new state
+        TODO: list of basic states?
+        """
         print 'service_name: %s object_path: %s signal: StatusChanged %s' % (self.service_name, self.object_path, status)
         self.status = status
 
-    @dbus.service.method(CONN_INTERFACE)
+    @dbus.service.method(CONN_INTERFACE, in_signature="", out_signature="s")
     def GetStatus(self):
+        """ Get the current status """
         return self.status
 
-    @dbus.service.method(CONN_INTERFACE)
+    @dbus.service.method(CONN_INTERFACE, in_signature="", out_signature="")
     def Disconnect(self):
+        """ 
+        Stub handler. Overridden in concrete subclasses to disconnect the
+        connection.
+        """
         pass
 
-    @dbus.service.signal(CONN_INTERFACE)
+    @dbus.service.signal(CONN_INTERFACE, signature="ss")
     def NewChannel(self, type, object_path):
+        """
+        Emitted when a new Channel object is created, either through
+        user request or from the service delivering a message which 
+        maps to no current channel
+        type is a dbus interface name for the basic type of the new channel
+        object_path is the dbus object path where the new channel can be found
+        on this dbus connection.
+        """
         print 'service_name: %s object_path: %s signal: NewChannel %s %s' % (self.service_name, self.object_path, type, object_path)
 
-    @dbus.service.method(CONN_INTERFACE)
+    @dbus.service.method(CONN_INTERFACE, in_signature="", out_signature="a(ss)")
     def ListChannels(self):
+        """
+        List all the channels currently availaible on this connection.
+        Returns an array of (channel type, channel object_path) where type is a
+        dbus interface name for the basic type of the new channel and 
+        object_path is the dbus object path where the new channel can be found.
+         """
         ret = []
         for channel in self.channels:
             chan = (channel.type, channel.object_path)
             ret.append(chan)
         return dbus.Array(ret, signature='(ss)')
 
-    @dbus.service.method(CONN_INTERFACE)
-    def RequestChannel(self, type, interfaces):
+    @dbus.service.method(CONN_INTERFACE, in_signature="sasa{sv}}",out_signature="s")
+    def RequestChannel(self, type, interfaces, params):
+        """
+        Attempt to create a new channel.
+    
+        type is a dbus interface name indicating the base type of channel to 
+        create.
+        interfaces is a list of Telepathy interface names with which this
+        channel should be created.
+        params is a dict of string->string containing parameters for creating 
+        the channel.
+
+        This is a stub implementation that should be overridden in a concrete
+        subclass.
+        """
         raise IOError('Unknown channel type %s' % type)
 
 class ConnectionManager(dbus.service.Object):
+    """
+    A dbus service that can be used to request a Connection to one or moew
+    protocols.
+    To use, subclass and populate self.protos with constructors for Connections.
+    the constructors should take a string for the parent manager, a string for
+    the account that connection is handling and a dict for various parameters.
+    """
     def __init__(self, name):
+        """
+        name is a string to be used for the name of this connection manager.
+        The service will appear as the service
+        org.freedesktop.telepathy.ConnectionManager.name
+        with this object as /org/freedesktop/telepathy/ConnectionManager/name
+        """
         self.bus_name = dbus.service.BusName(CONN_MGR_SERVICE+'.'+name, bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/'+name')
 
@@ -396,15 +470,29 @@ class ConnectionManager(dbus.service.Object):
         dbus.service.Object.__del__(self)
 
     def disconnected(self, conn):
+        """
+        remove a given Connection
+        """
         self.connections.remove(conn)
         del conn
 
-    @dbus.service.method(CONN_MGR_INTERFACE)
+    @dbus.service.method(CONN_MGR_INTERFACE, in_signature="", out_signature="as")
     def ListProtocols(self):
+        """
+        return a list of protocols that this ConnectionManager knows how to 
+        handle.
+        """
         return self.protos.keys()
 
-    @dbus.service.method(CONN_MGR_INTERFACE)
+    @dbus.service.method(CONN_MGR_INTERFACE, in_signature="ssa{sv}", out_signature="ss")
     def Connect(self, proto, account, connect_info):
+        """
+        Connect to a given account with a given protocol with the given 
+        information.
+        
+        Returns a dbus service name and object patch where the
+        new Connection object can be found.
+        """
         if self.protos.has_key(proto):
             conn = self.protos[proto](self, account, connect_info)
             self.connections.add(conn)
@@ -413,6 +501,15 @@ class ConnectionManager(dbus.service.Object):
         else:
             raise IOError('Unknown protocol %s' % (proto))
 
-    @dbus.service.signal(CONN_MGR_INTERFACE)
+    @dbus.service.signal(CONN_MGR_INTERFACE, signature="ssss")
     def NewConnection(self, service_name, object_path, proto, account):
+        """
+        Emitted when a new connection is created.
+        service_name, object_patch are the dbus busname and object path where 
+        the new Connection object can found.
+        proto is the protocol that Connection is handling.
+        account is the user account that Connection is for.
+        """
         pass
+
+

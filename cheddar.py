@@ -21,7 +21,7 @@ class JabberRosterChannel(server.Channel, server.GroupChannelInterface, server.P
         print members
 
 class JabberIMChannel(server.TextChannel, server.IndividualChannelInterface):
-    def __init__(self, conn, recipient):
+    def __init__(self, connnection=conn, recipient=recipient):
         server.TextChannel.__init__(self, conn)
         server.IndividualChannelInterface.__init__(self, recipient)
 
@@ -151,7 +151,7 @@ class JabberConnection(server.Connection):
         self.die = True
         self.client.disconnect()
 
-    def RequestChannel(self, type, interfaces):
+    def RequestChannel(self, type, interfaces, params):
         chan = None
 
         if type == LIST_CHANNEL_INTERFACE:
@@ -160,8 +160,8 @@ class JabberConnection(server.Connection):
 #                self.contact_list = JabberRosterChannel(self)
 #            chan = self.contact_list
         if type == TEXT_CHANNEL_INTERFACE:
-            if interfaces.keys() == [INDIVIDUAL_CHANNEL_INTERFACE]:
-                chan = JabberIMChannel(self, interfaces[INDIVIDUAL_CHANNEL_INTERFACE])
+            if INDIVIDUAL_CHANNEL_INTERFACE in interfaces:
+                chan = JabberIMChannel(self, params)
 
         if chan != None:
             if not chan in self.channels:
