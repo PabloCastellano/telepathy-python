@@ -1,6 +1,7 @@
 spec essential:
 RobT TODO:
 files on disk to discover available connection managers
+add sender names to Receive signals
 draw sequence diagrams
 SDP channel spec (sip connmgr prototyping?)
 
