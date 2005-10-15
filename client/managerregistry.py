@@ -2,7 +2,7 @@ import ConfigParser, os
 import dircache
 import dbus
 
-def ManagerRegistry:
+class ManagerRegistry:
     def __init__(self):
         self.services = {}
 
@@ -15,15 +15,19 @@ def ManagerRegistry:
         """
         config = ConfigParser.SafeConfigParser()
         all_services=[]
-        all_services.append(dircache.listdir("/usr/share/telepathy/services/"))
-        all_services.append(dircache.listdir(os.path.expanduser("~/.telepathy"))
+        if os.path.exists("/usr/share/telepathy/services/"):
+            all_services += dircache.listdir("/usr/share/telepathy/services/")
+        if os.path.exists(os.path.expanduser("~/.telepathy")):
+            all_services += dircache.listdir(os.path.expanduser("~/.telepathy"))
         for service in all_services:
             config.read(service)
-            connection_manager =config.items("ConnectionManager")
-            self.services[name]=connection_manager
-            for section in config.sections - ["ConnectionManager"]:
-                if section[:6]="Proto ":
-                    self.services[name][section[6:]]=config.items(section)
+            connection_manager =dict(config.items("ConnectionManager"))
+            if "name" not in connection_manager.keys():
+                raise ConfigParser.NoOptionError("name","ConnectionManager")
+            self.services[connection_manager["name"]]=connection_manager
+            for section in set(config.sections()) - set(["ConnectionManager"]):
+                if section[:6]=="Proto ":
+                    self.services[connection_manager["name"]]["protos"]={section[6:]:dict(config.items(section))}
                 
 
     def GetProtos(self):
@@ -32,7 +36,8 @@ def ManagerRegistry:
         """
         protos=[]
         for service in self.services.keys():
-            protos.append(self.servcices[service].keys())
+            if self.services[service].has_key("protos"):
+                protos.extend(self.services[service]["protos"].keys())
         return protos
        
     def GetManagers(self, proto):
@@ -41,8 +46,9 @@ def ManagerRegistry:
         """
         managers = []
         for service in self.services.keys():
-            if self.services[service][proto]:
-                managers.append(service)
+            if self.services[service].has_key("protos"):
+                if self.services[service]["protos"][proto]:
+                    managers.append(service)
         return managers
                     
     def GetParams(self, manager, proto):
@@ -66,7 +72,7 @@ def ManagerRegistry:
                         default=key[8:]
                         break
                 if default:
-                    params[name]=(type, dbus.Variant(default,signature=type)
+                    params[name]=(type, dbus.Variant(default,signature=type))
                 else:
                     params[name]=(type, None)
             ret.append(params)

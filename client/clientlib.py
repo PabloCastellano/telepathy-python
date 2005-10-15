@@ -8,7 +8,7 @@ import gobject
 import signal
 import sys
 
-import client
+from managerregistry import *
 
 CONN_INTERFACE = 'org.freedesktop.telepathy.Connection'
 CONN_OBJECT = '/org/freedesktop/telepathy/Connection'
@@ -135,17 +135,25 @@ class Connection:
 
 if __name__ == '__main__':
    
-    reg = client.ManagerRegistry()
+    reg = ManagerRegistry()
     reg.LoadManagers()
 
     protocol=''
     protos=reg.GetProtos()
 
+    print protos
+
+    if len(protos)==0:
+        print "Sorry, no managers found!"
+        sys.exit(1) 
+
     while (protocol not in protos):
         if len(sys.argv) > 2:
             protocol = sys.argv[2]
         else:
-            protocol = raw_input('Protocol (one of %s) [%s]: ' % (join(protos," "),protos[0])
+            print protos
+            print protos[0]
+            protocol = raw_input('Protocol (one of %s) [%s]: ' % (' '.join(protos),protos[0]))
             if protocol == '':
                 protocol = protos[0]
 
@@ -156,7 +164,7 @@ if __name__ == '__main__':
         if len(sys.argv) > 1:
             manager = sys.argv[1]
         else:
-            manager = raw_input('Manager (one of %s) [%s]: ' % (join(managers," "),managers[0])
+            manager = raw_input('Manager (one of %s) [%s]: ' % (' '.join(managers),managers[0]))
             if manager == '':
                 manager = managers[0]
 
