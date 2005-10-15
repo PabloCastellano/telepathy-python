@@ -47,22 +47,22 @@ class Channel(dbus.service.Object):
         self.interfaces = set()
         self.members = set()
 
-    @dbus.service.method(CHANNEL_INTERFACE, in_signature="", out_signature="")
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
         """ Close this channel. """
         pass
 
-    @dbus.service.signal(CHANNEL_INTERFACE, signature="")
+    @dbus.service.signal(CHANNEL_INTERFACE, signature='')
     def Closed(self):
         """ Emitted when this channel is closed. """
         print 'object_path: %s signal: Closed' % (self.object_path)
 
-    @dbus.service.method(CHANNEL_INTERFACE, in_signature="", out_signature="s")
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='s')
     def GetType(self):
         """ Returns an interface name for the type of this channel """
         return dbus.String(self.type)
 
-    @dbus.service.method(CHANNEL_INTERFACE, in_signature="", out_signature="as")
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
         """ 
         Get the interfaces this channel implements.
@@ -71,7 +71,7 @@ class Channel(dbus.service.Object):
         """
         return dbus.Array(self.interfaces, signature='s')
 
-    @dbus.service.method(CHANNEL_INTERFACE, in_signature="", out_signature="as")
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetMembers(self):
         """ Returns an array of identifiers for the members of this channel."""
         return dbus.Array(self.members, signature='s')
@@ -123,29 +123,29 @@ class GroupChannelInterface(object):
         self.requested = set()
         self.invited = set()
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature="as", out_signature="")
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='as', out_signature='')
     def InviteMembers(self, contacts):
         """ Invite all the contacts in contacts into the channel 
         """
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature="as", out_signature="")
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='as', out_signature='')
     def RemoveMembers(self, members):
         """
         Requests the removal of members from a channel
         """
         pass
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature="", out_signature="as")
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetRequestedMembers(self):
         """ Returns an array of the currently requested members"""
         return requested
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature="", out_signature="as")
+    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetInvitedMembers(self):
         """ Returns an array of the currently invited members"""
         return invited
 
-    @dbus.service.signal(GROUP_CHANNEL_INTERFACE, signature="asasasas")
+    @dbus.service.signal(GROUP_CHANNEL_INTERFACE, signature='asasasas')
     def MembersChanged(self, added, removed, requested, invited):
         """
         Emitted when members change state.
@@ -180,7 +180,7 @@ class NamedChannelInterface(object):
         self.interfaces.add(NAMED_CHANNEL_INTERFACE)
         self.name = name
 
-    @dbus.service.method(NAMED_CHANNEL_INTERFACE, in_signature="", out_signature="s")
+    @dbus.service.method(NAMED_CHANNEL_INTERFACE, in_signature='', out_signature='s')
     def GetName(self):
         """ Get the immutable name of this channel. """
         return self.name
@@ -207,17 +207,17 @@ class SubjectChannelInterface(object):
         self.interfaces.add(SUBJECT_CHANNEL_INTERFACE)
         self.subject = subject
 
-    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE, in_signature="", out_signature="s")
+    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE, in_signature='', out_signature='s')
     def GetSubject(self):
         """ Get this channel's current subject. """
         return self.subject
 
-    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE, in_signature="s", out_signature="")
+    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE, in_signature='s', out_signature='')
     def SetSubject(self, subject):
         """ Set this channels subject."""
         pass
 
-    @dbus.service.signal(SUBJECT_CHANNEL_INTERFACE, signature="s")
+    @dbus.service.signal(SUBJECT_CHANNEL_INTERFACE, signature='s')
     def SubjectChanged(self, subject):
         """ Emitted when the subject changes. """
         self.subject = subject
@@ -263,7 +263,7 @@ class TextChannel(Channel):
         self.pending_messages[id] = (timestamp, sender, text)
         self.Received(id, timestamp, sender, text)
 
-    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature="s", out_signature="u")
+    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature='s', out_signature='u')
     def Send(self, text):
         """ 
         Send a message on this channel.
@@ -275,7 +275,7 @@ class TextChannel(Channel):
         gobject.idle_add(self.sendCallback, id, text)
         return id
 
-    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature="u", out_signature="b")
+    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature='u', out_signature='b')
     def AcknowledgePendingMessage(self, id):
         """
         Inform the channel that you have responsibly dealt with a pending 
@@ -288,8 +288,8 @@ class TextChannel(Channel):
             return True
         else:
             return False
-    
-    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature="", out_signature="a(uus)")
+
+    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature='', out_signature='a(uuss)')
     def ListPendingMessages(self):
         """
         List the messages currently in the pending queue.
@@ -304,7 +304,7 @@ class TextChannel(Channel):
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
         return dbus.Array(messages, signature='(uuss)')
 
-    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature="uus")
+    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature='uus')
     def Sent(self, id, timestamp, text):
         """
         Signals that a message with the given id, timestamp and text has 
@@ -312,7 +312,7 @@ class TextChannel(Channel):
         """
         print 'object_path: %s signal: Sent %d %d %s' % (self.object_path, id, timestamp, text)
 
-    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature="uuss")
+    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature='uuss')
     def Received(self, id, timestamp, sender, text):
         """
         Signals that a message with the given id, timestamp, sender and text 
@@ -362,7 +362,7 @@ class Connection(dbus.service.Object):
         self.channels.add(channel)
         self.NewChannel(channel.type, channel.object_path)
 
-    @dbus.service.method(CONN_INTERFACE, in_signature="",out_signature="s")
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
     def GetProtocol(self):
         """
         Get the protocol this connection is using
@@ -371,14 +371,14 @@ class Connection(dbus.service.Object):
         """
         return self.proto
 
-    @dbus.service.method(CONN_INTERFACE, in_signature="", out_signature="s")
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
     def GetAccount(self):
         """
         Get the acount this connection is using
         """
         return self.account
 
-    @dbus.service.signal(CONN_INTERFACE, signature="s")
+    @dbus.service.signal(CONN_INTERFACE, signature='s')
     def StatusChanged(self, status):
         """ 
         Emitted when the status of the connection changes with a string
@@ -388,12 +388,12 @@ class Connection(dbus.service.Object):
         print 'service_name: %s object_path: %s signal: StatusChanged %s' % (self.service_name, self.object_path, status)
         self.status = status
 
-    @dbus.service.method(CONN_INTERFACE, in_signature="", out_signature="s")
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
     def GetStatus(self):
         """ Get the current status """
         return self.status
 
-    @dbus.service.method(CONN_INTERFACE, in_signature="", out_signature="")
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='')
     def Disconnect(self):
         """ 
         Stub handler. Overridden in concrete subclasses to disconnect the
@@ -401,7 +401,7 @@ class Connection(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(CONN_INTERFACE, signature="ss")
+    @dbus.service.signal(CONN_INTERFACE, signature='so')
     def NewChannel(self, type, object_path):
         """
         Emitted when a new Channel object is created, either through
@@ -413,7 +413,7 @@ class Connection(dbus.service.Object):
         """
         print 'service_name: %s object_path: %s signal: NewChannel %s %s' % (self.service_name, self.object_path, type, object_path)
 
-    @dbus.service.method(CONN_INTERFACE, in_signature="", out_signature="a(ss)")
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='a(so)')
     def ListChannels(self):
         """
         List all the channels currently availaible on this connection.
@@ -476,7 +476,7 @@ class ConnectionManager(dbus.service.Object):
         self.connections.remove(conn)
         del conn
 
-    @dbus.service.method(CONN_MGR_INTERFACE, in_signature="", out_signature="as")
+    @dbus.service.method(CONN_MGR_INTERFACE, in_signature='', out_signature='as')
     def ListProtocols(self):
         """
         return a list of protocols that this ConnectionManager knows how to 
@@ -484,7 +484,7 @@ class ConnectionManager(dbus.service.Object):
         """
         return self.protos.keys()
 
-    @dbus.service.method(CONN_MGR_INTERFACE, in_signature="ssa{sv}", out_signature="ss")
+    @dbus.service.method(CONN_MGR_INTERFACE, in_signature='ssa{sv}', out_signature='so')
     def Connect(self, proto, account, connect_info):
         """
         Connect to a given account with a given protocol with the given 
@@ -501,7 +501,7 @@ class ConnectionManager(dbus.service.Object):
         else:
             raise IOError('Unknown protocol %s' % (proto))
 
-    @dbus.service.signal(CONN_MGR_INTERFACE, signature="ssss")
+    @dbus.service.signal(CONN_MGR_INTERFACE, signature='soss')
     def NewConnection(self, service_name, object_path, proto, account):
         """
         Emitted when a new connection is created.
