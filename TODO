@@ -4,7 +4,6 @@ draw sequence diagrams (2hrs)
 SDP channel spec (sip connmgr prototyping?) (1hr)
 
 RobM TODO:
-verify documentation and signatures
 list channels for subscription, publish and privacy
 presence interface for reporting presence
 setting of own presence
