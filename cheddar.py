@@ -126,11 +126,11 @@ class JabberConnection(server.Connection):
         handled = False
 
         for chan in self.channels:
-            try: 
+            try:
                 handled = chan.messageHandler(node)
                 if handled:
                     break
-            except (AttributeError):
+            except AttributeError:
                 pass
 
         if not handled:

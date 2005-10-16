@@ -18,7 +18,7 @@ CONN_SERVICE = 'org.freedesktop.telepathy.Connection'
 CHANNEL_INTERFACE = 'org.freedesktop.telepathy.Channel'
 TEXT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.TextChannel'
 LIST_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.ListChannel'
-DTMF_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.DTMLChannel'
+DTMF_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.DTMFChannel'
 
 INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.IndividualChannelInterface'
 GROUP_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.GroupChannelInterface'
@@ -129,6 +129,7 @@ class GroupChannelInterface(object):
     def InviteMembers(self, contacts):
         """ Invite all the contacts in contacts into the channel 
         """
+        pass
 
     @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='as', out_signature='')
     def RemoveMembers(self, members):
@@ -326,15 +327,14 @@ class TextChannel(Channel):
         print 'object_path: %s signal: Received %d %d %s %s' % (self.object_path, id, timestamp, sender, text)
 
 
-class DTMFInterface(object):
-    """ 
+class DTMFChannelInterface(object):
+    """
     An interface that gives a Channel the ability to send or receive DTMF. 
     This usually only makes sense for channels transporting audio.
     """
     def __init__(self):
         self.interfaces.add(DTMF_CHANNEL_INTERFACE)
 
-    
     @dbus.service.method(DTMF_CHANNEL_INTERFACE, in_signature='uu', out_signature='')
     def SendDTMF(signal, duration):
         """Send a DTMF tone of type 'signal' of duration milliseconds"""
