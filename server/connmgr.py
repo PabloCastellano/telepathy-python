@@ -7,33 +7,33 @@ if getattr(dbus, 'version', (0,0,0)) >= (0,41,0):
 import gobject
 import time
 
-CONN_MGR_SERVICE = 'org.freedesktop.telepathy.ConnectionManager'
-CONN_MGR_OBJECT = '/org/freedesktop/telepathy/ConnectionManager'
-CONN_MGR_INTERFACE = 'org.freedesktop.telepathy.ConnectionManager'
+CONN_MGR_SERVICE = 'org.freedesktop.Telepathy.ConnectionManager'
+CONN_MGR_OBJECT = '/org/freedesktop/Telepathy/ConnectionManager'
+CONN_MGR_INTERFACE = 'org.freedesktop.Telepathy.ConnectionManager'
 
-CONN_SERVICE = 'org.freedesktop.telepathy.Connection'
-CONN_OBJECT = '/org/freedesktop/telepathy/Connection'
-CONN_INTERFACE = 'org.freedesktop.telepathy.Connection'
+CONN_SERVICE = 'org.freedesktop.Telepathy.Connection'
+CONN_OBJECT = '/org/freedesktop/Telepathy/Connection'
+CONN_INTERFACE = 'org.freedesktop.Telepathy.Connection'
 
-CONN_INTERFACE_ALIASING = 'org.freedesktop.telepathy.Connection.Interface.ContactAlias'
-CONN_INTERFACE_PRESENCE = 'org.freedesktop.telepathy.Connection.Interface.ContactPresence'
-CONN_INTERFACE_RENAMING = 'org.freedesktop.telepathy.Connection.Interface.ContactRename'
-CONN_INTERFACE_VCARD = 'org.freedesktop.telepathy.Connection.Interface.ContactInfo'
+CONN_INTERFACE_ALIASING = 'org.freedesktop.Telepathy.Connection.Interface.ContactAlias'
+CONN_INTERFACE_PRESENCE = 'org.freedesktop.Telepathy.Connection.Interface.ContactPresence'
+CONN_INTERFACE_RENAMING = 'org.freedesktop.Telepathy.Connection.Interface.ContactRename'
+CONN_INTERFACE_VCARD = 'org.freedesktop.Telepathy.Connection.Interface.ContactInfo'
 
-CHANNEL_INTERFACE = 'org.freedesktop.telepathy.Channel'
-CHANNEL_TYPE_TEXT = 'org.freedesktop.telepathy.Channel.Type.Text'
-CHANNEL_TYPE_LIST = 'org.freedesktop.telepathy.Channel.Type.List'
-CHANNEL_TYPE_STREAMED_MEDIA = 'org.freedesktop.telepathy.Channel.Type.StreamedMedia'
+CHANNEL_INTERFACE = 'org.freedesktop.Telepathy.Channel'
+CHANNEL_TYPE_TEXT = 'org.freedesktop.Telepathy.Channel.Type.Text'
+CHANNEL_TYPE_LIST = 'org.freedesktop.Telepathy.Channel.Type.List'
+CHANNEL_TYPE_STREAMED_MEDIA = 'org.freedesktop.Telepathy.Channel.Type.StreamedMedia'
 
-CHANNEL_INTERFACE_DTMF = 'org.freedesktop.telepathy.Channel.Interface.DTMF'
-CHANNEL_INTERFACE_GROUP = 'org.freedesktop.telepathy.Channel.Interface.Group'
-CHANNEL_INTERFACE_INDIVIDUAL = 'org.freedesktop.telepathy.Channel.Interface.Individual'
-CHANNEL_INTERFACE_NAMED = 'org.freedesktop.telepathy.Channel.Interface.Named'
-CHANNEL_INTERFACE_SUBJECT = 'org.freedesktop.telepathy.Channel.Interface.Subject'
+CHANNEL_INTERFACE_DTMF = 'org.freedesktop.Telepathy.Channel.Interface.DTMF'
+CHANNEL_INTERFACE_GROUP = 'org.freedesktop.Telepathy.Channel.Interface.Group'
+CHANNEL_INTERFACE_INDIVIDUAL = 'org.freedesktop.Telepathy.Channel.Interface.Individual'
+CHANNEL_INTERFACE_NAMED = 'org.freedesktop.Telepathy.Channel.Interface.Named'
+CHANNEL_INTERFACE_SUBJECT = 'org.freedesktop.Telepathy.Channel.Interface.Subject'
 
 class Channel(dbus.service.Object):
     """
-    D-Bus Interface: org.freedesktop.telepathy.Channel
+    D-Bus Interface: org.freedesktop.Telepathy.Channel
 
     All communication in the Telepathy framework is carried out via channel
     objects which are created and managed by connections. This interface
@@ -114,7 +114,7 @@ class Channel(dbus.service.Object):
 
 class IndividualChannelInterface(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.telepathy.IndividualChannelInterface
+    D-Bus Interface: org.freedesktop.Telepathy.Channel.Interface.Individual
 
     An interface for channels which can only ever contain the user of the
     framework and a single other individual, and if either party leaves, the
@@ -136,7 +136,7 @@ class IndividualChannelInterface(dbus.service.Interface):
 
 class GroupChannelInterface(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.telepathy.GroupChannelInterface
+    D-Bus Interface: org.freedesktop.Telepathy.Channel.Interface.Group
 
     Interface for channels which have multiple members, and where your
     presence in the channel cannot be presumed by the channel's existence (for
@@ -227,7 +227,7 @@ class NamedChannelInterface(dbus.service.Interface):
     Interface for channels which have an immutable name
 
     Implemented by dbus interface
-    org.freedesktop.telepathy.NamedChannelInterface
+    org.freedesktop.Telepathy.Channel.Interface.Named
     """
     def __init__(self, name):
         """ name is the immutable name of this channel. """
@@ -241,7 +241,7 @@ class NamedChannelInterface(dbus.service.Interface):
 
 class SubjectChannelInterface(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.telepathy.Channel.Interface.Subject
+    D-Bus Interface: org.freedesktop.Telepathy.Channel.Interface.Subject
 
     Interface for channels that have a modifiable subject or topic. A
     SubjectChanged signal should be emitted whenever the subject is changed,
@@ -298,7 +298,7 @@ class TextChannel(Channel):
     pending queue.
     """
     def __init__(self, connection):
-        """ connection is the parent telepathy Connection object """
+        """ connection is the parent Telepathy Connection object """
         Channel.__init__(self, connection, CHANNEL_TYPE_TEXT)
 
         self.send_id = 0
@@ -420,7 +420,7 @@ class StreamedMediaChannel(Channel):
     Protocol"
     """
     def __init__(self, connection):
-        """ connection is the parent telepathy Connection object """
+        """ connection is the parent Telepathy Connection object """
         Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA)
         self.lastSendSDP=""
         self.lastReceivedSDP=""
@@ -453,7 +453,7 @@ class StreamedMediaChannel(Channel):
 
 class Connection(dbus.service.Object):
     """
-    Base class to implement org.freedesktop.telepathy.Connection. 
+    D-Bus Interface: org.freedesktop.Telepathy.Connection
 
     This models a connection to a single user account on a communication
     service. Its basic capability is to create channels on which to communicate.
@@ -592,8 +592,8 @@ class ConnectionManager(dbus.service.Object):
         """
         name is a string to be used for the name of this connection manager.
         The service will appear as the service
-        org.freedesktop.telepathy.ConnectionManager.name
-        with this object as /org/freedesktop/telepathy/ConnectionManager/name
+        org.freedesktop.Telepathy.ConnectionManager.name
+        with this object as /org/freedesktop/Telepathy/ConnectionManager/name
         """
         self.bus_name = dbus.service.BusName(CONN_MGR_SERVICE+'.'+name, bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/'+name)
