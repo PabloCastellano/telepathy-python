@@ -29,16 +29,40 @@ STREAMED_MEDIA_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.StreamedMediaChann
 
 class Channel(dbus.service.Object):
     """
-    Base type for all Channels.
+    D-Bus Interface: org.freedesktop.telepathy.Channel
+
+    All communication in the Telepathy framework is carried out via channel
+    objects which are created and managed by connections. This interface
+    must be implemented by all channel objects, along with one single
+    channel type, such as ListChannel which represents a list of people
+    (such as a buddy list) or a TextChannel which represents a channel
+    over which textual messages are sent and received.
+
+    Other optional interfaces can be implemented to indicate other available
+    functionality, such as GroupChannelInterface or IndividualChannelInterface
+    to manage the members of a channel, NamedChannelInterface for channels with
+    names, and PresenceChannelInterface for channels who report presence on
+    their members.
+
+    Specific connection manager implementations may implement channel
+    types and interfaces which are not contained within this specification
+    in order to support further functionality. To aid interoperability
+    between client and connection manager implementations, the interfaces
+    specified here should be used wherever applicable, and new interfaces
+    made protocol-independent wherever possible. Because of the potential
+    for 3rd party interfaces adding methods or signals with conflicting
+    names, the D-Bus interface names should always be used to invoke
+    methods and bind signals.
     """
     count = 0
 
     def __init__(self, connection, type):
         """
-        Channel constructor. 
-        Paramters:
+        Initialise the base channel object.
+
+        Parameters:
         connection - the parent Connection object
-        type - 
+        type - interface name for the type of this channel
         """
         self.conn = connection
         self.object_path = self.conn.object_path+'/channel'+str(Channel.count)
@@ -51,44 +75,56 @@ class Channel(dbus.service.Object):
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
-        """ Close this channel. """
+        """
+        Request that the channel be closed. This is not the case until
+        the Closed signal has been emitted, and depending on the connection
+        manager this may simply remove you from the channel on the server,
+        rather than causing it to stop existing completely.
+        """
         pass
 
     @dbus.service.signal(CHANNEL_INTERFACE, signature='')
     def Closed(self):
-        """ Emitted when this channel is closed. """
+        """
+        Emitted when the channel has been closed. Method calls on the
+        channel are no longer valid after this signal has been emitted,
+        and the connection manager may then remove the object from the bus
+        at any point.
+        """
         print 'object_path: %s signal: Closed' % (self.object_path)
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='s')
     def GetType(self):
-        """ Returns an interface name for the type of this channel """
-        return dbus.String(self.type)
+        """ Returns the interface name for the type of this channel. """
+        return self.type
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
-        """ 
-        Get the interfaces this channel implements.
-    
-        returns an array of interface names.
-        """
+        """ Returns an array of optional interfaces implemented by the channel. """
         return dbus.Array(self.interfaces, signature='s')
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetMembers(self):
-        """ Returns an array of identifiers for the members of this channel."""
+        """ Returns an array of identifiers for the members of this channel. """
         return dbus.Array(self.members, signature='s')
 
 class IndividualChannelInterface(object):
-    """ 
-    A mixin that implements channels that have only
-    you and another as members.
-    implemented by dbus interface 
-    org.freedesktop.telepathy.IndividualChannelInterface
+    """
+    D-Bus Interface: org.freedesktop.telepathy.IndividualChannelInterface
+
+    An interface for channels which can only ever contain the user of the
+    framework and a single other individual, and if either party leaves, the
+    channel closes. If there is the potential for other members to join, be
+    invited, or request to join, GroupChannelInterface should be used.
+
+    This interface must never be implemented alongside GroupChannelInterface.
     """
     def __init__(self, recipient):
         """
-        recipient parameter is an identifier for the other member of 
-        the channel
+        Initialise the individual channel interface.
+
+        Parameters:
+        recipient - the identifier for the other member of the channel
         """
         self.interfaces.add(INDIVIDUAL_CHANNEL_INTERFACE)
         self.members.add(recipient)
@@ -96,10 +132,18 @@ class IndividualChannelInterface(object):
 
 class GroupChannelInterface(object):
     """
-    Interface for channels which have multiple members.
+    D-Bus Interface: org.freedesktop.telepathy.GroupChannelInterface
 
-    implemented by dbus interface
-    org.freedesktop.telepathy.GroupChannelInterface
+    Interface for channels which have multiple members, and where your
+    presence in the channel cannot be presumed by the channel's existence (for
+    example, a channel you may request membership of but your request may
+    not be granted).
+
+    This interface implements three lists, members, invited and requested.
+    Only 
+
+    This interface must never be implemented alongside IndividualChannelInterface.
+    
 
     Channels implementing this interface may have multiple members.
     If a  contact is in the channel, they may have the states:
@@ -127,14 +171,17 @@ class GroupChannelInterface(object):
 
     @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='as', out_signature='')
     def InviteMembers(self, contacts):
-        """ Invite all the contacts in contacts into the channel 
+        """
+        Invite all the given contacts in into the channel, or approve
+        their requests for channel membership.
         """
         pass
 
     @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='as', out_signature='')
     def RemoveMembers(self, members):
         """
-        Requests the removal of members from a channel
+        Requests the removal of members from a channel, or refuses their
+        requests for channel membership 
         """
         pass
 
