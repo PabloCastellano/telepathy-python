@@ -7,25 +7,29 @@ if getattr(dbus, 'version', (0,0,0)) >= (0,41,0):
 import gobject
 import time
 
-CONN_MGR_INTERFACE = 'org.freedesktop.telepathy.ConnectionManager'
-CONN_MGR_OBJECT = '/org/freedesktop/telepathy/ConnectionManager'
 CONN_MGR_SERVICE = 'org.freedesktop.telepathy.ConnectionManager'
+CONN_MGR_OBJECT = '/org/freedesktop/telepathy/ConnectionManager'
+CONN_MGR_INTERFACE = 'org.freedesktop.telepathy.ConnectionManager'
 
-CONN_INTERFACE = 'org.freedesktop.telepathy.Connection'
-CONN_OBJECT = '/org/freedesktop/telepathy/Connection'
 CONN_SERVICE = 'org.freedesktop.telepathy.Connection'
+CONN_OBJECT = '/org/freedesktop/telepathy/Connection'
+CONN_INTERFACE = 'org.freedesktop.telepathy.Connection'
+
+CONN_INTERFACE_ALIASING = 'org.freedesktop.telepathy.Connection.Interface.ContactAlias'
+CONN_INTERFACE_PRESENCE = 'org.freedesktop.telepathy.Connection.Interface.ContactPresence'
+CONN_INTERFACE_RENAMING = 'org.freedesktop.telepathy.Connection.Interface.ContactRename'
+CONN_INTERFACE_VCARD = 'org.freedesktop.telepathy.Connection.Interface.ContactInfo'
 
 CHANNEL_INTERFACE = 'org.freedesktop.telepathy.Channel'
-TEXT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.TextChannel'
-LIST_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.ListChannel'
-DTMF_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.DTMFChannel'
+CHANNEL_TYPE_TEXT = 'org.freedesktop.telepathy.Channel.Type.Text'
+CHANNEL_TYPE_LIST = 'org.freedesktop.telepathy.Channel.Type.List'
+CHANNEL_TYPE_STREAMED_MEDIA = 'org.freedesktop.telepathy.Channel.Type.StreamedMedia'
 
-INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.IndividualChannelInterface'
-GROUP_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.GroupChannelInterface'
-NAMED_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.NamedChannelInterface'
-PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.PresenceChannelInterface'
-SUBJECT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.SubjectChannelInterface'
-STREAMED_MEDIA_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.StreamedMediaChannelInterface'
+CHANNEL_INTERFACE_DTMF = 'org.freedesktop.telepathy.Channel.Interface.DTMF'
+CHANNEL_INTERFACE_GROUP = 'org.freedesktop.telepathy.Channel.Interface.Group'
+CHANNEL_INTERFACE_INDIVIDUAL = 'org.freedesktop.telepathy.Channel.Interface.Individual'
+CHANNEL_INTERFACE_NAMED = 'org.freedesktop.telepathy.Channel.Interface.Named'
+CHANNEL_INTERFACE_SUBJECT = 'org.freedesktop.telepathy.Channel.Interface.Subject'
 
 class Channel(dbus.service.Object):
     """
@@ -126,7 +130,7 @@ class IndividualChannelInterface(object):
         Parameters:
         recipient - the identifier for the other member of the channel
         """
-        self.interfaces.add(INDIVIDUAL_CHANNEL_INTERFACE)
+        self.interfaces.add(CHANNEL_INTERFACE_INDIVIDUAL)
         self.members.add(recipient)
         self.recipient = recipient
 
@@ -165,11 +169,11 @@ class GroupChannelInterface(object):
     """
  
     def __init__(self):
-        self.interfaces.add(GROUP_CHANNEL_INTERFACE)
+        self.interfaces.add(CHANNEL_INTERFACE_GROUP)
         self.requested = set()
         self.invited = set()
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='as', out_signature='')
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='as', out_signature='')
     def InviteMembers(self, contacts):
         """
         Invite all the given contacts in into the channel, or approve
@@ -177,7 +181,7 @@ class GroupChannelInterface(object):
         """
         pass
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='as', out_signature='')
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='as', out_signature='')
     def RemoveMembers(self, members):
         """
         Requests the removal of members from a channel, or refuses their
@@ -185,17 +189,17 @@ class GroupChannelInterface(object):
         """
         pass
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='', out_signature='as')
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='as')
     def GetRequestedMembers(self):
         """ Returns an array of the currently requested members"""
         return dbus.Array(self.requested, signature='s')
 
-    @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='', out_signature='as')
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='as')
     def GetInvitedMembers(self):
         """ Returns an array of the currently invited members"""
         return dbus.Array(self.invited, signature='s')
 
-    @dbus.service.signal(GROUP_CHANNEL_INTERFACE, signature='asasasas')
+    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='asasasas')
     def MembersChanged(self, added, removed, requested, invited):
         """
         Emitted when members change state.
@@ -227,17 +231,17 @@ class NamedChannelInterface(object):
     """
     def __init__(self, name):
         """ name is the immutable name of this channel. """
-        self.interfaces.add(NAMED_CHANNEL_INTERFACE)
+        self.interfaces.add(CHANNEL_INTERFACE_NAMED)
         self.name = name
 
-    @dbus.service.method(NAMED_CHANNEL_INTERFACE, in_signature='', out_signature='s')
+    @dbus.service.method(CHANNEL_INTERFACE_NAMED, in_signature='', out_signature='s')
     def GetName(self):
         """ Get the immutable name of this channel. """
         return self.name
 
-class PresenceChannelInterface(object):
-    """ 
-    Interface for channels that can signal presence changes
+class SubjectChannelInterface(object):
+    """
+    D-Bus Interface: org.freedesktop.telepathy.Channel.Interface.Subject
 
     Implemented by dbus interface
     org.freedesktop.telepathy.NamedChannelInterface
@@ -286,7 +290,7 @@ class TextChannel(Channel):
     """
     def __init__(self, connection):
         """ connection is the parent telepathy Connection object """
-        Channel.__init__(self, connection, TEXT_CHANNEL_INTERFACE)
+        Channel.__init__(self, connection, CHANNEL_TYPE_TEXT)
 
         self.send_id = 0
         self.recv_id = 0
@@ -313,7 +317,7 @@ class TextChannel(Channel):
         self.pending_messages[id] = (timestamp, sender, text)
         self.Received(id, timestamp, sender, text)
 
-    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature='s', out_signature='u')
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='s', out_signature='u')
     def Send(self, text):
         """ 
         Send a message on this channel.
@@ -325,7 +329,7 @@ class TextChannel(Channel):
         gobject.idle_add(self.sendCallback, id, text)
         return id
 
-    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature='u', out_signature='b')
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='u', out_signature='b')
     def AcknowledgePendingMessage(self, id):
         """
         Inform the channel that you have responsibly dealt with a pending 
@@ -339,7 +343,7 @@ class TextChannel(Channel):
         else:
             return False
 
-    @dbus.service.method(TEXT_CHANNEL_INTERFACE, in_signature='', out_signature='a(uuss)')
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='a(uuss)')
     def ListPendingMessages(self):
         """
         List the messages currently in the pending queue.
@@ -354,7 +358,7 @@ class TextChannel(Channel):
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
         return dbus.Array(messages, signature='(uuss)')
 
-    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature='uus')
+    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uus')
     def Sent(self, id, timestamp, text):
         """
         Signals that a message with the given id, timestamp and text has 
@@ -362,7 +366,7 @@ class TextChannel(Channel):
         """
         print 'object_path: %s signal: Sent %d %d %s' % (self.object_path, id, timestamp, text)
 
-    @dbus.service.signal(TEXT_CHANNEL_INTERFACE, signature='uuss')
+    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uuss')
     def Received(self, id, timestamp, sender, text):
         """
         Signals that a message with the given id, timestamp, sender and text 
@@ -380,14 +384,14 @@ class DTMFChannelInterface(object):
     This usually only makes sense for channels transporting audio.
     """
     def __init__(self):
-        self.interfaces.add(DTMF_CHANNEL_INTERFACE)
+        self.interfaces.add(CHANNEL_INTERFACE_DTMF)
 
-    @dbus.service.method(DTMF_CHANNEL_INTERFACE, in_signature='uu', out_signature='')
+    @dbus.service.method(CHANNEL_INTERFACE_DTMF, in_signature='uu', out_signature='')
     def SendDTMF(signal, duration):
         """Send a DTMF tone of type 'signal' of duration milliseconds"""
         pass
 
-    @dbus.service.signal(DTMF_CHANNEL_INTERFACE, signature='uu')
+    @dbus.service.signal(CHANNEL_INTERFACE_DTMF, signature='uu')
     def RecievedDTMF(signal, duration):
         """
         Signals that this channel recieved a DTMF tone of type signal
@@ -408,11 +412,11 @@ class StreamedMediaChannel(Channel):
     """
     def __init__(self, connection):
         """ connection is the parent telepathy Connection object """
-        Channel.__init__(self, connection, STREAMED_MEDIA_CHANNEL_INTERFACE)
+        Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA)
         self.lastSendSDP=""
         self.lastReceivedSDP=""
 
-    @dbus.service.method(STREAMED_MEDIA_CHANNEL_INTERFACE, in_signature='ss', out_signature='u')
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='ss', out_signature='u')
     def Send(self, recipient, sdp):
         """ 
         Attempt to send a message on this channel to the named recipient on this channel.
@@ -420,7 +424,7 @@ class StreamedMediaChannel(Channel):
         """
         pass
        
-    @dbus.service.signal(STREAMED_MEDIA_CHANNEL_INTERFACE, signature='uss')
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uss')
     def Sent(self, id, recipient, sdp):
         """
         Signals that an sdp message with the given id has 
@@ -428,7 +432,7 @@ class StreamedMediaChannel(Channel):
         """
         pass
 
-    @dbus.service.signal(STREAMED_MEDIA_CHANNEL_INTERFACE, signature='uss')
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uss')
     def Received(self, id, sender, sdp):
         """
         Signals that an sdp message with the given id has 
