@@ -141,12 +141,12 @@ class GroupChannelInterface(object):
     @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetRequestedMembers(self):
         """ Returns an array of the currently requested members"""
-        return requested
+        return dbus.Array(self.requested, signature='s')
 
     @dbus.service.method(GROUP_CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetInvitedMembers(self):
         """ Returns an array of the currently invited members"""
-        return invited
+        return dbus.Array(self.invited, signature='s')
 
     @dbus.service.signal(GROUP_CHANNEL_INTERFACE, signature='asasasas')
     def MembersChanged(self, added, removed, requested, invited):
