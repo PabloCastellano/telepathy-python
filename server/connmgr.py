@@ -243,37 +243,46 @@ class SubjectChannelInterface(object):
     """
     D-Bus Interface: org.freedesktop.telepathy.Channel.Interface.Subject
 
-    Implemented by dbus interface
-    org.freedesktop.telepathy.NamedChannelInterface
+    Interface for channels that have a modifiable subject or topic. A
+    SubjectChanged signal should be emitted whenever the subject is changed,
+    and once when the subject is initially discovered from the server.
     """
     def __init__(self):
-        self.interfaces.add(PRESENCE_CHANNEL_INTERFACE)
+        self.interfaces.add(CHANNEL_INTERFACE_SUBJECT)
+        self.subject = ''
+        self.subject_set_by = ''
+        self.subject_set_at = 0
 
-class SubjectChannelInterface(object):
-    """ 
-    Interface for channels that have a modifiable subject or topic
-
-    Implemented by dbus interface
-    org.freedesktop.telepathy.SubjectChannelInterface
-    """
-    def __init__(self, subject):
-        """ subject is a string for the initial subject of the channel"""
-        self.interfaces.add(SUBJECT_CHANNEL_INTERFACE)
-        self.subject = subject
-
-    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE, in_signature='', out_signature='s')
+    @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='', out_signature='ssu')
     def GetSubject(self):
-        """ Get this channel's current subject. """
-        return self.subject
+        """
+        Get this channel's current subject.
 
-    @dbus.service.method(SUBJECT_CHANNEL_INTERFACE, in_signature='s', out_signature='')
+        Returns:
+        the subject text
+        the contact who set the subject (blank if unknown)
+        the unix timestamp of the last change (zero if unknown)
+        """
+        return self.subject, self.subject_set_by, self.subject_set_at
+
+    @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='s', out_signature='')
     def SetSubject(self, subject):
-        """ Set this channels subject."""
+        """
+        Request that the subject of this channel be changed. Success will be
+        indicated by an emission of the SubjectChanged signal.
+        """
         pass
 
-    @dbus.service.signal(SUBJECT_CHANNEL_INTERFACE, signature='s')
-    def SubjectChanged(self, subject):
-        """ Emitted when the subject changes. """
+    @dbus.service.signal(CHANNEL_INTERFACE_SUBJECT, signature='ssu')
+    def SubjectChanged(self, subject, set_by, set_at):
+        """
+        Emitted when the subject changes or is initially discovered from the server.
+
+        Parameters:
+        subject - the new subject string
+        contact - the identifier of the contact who was responsible for this change, which may be blank if unknown
+        time - the unix timestamp of the subject change, which may be zero if unknown
+        """
         self.subject = subject
 
 class TextChannel(Channel):
