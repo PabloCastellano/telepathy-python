@@ -112,7 +112,7 @@ class Channel(dbus.service.Object):
         """ Returns an array of identifiers for the members of this channel. """
         return dbus.Array(self.members, signature='s')
 
-class IndividualChannelInterface(object):
+class IndividualChannelInterface(dbus.service.Interface):
     """
     D-Bus Interface: org.freedesktop.telepathy.IndividualChannelInterface
 
@@ -134,7 +134,7 @@ class IndividualChannelInterface(object):
         self.members.add(recipient)
         self.recipient = recipient
 
-class GroupChannelInterface(object):
+class GroupChannelInterface(dbus.service.Interface):
     """
     D-Bus Interface: org.freedesktop.telepathy.GroupChannelInterface
 
@@ -222,7 +222,7 @@ class GroupChannelInterface(object):
         self.invited.difference_update(added)
         self.invited.difference_update(removed)
 
-class NamedChannelInterface(object):
+class NamedChannelInterface(dbus.service.Interface):
     """
     Interface for channels which have an immutable name
 
@@ -239,7 +239,7 @@ class NamedChannelInterface(object):
         """ Get the immutable name of this channel. """
         return self.name
 
-class SubjectChannelInterface(object):
+class SubjectChannelInterface(dbus.service.Interface):
     """
     D-Bus Interface: org.freedesktop.telepathy.Channel.Interface.Subject
 
@@ -387,7 +387,7 @@ class TextChannel(Channel):
         print 'object_path: %s signal: Received %d %d %s %s' % (self.object_path, id, timestamp, sender, text)
 
 
-class DTMFChannelInterface(object):
+class DTMFChannelInterface(dbus.service.Interface):
     """
     An interface that gives a Channel the ability to send or receive DTMF. 
     This usually only makes sense for channels transporting audio.
