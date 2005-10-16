@@ -445,8 +445,8 @@ class Connection(dbus.service.Object):
     This models a connection to a single user account on a communication
     service. Its basic capability is to create channels on which to communicate.
 
-    Other interfaces may also be added for conncetion services that provide
-    extra connection-wide functionality. (eg ???)
+    Other interfaces may also be added for connection services that provide
+    extra connection-wide functionality. (eg presence, setting own name) 
 
     override Disconnect to disconnect this connection
     override RequestChannel to create the requested channel types,
@@ -498,7 +498,15 @@ class Connection(dbus.service.Object):
         """ 
         Emitted when the status of the connection changes with a string
         indicating the new state
-        TODO: list of basic states?
+
+        Defined states strings are:
+
+        'connecting' - this Connection is still in the process of connecting to
+        the messiging service
+
+        'disconnected' - this Connection is not connected to a messaging service.
+
+        'connected' - This Connection is connected to a messaging service.
         """
         print 'service_name: %s object_path: %s signal: StatusChanged %s' % (self.service_name, self.object_path, status)
         self.status = status
