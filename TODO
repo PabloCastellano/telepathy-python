@@ -8,8 +8,10 @@ presence interface for reporting presence
 setting of own presence
 error handling
 think about service/object/interface naming conventions
+alias interface
 
 need to do at some point soon:
+another connection manager
 account registration
 password changing
 registration of channel handlers to mission control
