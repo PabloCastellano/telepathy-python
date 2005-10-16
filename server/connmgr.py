@@ -18,12 +18,14 @@ CONN_SERVICE = 'org.freedesktop.telepathy.Connection'
 CHANNEL_INTERFACE = 'org.freedesktop.telepathy.Channel'
 TEXT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.TextChannel'
 LIST_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.ListChannel'
+DTMF_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.DTMLChannel'
 
 INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.IndividualChannelInterface'
 GROUP_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.GroupChannelInterface'
 NAMED_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.NamedChannelInterface'
 PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.PresenceChannelInterface'
 SUBJECT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.SubjectChannelInterface'
+STREAMED_MEDIA_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.StreamedMediaChannelInterface'
 
 class Channel(dbus.service.Object):
     """
@@ -322,6 +324,72 @@ class TextChannel(Channel):
         acknowledge that they have dealt with the message.
         """
         print 'object_path: %s signal: Received %d %d %s %s' % (self.object_path, id, timestamp, sender, text)
+
+
+class DTMFInterface(object):
+    """ 
+    An interface that gives a Channel the ability to send or receive DTMF. 
+    This usually only makes sense for channels transporting audio.
+    """
+    def __init__(self):
+        self.interfaces.add(DTMF_CHANNEL_INTERFACE)
+
+    
+    @dbus.service.method(DTMF_CHANNEL_INTERFACE, in_signature='uu', out_signature='')
+    def SendDTMF(signal, duration):
+        """Send a DTMF tone of type 'signal' of duration milliseconds"""
+        pass
+
+    @dbus.service.signal(DTMF_CHANNEL_INTERFACE, signature='uu')
+    def RecievedDTMF(signal, duration):
+        """
+        Signals that this channel recieved a DTMF tone of type signal
+        and of duration milliseconds.
+        """
+        pass
+
+class StreamedMediaChannel(Channel):
+    """
+    A channel that can send and receive streamed media.
+
+    All communication on this channel takes the form of exchnaged messages in
+    SDP (see IETF RFC 2327). at any given time,this channel can be queried for
+    the last received SDP.
+    In general negotiations over this channel will take the form of
+    IETF RFC 3264 - " An Offer/Answer Model with the Session Description 
+    Protocol"
+    """
+    def __init__(self, connection):
+        """ connection is the parent telepathy Connection object """
+        Channel.__init__(self, connection, STREAMED_MEDIA_CHANNEL_INTERFACE)
+        self.lastSendSDP=""
+        self.lastReceivedSDP=""
+
+    @dbus.service.method(STREAMED_MEDIA_CHANNEL_INTERFACE, in_signature='s', out_signature='id')
+    def Send(self, recipient, sdp):
+        """ 
+        Attempt to send a message on this channel to the named recipient on this channel.
+        returns an id for this send attempt
+        """
+        pass
+       
+    @dbus.service.signal(STREAMED_MEDIA_CHANNEL_INTERFACE, signature='uus')
+    def Sent(self, id, recipient, sdp):
+        """
+        Signals that an sdp message with the given id has 
+        been sent on this channel to the given recipient.
+        """
+        pass
+
+    @dbus.service.signal(STREAMED_MEDIA_CHANNEL_INTERFACE, signature='uuss')
+    def Received(self, id, sender, sdp):
+        """
+        Signals that an sdp message with the given id has 
+        been received on this channel to the given recipient.
+        """
+        pass
+
+
 
 class Connection(dbus.service.Object):
     """
