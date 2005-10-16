@@ -412,7 +412,7 @@ class StreamedMediaChannel(Channel):
         self.lastSendSDP=""
         self.lastReceivedSDP=""
 
-    @dbus.service.method(STREAMED_MEDIA_CHANNEL_INTERFACE, in_signature='s', out_signature='id')
+    @dbus.service.method(STREAMED_MEDIA_CHANNEL_INTERFACE, in_signature='ss', out_signature='u')
     def Send(self, recipient, sdp):
         """ 
         Attempt to send a message on this channel to the named recipient on this channel.
@@ -420,7 +420,7 @@ class StreamedMediaChannel(Channel):
         """
         pass
        
-    @dbus.service.signal(STREAMED_MEDIA_CHANNEL_INTERFACE, signature='uus')
+    @dbus.service.signal(STREAMED_MEDIA_CHANNEL_INTERFACE, signature='uss')
     def Sent(self, id, recipient, sdp):
         """
         Signals that an sdp message with the given id has 
@@ -428,7 +428,7 @@ class StreamedMediaChannel(Channel):
         """
         pass
 
-    @dbus.service.signal(STREAMED_MEDIA_CHANNEL_INTERFACE, signature='uuss')
+    @dbus.service.signal(STREAMED_MEDIA_CHANNEL_INTERFACE, signature='uss')
     def Received(self, id, sender, sdp):
         """
         Signals that an sdp message with the given id has 

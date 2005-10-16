@@ -11,6 +11,8 @@ setting of own presence
 error handling
 think about service/object/interface naming conventions
 alias interface
+interfaces on connections
+get self?
 
 need to do at some point soon:
 another connection manager
