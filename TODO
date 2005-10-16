@@ -1,8 +1,10 @@
 spec essential:
 RobT TODO:
+pull documentation strings out of introspection XML or python?
 draw sequence diagrams (2hrs)
 
 RobM TODO:
+finish reading through documentation
 list channels for subscription, publish and privacy
 presence interface for reporting presence
 setting of own presence
