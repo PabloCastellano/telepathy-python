@@ -18,7 +18,7 @@ for (name,val) in inspectmod.__dict__.items():
                 doc[name]["methods"][mname]={}
                 sigin=dbus.Signature(mval.__dict__["_dbus_in_signature"])
                 argspec=inspect.getargspec(mval)
-                args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sigin,argspec[0])))
+                args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sigin,argspec[0][1:]))) #chop off self
                 doc[name]["methods"][mname]["in_sig"]=args
                 if mval.__dict__["_dbus_out_signature"] == "":
                     doc[name]["methods"][mname]["out_sig"]="None"
