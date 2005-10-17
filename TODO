@@ -1,32 +1,26 @@
 spec essential:
-RobT TODO:
-pull documentation strings out of introspection XML or python?
-draw sequence diagrams (2hrs)
-
-RobM TODO:
-finish reading through documentation
-list channels for subscription, publish and privacy
-presence interface for reporting presence
-setting of own presence
-error handling
-think about service/object/interface naming conventions
-alias interface
-interfaces on connections
-get self?
+draw sequence diagrams
+manager file format is not included in spec, and hence we're missing documentation of connection parameters
+capabilities!
+rename interface?
+list protocol identifiers somewhere
+check over connection manager
 
 need to do at some point soon:
-another connection manager
-account registration
-password changing
+***error handling***
+fix cheddar in light of massive spec changes
+hook roster up to list channels
+make channel object names fall under the connection in the object tree
+refactor server base classes into manager/connection/channel files
+account registration interface
+password changing interface
+user info interface
 registration of channel handlers to mission control
 user id canonicalisation method
-nickname setting
 mapping people in chats to real identifiers
-user info
-list of protocol identifiers
-list of sugggested parameters
 
 nice to have:
+another connection manager
 proof of concept logger
 versioned interfaces
 
