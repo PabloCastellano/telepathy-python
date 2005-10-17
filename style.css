@@ -157,8 +157,13 @@ float:right;
 font-style:italic;
 }
 .method{
-margin-left:4em;
+margin-left:1em;
 margin-right:4em;
 }
+.signal{
+margin-left:1em;
+margin-right:4em;
+}
+
 
 
