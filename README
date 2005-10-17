@@ -1,0 +1,5 @@
+You need the latest dbus bindings from http://projects.collabora.co.uk/darcs/telepathy/dbus.
+
+to generate documentation  for dbus interfaces run 
+./gen-documentation server order > server.html
+
