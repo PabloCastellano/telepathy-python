@@ -8,23 +8,25 @@ inspectmod=__import__(sys.argv[1],[],[],[])
 
 doc={}
 
-for (name,val) in inspectmod.__dict__.items():
+for (cname,val) in inspectmod.__dict__.items():
     if inspect.isclass(val):
-        doc[name]={}
-        doc[name]["maintext"]=val.__doc__.replace('\n\n','<p>')
-        doc[name]["methods"]={}
         for (mname, mval) in val.__dict__.items():
             if inspect.isfunction(mval) and mval.__dict__.has_key("_dbus_is_method"):
-                doc[name]["methods"][mname]={}
+                iname=mval.__dict__["_dbus_interface"]
+                if not doc.has_key(iname):
+                    doc[iname]={}
+                    doc[iname]["maintext"]=val.__doc__.replace('\n\n','<p>')
+                    doc[iname]["methods"]={}
+                doc[iname]["methods"][mname]={}
                 sigin=dbus.Signature(mval.__dict__["_dbus_in_signature"])
                 argspec=inspect.getargspec(mval)
                 args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sigin,argspec[0][1:]))) #chop off self
-                doc[name]["methods"][mname]["in_sig"]=args
+                doc[iname]["methods"][mname]["in_sig"]=args
                 if mval.__dict__["_dbus_out_signature"] == "":
-                    doc[name]["methods"][mname]["out_sig"]="None"
+                    doc[iname]["methods"][mname]["out_sig"]="None"
                 else:
-                    doc[name]["methods"][mname]["out_sig"]=mval.__dict__["_dbus_out_signature"]
-                doc[name]["methods"][mname]["text"]= mval.__doc__.replace('\n\n','<p>')
+                    doc[iname]["methods"][mname]["out_sig"]=mval.__dict__["_dbus_out_signature"]
+                doc[iname]["methods"][mname]["text"]= mval.__doc__.replace('\n\n','<p>')
 
 print '<html>'
 print '<head>'
