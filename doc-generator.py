@@ -15,6 +15,7 @@ for (cname,val) in inspectmod.__dict__.items():
             doc[iname]={}
             doc[iname]["maintext"]=val.__doc__.replace('\n\n','<p>')
             doc[iname]["methods"]={}
+            doc[iname]["signals"]={}
         for (mname, mval) in val.__dict__.items():
             if inspect.isfunction(mval) and mval.__dict__.has_key("_dbus_is_method"):
                 iname=mval.__dict__["_dbus_interface"]
@@ -22,6 +23,7 @@ for (cname,val) in inspectmod.__dict__.items():
                     doc[iname]={}
                     doc[iname]["maintext"]=val.__doc__.replace('\n\n','<p>')
                     doc[iname]["methods"]={}
+                    doc[iname]["signals"]={}
                 doc[iname]["methods"][mname]={}
                 sigin=dbus.Signature(mval.__dict__["_dbus_in_signature"])
                 argspec=inspect.getargspec(mval)
@@ -32,6 +34,25 @@ for (cname,val) in inspectmod.__dict__.items():
                 else:
                     doc[iname]["methods"][mname]["out_sig"]=mval.__dict__["_dbus_out_signature"]
                 doc[iname]["methods"][mname]["text"]= mval.__doc__.replace('\n\n','<p>')
+            if inspect.isfunction(mval) and mval.__dict__.has_key("_dbus_is_signal"):
+                iname=mval.__dict__["_dbus_interface"]
+                if not doc.has_key(iname):
+                    doc[iname]={}
+                    doc[iname]["maintext"]=val.__doc__.replace('\n\n','<p>')
+                    doc[iname]["methods"]={}
+                    doc[iname]["signals"]={}
+                doc[iname]["signals"][mname]={}
+                sig=dbus.Signature(mval.__dict__["_dbus_signature"])
+                argspec=inspect.getargspec(mval)
+                args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sigin,argspec[0][1:]))) #chop off self
+                doc[iname]["signals"][mname]["sig"]=args
+                if mval.__doc__:
+                    doc[iname]["signals"][mname]["text"]= mval.__doc__.replace('\n\n','<p>')
+                else:
+                    doc[iname]["signals"][mname]["text"]=""
+    
+
+
 
 
 if sys.argv[2][:17]== "--generate-order=":
@@ -59,12 +80,20 @@ else:
         name.strip()
         print "<h1>"+name+"</h1>"
         print doc[name]["maintext"]
+        print '<h2>Methods:</h2>'
         print '<ul>'
         for method in doc[name]["methods"].keys(): 
             print '<li></a><div class="method" name="%s">' % method
             print '<h2>%s ( %s ) -> %s</h2>' % (method,doc[name]["methods"][method]["in_sig"], doc[name]["methods"][method]["out_sig"])
-
             print doc[name]["methods"][method]["text"]
+            print '</div></li>'
+        print '</ul>'
+        print '<h2>Signals:</h2>'
+        print '<ul>'
+        for signal in doc[name]["signals"].keys(): 
+            print '<li></a><div class="signal" name="%s">' % signal 
+            print '<h2>%s ( %s )</h2>' % (signal,doc[name]["signals"][signal]["sig"])
+            print doc[name]["signals"][signal]["text"]
             print '</div></li>'
         print '</ul>'
         print '<br>'
