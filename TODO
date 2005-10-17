@@ -1,28 +1,38 @@
 spec essential:
 draw sequence diagrams
 capabilities!
-rename interface?
+connection.interface.rename
+for group, check ability to add/remove in advance
+pending local/pending remote
+***error handling***
+
+important:
+list channels (invite only?)
+passworded channels
+account registration interface
+user info interface
+searching for users
+
+less important:
+password changing interface
+moderated channels?
+GROUPS
+typing notification (patented!!)
+editing/recieving vcards
+sketching/drawing
+buddy icons
 
 need to do at some point soon:
-***error handling***
 fix cheddar in light of massive spec changes
 hook roster up to list channels
 make channel object names fall under the connection in the object tree
 refactor server base classes into manager/connection/channel files
-account registration interface
-password changing interface
-user info interface
 registration of channel handlers to mission control
 user id canonicalisation method
 mapping people in chats to real identifiers
+jabber conferences
 
 nice to have:
 another connection manager
 proof of concept logger
 versioned interfaces
-
-ponder:
-typing notification?
-editing/recieving vcards?
-jabber conferences?
-searching for users
