@@ -1,4 +1,5 @@
 spec essential:
+arrange into logical order
 draw sequence diagrams
 manager file format is not included in spec, and hence we're missing documentation of connection parameters
 capabilities!
