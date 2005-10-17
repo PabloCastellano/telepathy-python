@@ -344,6 +344,8 @@ class ChannelTypeList(Channel):
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_LIST)
 
+ChannelTypeList._dbus_interfaces={ChannelTypeList.__name__:CHANNEL_TYPE_LIST}
+
 class ChannelTypeText(Channel):
     """
     D-Bus Interface: org.freedesktop.Telepathy.Channel.Type.Text
