@@ -33,8 +33,6 @@ CHANNEL_INTERFACE_SUBJECT = 'org.freedesktop.Telepathy.Channel.Interface.Subject
 
 class Channel(dbus.service.Object):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Channel
-
     All communication in the Telepathy framework is carried out via channel
     objects which are created and managed by connections. This interface must
     be implemented by all channel objects, along with one single channel type,
@@ -120,8 +118,6 @@ class Channel(dbus.service.Object):
 
 class ChannelInterfaceIndividual(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Channel.Interface.Individual
-
     An interface for channels which can only ever contain the owner of the
     connection and a single other individual, and if either party leaves, the
     channel closes. If there is the potential for other members to join, be
@@ -151,8 +147,6 @@ class ChannelInterfaceIndividual(dbus.service.Interface):
 
 class ChannelInterfaceGroup(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Channel.Interface.Group
-
     Interface for channels which have multiple members, and where your
     presence in the channel cannot be presumed by the channel's existence (for
     example, a channel you may request membership of but your request may
@@ -251,8 +245,6 @@ class ChannelInterfaceGroup(dbus.service.Interface):
 
 class ChannelInterfaceNamed(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Channel.Interface.Named
-
     Interface for channels which have an immutable name. When requesting
     channels, this interface accepts the parameter of a name to obtain,
     with dbus type 's'.
@@ -273,8 +265,6 @@ class ChannelInterfaceNamed(dbus.service.Interface):
 
 class ChannelInterfaceSubject(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Channel.Interface.Subject
-
     Interface for channels that have a modifiable subject or topic. A
     SubjectChanged signal should be emitted whenever the subject is changed,
     and once when the subject is initially discovered from the server.
@@ -319,8 +309,6 @@ class ChannelInterfaceSubject(dbus.service.Interface):
 
 class ChannelTypeList(Channel):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Channel.Type.List
-
     A channel type for representing a list of people on the server which is
     not used for communication. This is intended for use with the interface
     Channel.Interface.Group for managing buddy lists and privacy lists
@@ -348,8 +336,6 @@ ChannelTypeList._dbus_interfaces={ChannelTypeList.__name__:CHANNEL_TYPE_LIST}
 
 class ChannelTypeText(Channel):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Channel.Type.Text
-
     A channel type for sending and receiving messages in plain text, with no
     formatting.
 
@@ -488,8 +474,6 @@ class ChannelTypeText(Channel):
 
 class ChannelInterfaceDTMF(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Channel.Interface.DTMF
-
     An interface that gives a Channel the ability to send or receive DTMF signalling
     tones. This usually only makes sense for channels transporting audio.
     """
@@ -520,8 +504,6 @@ class ChannelInterfaceDTMF(dbus.service.Interface):
 
 class ChannelTypeStreamedMedia(Channel):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Channel.Type.StreamedMedia
-
     A channel that can send and receive streamed media such as audio or video.
     All communication on this channel takes the form of messages exchanged in
     SDP (see IETF RFC 2327).
@@ -598,8 +580,6 @@ class ChannelTypeStreamedMedia(Channel):
 
 class ConnectionInterfacePresence(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Connection.Interface.Presence
-
     This interface is for services which have a concept of presence which can
     be published for yourself and monitored on your contacts. Telepathy's
     definition of presence based on that used by the Galago project
@@ -737,8 +717,6 @@ class ConnectionInterfacePresence(dbus.service.Interface):
 
 class ConnectionInterfaceRenaming(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Connection.Interface.Renaming
-
     An interface on connections to support protocols where the unique identifiers
     of contacts can change.
     """
@@ -746,10 +724,10 @@ class ConnectionInterfaceRenaming(dbus.service.Interface):
     def __init__(self):
         self.interfaces.add(CONN_INTERFACE_RENAMING)
 
+ChannelTypeList._dbus_interfaces={ChannelTypeList.__name__:CONN_INTERFACE_RENAMING}
+
 class ConnectionInterfaceAliasing(dbus.service.Interface):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Connection.Interface.Aliasing
-
     An interface on connections to support protocols where contacts have an
     alias which they can change at will, but their underlying unique identifier
     remains unchanged. Provides a method for the user to set their own alias,
@@ -792,8 +770,6 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
 
 class Connection(dbus.service.Object):
     """
-    D-Bus Interface: org.freedesktop.Telepathy.Connection
-
     This models a connection to a single user account on a communication
     service. Its basic capability is to provide the facility to request
     and receive channels of differing types (such as text channels or streaming
