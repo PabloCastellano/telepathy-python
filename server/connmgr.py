@@ -724,7 +724,7 @@ class ConnectionInterfaceRenaming(dbus.service.Interface):
     def __init__(self):
         self.interfaces.add(CONN_INTERFACE_RENAMING)
 
-ChannelTypeList._dbus_interfaces={ChannelTypeList.__name__:CONN_INTERFACE_RENAMING}
+ConnectionInterfaceRenaming._dbus_interfaces={ConnectionInterfaceRenaming.__name__:CONN_INTERFACE_RENAMING}
 
 class ConnectionInterfaceAliasing(dbus.service.Interface):
     """
