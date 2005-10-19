@@ -13,7 +13,8 @@ for (cname,val) in inspectmod.__dict__.items():
         if val.__dict__.has_key("_dbus_interfaces"):
             iname=val._dbus_interfaces[val.__name__]
             doc[iname]={}
-            doc[iname]["maintext"]=val.__doc__.replace('\n\n','<p>')
+            doc[iname]["maintext"]=val.__doc__.replace('\n\n','</p><p>')
+            doc[iname]["maintext"]='<p>'+doc[iname]["maintext"]+'</p>'
             doc[iname]["methods"]={}
             doc[iname]["signals"]={}
         for (mname, mval) in val.__dict__.items():
@@ -21,7 +22,8 @@ for (cname,val) in inspectmod.__dict__.items():
                 iname=mval.__dict__["_dbus_interface"]
                 if not doc.has_key(iname):
                     doc[iname]={}
-                    doc[iname]["maintext"]=val.__doc__.replace('\n\n','<p>')
+                    doc[iname]["maintext"]=val.__doc__.replace('\n\n','</p><p>')
+                    doc[iname]["maintext"]='<p>'+doc[iname]["maintext"]+'</p>'
                     doc[iname]["methods"]={}
                     doc[iname]["signals"]={}
                 doc[iname]["methods"][mname]={}
@@ -33,12 +35,14 @@ for (cname,val) in inspectmod.__dict__.items():
                     doc[iname]["methods"][mname]["out_sig"]="None"
                 else:
                     doc[iname]["methods"][mname]["out_sig"]=mval.__dict__["_dbus_out_signature"]
-                doc[iname]["methods"][mname]["text"]= mval.__doc__.replace('\n\n','<p>')
+                doc[iname]["methods"][mname]["text"]= mval.__doc__.replace('\n\n','</p><p>')
+                doc[iname]["methods"][mname]["text"]='<p>'+doc[iname]["methods"][mname]["text"]+'</p>'
             if inspect.isfunction(mval) and mval.__dict__.has_key("_dbus_is_signal"):
                 iname=mval.__dict__["_dbus_interface"]
                 if not doc.has_key(iname):
                     doc[iname]={}
-                    doc[iname]["maintext"]=val.__doc__.replace('\n\n','<p>')
+                    doc[iname]["maintext"]=val.__doc__.replace('\n\n','</p><p>')
+                    doc[iname]["maintext"]='<p>'+doc[iname]["maintext"]+'</p>'
                     doc[iname]["methods"]={}
                     doc[iname]["signals"]={}
                 doc[iname]["signals"][mname]={}
@@ -85,7 +89,7 @@ else:
         for method in doc[name]["methods"].keys(): 
             print '<li></a><div class="method" name="%s">' % method
             print '<h2>%s ( %s ) -> %s</h2>' % (method,doc[name]["methods"][method]["in_sig"], doc[name]["methods"][method]["out_sig"])
-            print doc[name]["methods"][method]["text"]
+            print '<pre>', doc[name]["methods"][method]["text"], '</pre>'
             print '</div></li>'
         print '</ul>'
         print '<h2>Signals:</h2>'
@@ -93,7 +97,7 @@ else:
         for signal in doc[name]["signals"].keys(): 
             print '<li></a><div class="signal" name="%s">' % signal 
             print '<h2>%s ( %s )</h2>' % (signal,doc[name]["signals"][signal]["sig"])
-            print doc[name]["signals"][signal]["text"]
+            print '<pre>', doc[name]["signals"][signal]["text"], '</pre>'
             print '</div></li>'
         print '</ul>'
         print '<br>'

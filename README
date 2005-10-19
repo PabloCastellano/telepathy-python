@@ -17,4 +17,4 @@ access files such as cheddar.manager which must be in /usr/share/telepathy or
 activated with D-Bus service activation.
 
 To generate documentation for D-Bus interfaces, run:
- ./doc-generator.py server order > server.html
+ ./doc-generator.py server order > spec.html
