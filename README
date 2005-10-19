@@ -1,5 +1,20 @@
-You need the latest dbus bindings from http://projects.collabora.co.uk/darcs/telepathy/dbus.
+You need the latest D-Bus python bindings from:
+ http://projects.collabora.co.uk/darcs/telepathy/dbus
+These include a large number of new features and bug fixes which will be
+heading in to CVS HEAD soon.
 
-to generate documentation  for dbus interfaces run 
-./gen-documentation server order > server.html
+server/connmgr.py implements base classes for all of the d-bus interfaces in
+Telepathy. Most methods abstract and they are intended to be used as mixins for
+the concrete implementations, but some perform housekeeping for you and
+maintain structures with some of the state necessary to answer Get* calls.
 
+cheddar.py is the embryonic XMPP connection manager implementation, which
+should soon implement a fair amount of the spec, but is currently broken.
+
+The client lib in client/ isn't factored into a library yet, and needs to
+access files such as cheddar.manager which must be in /usr/share/telepathy or
+~/.telepathy in order to discover the connection managers which will be
+activated with D-Bus service activation.
+
+To generate documentation for D-Bus interfaces, run:
+ ./doc-generator.py server order > server.html
