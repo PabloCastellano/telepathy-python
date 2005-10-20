@@ -66,22 +66,28 @@ if sys.argv[2][:17]== "--generate-order=":
 else: 
     print '<html>'
     print '<head>'
-    print '<title>Documentation for dbus interfaces defined in',inspectmod.__name__,'</title>'
+    print '<title>Telepathy: D-Bus Interface Specification</title>' # inspectmod.__name__,'</title>'
     print '<link rel="stylesheet" type="text/css" media="screen" href="style.css" />'
     print '</head>'
     print '<body>'
     print '<div class="topbox">Telepathy</div>'
-    #print '<div class="sidebar">'
-    #
-    #for name in doc.keys():
-    #    for method in doc[name]["methods"].keys(): 
-    #        print '  <a href="#%s">%s</a>' % (method,method)
-    #print '</div>'
+
+#    print '<div class="sidebar">'
+#    order = file(sys.argv[2])
+#    for name in order:
+#        name = name[:-1]
+#        name.strip()
+#        pretty = name.replace('org.freedesktop.Telepathy', '')
+#        print '  <a href="#%s">%s</a><br />' % (name, pretty)
+#    print '</div>'
+
+    print '<p><b>Please note that this is a draft specification and is subject to change without notice.</b></p>'
 
     order=file(sys.argv[2])
     for name in order:
         name=name[:-1]
         name.strip()
+        print '<a name="%s" />' % name
         print "<h1>"+name+"</h1>"
         print doc[name]["maintext"]
         print '<h2>Methods:</h2>'

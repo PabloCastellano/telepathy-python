@@ -55,19 +55,20 @@ color:black;
 font-weight:normal;
 }
 .sidebar {
-width:9em;
+/* width:9em; */
 float:left;
-border-right:#abacba solid 1px;
-border-left: #abacba solid 1px;
+/* border-right:#abacba solid 1px;
+border-left: #abacba solid 1px; */
+border: #abacba solid 1px;
 padding-left:10px;
 margin-left:10px;
 padding-right:10px;
 margin-right:10px;
-height:100%;
+/* height:100%; */
 color:#5d5d5d;
-#background:#dadae2;
+/* #background:#dadae2; */
 background:#dadae2;
-#background: #f5e2c5;
+/* #background: #f5e2c5; */
 
 }
 .sidebar a{
