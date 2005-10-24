@@ -4,7 +4,7 @@ import os
 import inspect
 import dbus
 
-inspectmod=__import__(sys.argv[1],[],[],[])
+inspectmod=__import__(sys.argv[1],globals(), locals(),['*'])
 
 doc={}
 
