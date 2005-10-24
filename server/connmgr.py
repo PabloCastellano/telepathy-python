@@ -595,17 +595,24 @@ class ConnectionInterfacePresence(dbus.service.Interface):
     make use of it. The following well-known values (in common with those in
     Galago) should be used where possible to allow clients to identify common
     choices:
-        available, away, brb (Be Right Back), busy, dnd (Do Not Disturb),
-        xa (Extended Away), hidden (aka Invisible), offline
+
+    - available
+    - away
+    - brb (Be Right Back)
+    - busy
+    - dnd (Do Not Disturb),
+    - xa (Extended Away)
+    - hidden (aka Invisible)
+    - offline
 
     As well as these well-known status identifiers, every status also has a
     numerical string value which can be used by the client to classify even
     unknown statuses into different fundamental types:
-        1 - offline
-        2 - available
-        3 - away
-        4 - extended away
-        5 - hidden
+    1 - offline
+    2 - available
+    3 - away
+    4 - extended away
+    5 - hidden
 
     The dictionary of variant types allows the connection manager to exchange
     further protocol-specific information with the client. It is recommended
@@ -628,10 +635,10 @@ class ConnectionInterfacePresence(dbus.service.Interface):
 
         Returns:
         a dictionary of string identifiers mapped to a struct for each status, containing:
-            a type value from one of the values above
-            a boolean to indicate if this status may be set on yourself
-            a boolean to indicate if this is an exclusive status which you may not set alongside any other
-            a dictionary of valid optional string argument names mapped to their types
+        - a type value from one of the values above
+        - a boolean to indicate if this status may be set on yourself
+        - a boolean to indicate if this is an exclusive status which you may not set alongside any other
+        - a dictionary of valid optional string argument names mapped to their types
         """
         pass
 
@@ -655,9 +662,10 @@ class ConnectionInterfacePresence(dbus.service.Interface):
 
         Parameters:
         a dictionary of contacts mapped to a struct containing:
-            the idle time of the contact in seconds
-            a dictionary mapping the contact's current status identifiers to:
-                a dictionary of optional parameter names mapped to their variant-boxed values
+        - the idle time of the contact in seconds
+        - a dictionary mapping the contact's current status identifiers to:
+          a dictionary of optional parameter names mapped to their 
+          variant-boxed values
         """
         pass
 
