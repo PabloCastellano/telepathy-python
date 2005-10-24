@@ -7,20 +7,19 @@ import xmpp
 
 import server
 
-class JabberRosterChannel(server.Channel, server.GroupChannelInterface, server.NamedChannelInterface, server.PresenceChannelInterface):
+class JabberRosterChannel(server.ChannelTypeList, server.ChannelInterfaceGroup, server.ChannelInterfaceNamed):
     def __init__(self, conn):
-        server.Channel.__init__(self, conn, LIST_CHANNEL_INTERFACE)
+        server.Channel.__init__(self, conn, server.CHANNEL_TYPE_LIST)
         server.GroupChannelInterface.__init__(self)
         server.NamedChannelInterface.__init__(self, 'subscribe')
-        server.PresenceChannelInterface.__init__(self)
 
     def InviteMembers(self, members):
         print members
 
-class JabberIMChannel(server.TextChannel, server.IndividualChannelInterface):
+class JabberIMChannel(server.ChannelTypeText, server.ChannelInterfaceIndividual):
     def __init__(self, conn, recipient):
-        server.TextChannel.__init__(self, conn)
-        server.IndividualChannelInterface.__init__(self, recipient)
+        server.ChannelTypeText.__init__(self, conn)
+        server.ChannelInterfaceIndividual.__init__(self, recipient)
 
     def sendCallback(self, id, text):
         msg = xmpp.protocol.Message(self.recipient, text)
