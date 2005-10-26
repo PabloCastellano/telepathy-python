@@ -955,6 +955,25 @@ class Connection(dbus.service.Object):
         """
         raise IOError('Unknown channel type %s' % type)
 
+#    @dbus.service.method(CONN_INTERFACE, in_signature='s', out_signature='s')
+#    def MakeCanonicalID(self, contact):
+#        """
+#        A function that can be called on the connection to render the
+#        unique identifier of a contact on this connection into a
+#        canonical form which can be compared to the form used in other
+#        places throughout the connection manager. This might often
+#        remove whitespace or put the identifier into lower case.
+#        This is useful for storing identifiers in a form that allows
+#        them to be directly compared with those in use on the connection.
+#
+#        Parameters:
+#        contact - the contact ID to make canonical
+#
+#        Returns:
+#        a string with the canonical form of the ID
+#        """
+#        return contact
+
 class ConnectionManager(dbus.service.Object):
     """
     A D-Bus service which allows connections to be created. The manager

@@ -6,7 +6,6 @@ capabilities!
 default privacy policy
 user info interface
 passworded channels
-user id canonicalisation method
 account registration interface
 connection forwarding interface
 searching for users
@@ -14,6 +13,7 @@ channel listing
 channel transfer interface
 
 ponder:
+user id canonicalisation method?
 handling moderated/invite only channels?
 draw sequence diagrams?
 mapping people in chats to real identifiers?
