@@ -1,0 +1,15 @@
+Prototype Todo
+--------------
+
+XMPP Connection Manager (cheddar):
+check out using/fixing libloudmouth bindings
+fix cheddar in light of massive spec changes
+hook roster up to list channels
+make channel object names fall under the connection in the object tree
+refactor server base classes into manager/connection/channel files
+mapping people in chats to real identifiers
+jabber conferences
+
+Other Stuff:
+proof of concept logger
+another connection manager?

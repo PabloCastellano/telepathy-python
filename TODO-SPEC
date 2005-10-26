@@ -1,0 +1,30 @@
+Specification Todo
+------------------
+
+capabilities!
+connection.interface.renaming
+for group, check ability to add/remove in advance
+pending local/pending remote
+***error handling***
+default privacy policy
+user info interface
+passworded channels
+handling moderated/invite only channels?
+user id canonicalisation method
+account registration interface
+connection forwarding interface
+searching for users
+channel listing
+channel transfer interface
+
+ponder:
+draw sequence diagrams?
+mapping people in chats to real identifiers?
+how does mission control know if the channel was user or remote initiated?
+password changing interface
+moderated channels?
+buddy list groups
+typing notification
+editing/recieving vcards
+sketching/drawing
+buddy icons
