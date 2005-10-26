@@ -173,7 +173,11 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     def AddMembers(self, contacts):
         """
         Invite all the given contacts into the channel, or approve requests
-        for channel membership for contacts on the pending local list.
+        for channel membership for contacts on the pending local list. Calling
+        this method with an empty array will do nothing if the user is able
+        to invite or add members to this channel, or will fail appropriately
+        if they are not allowed to do this. This can be used by user interfaces
+        to test whether a particular option should be presented to the user.
         """
         pass
 
@@ -182,7 +186,11 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         """
         Requests the removal of contacts from a channel, refuse their request
         for channel membership on the pending local list, or rescind their
-        invitation on the pending remote list.
+        invitation on the pending remote list. Calling this method with an
+        empty array will do nothing if the user is able to remove or request
+        the removal of members from the channel, or will fail appropriately
+        if they are not allowed to do this. This can be used by user interfaces
+        to test whether a particular option should be presented to the user.
         """
         pass
 
