@@ -34,7 +34,7 @@ for (cname,val) in inspectmod.__dict__.items():
                 else:
                     doc[iname]["methods"][mname]["out_sig"]=mval.__dict__["_dbus_out_signature"]
                 doc[iname]["methods"][mname]["text"]= mval.__doc__
-            if inspect.isfunction(mval) and mval.__dict__.has_key("_dbus_is_signal"):
+            elif inspect.isfunction(mval) and mval.__dict__.has_key("_dbus_is_signal"):
                 iname=mval.__dict__["_dbus_interface"]
                 if not doc.has_key(iname):
                     doc[iname]={}
@@ -43,8 +43,8 @@ for (cname,val) in inspectmod.__dict__.items():
                     doc[iname]["signals"]={}
                 doc[iname]["signals"][mname]={}
                 sig=dbus.Signature(mval.__dict__["_dbus_signature"])
-                argspec=inspect.getargspec(mval)
-                args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sigin,argspec[0][1:]))) # chop off self
+                argspec=mval.__dict__["_dbus_args"]
+                args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sig,argspec)))
                 doc[iname]["signals"][mname]["sig"]=args
                 doc[iname]["signals"][mname]["text"]= mval.__doc__
 
