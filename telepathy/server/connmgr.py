@@ -481,8 +481,8 @@ class ChannelInterfaceDTMF(dbus.service.Interface):
         Requests that a DTMF tone is sent.
 
         Parameters:
-        a numeric signal number
-        a numeric duration in milliseconds
+        signal - a numeric signal number
+        duration - a numeric duration in milliseconds
         """
         pass
 

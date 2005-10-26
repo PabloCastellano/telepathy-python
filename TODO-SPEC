@@ -6,7 +6,6 @@ capabilities!
 default privacy policy
 user info interface
 passworded channels
-handling moderated/invite only channels?
 user id canonicalisation method
 account registration interface
 connection forwarding interface
@@ -15,9 +14,12 @@ channel listing
 channel transfer interface
 
 ponder:
+handling moderated/invite only channels?
 draw sequence diagrams?
 mapping people in chats to real identifiers?
 how does mission control know if the channel was user or remote initiated?
+
+later:
 password changing interface
 moderated channels?
 buddy list groups
