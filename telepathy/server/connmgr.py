@@ -300,6 +300,8 @@ class ChannelTypeList(Channel):
     allow - a group of contacts who may send you messages
     deny - a group of contacts who may not send you messages
     """
+    _dbus_interfaces = [CHANNEL_TYPE_LIST]
+
     def __init__(self):
         """
         Initialise the channel.
@@ -309,7 +311,6 @@ class ChannelTypeList(Channel):
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_LIST)
 
-ChannelTypeList._dbus_interfaces={ChannelTypeList.__name__:CHANNEL_TYPE_LIST}
 
 class ChannelTypeText(Channel):
     """
@@ -705,11 +706,10 @@ class ConnectionInterfaceRenaming(dbus.service.Interface):
     An interface on connections to support protocols where the unique identifiers
     of contacts can change.
     """
+    _dbus_interfaces = [CONN_INTERFACE_RENAMING]
 
     def __init__(self):
         self.interfaces.add(CONN_INTERFACE_RENAMING)
-
-ConnectionInterfaceRenaming._dbus_interfaces={ConnectionInterfaceRenaming.__name__:CONN_INTERFACE_RENAMING}
 
 class ConnectionInterfaceAliasing(dbus.service.Interface):
     """

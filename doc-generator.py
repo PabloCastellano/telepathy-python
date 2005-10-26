@@ -11,11 +11,11 @@ doc={}
 for (cname,val) in inspectmod.__dict__.items():
     if inspect.isclass(val):
         if val.__dict__.has_key("_dbus_interfaces"):
-            iname=val._dbus_interfaces[val.__name__]
-            doc[iname]={}
-            doc[iname]["maintext"]=val.__doc__
-            doc[iname]["methods"]={}
-            doc[iname]["signals"]={}
+            for iname in val._dbus_interfaces:
+                doc[iname]={}
+                doc[iname]["maintext"]=val.__doc__
+                doc[iname]["methods"]={}
+                doc[iname]["signals"]={}
         for (mname, mval) in val.__dict__.items():
             if inspect.isfunction(mval) and mval.__dict__.has_key("_dbus_is_method"):
                 iname=mval.__dict__["_dbus_interface"]
