@@ -5,21 +5,21 @@ import gobject
 import time
 import xmpp
 
-import server
+import telepathy.server
 
-class JabberRosterChannel(server.ChannelTypeList, server.ChannelInterfaceGroup, server.ChannelInterfaceNamed):
+class JabberRosterChannel(telepathy.server.ChannelTypeList, telepathy.server.ChannelInterfaceGroup, telepathy.server.ChannelInterfaceNamed):
     def __init__(self, conn):
-        server.Channel.__init__(self, conn, server.CHANNEL_TYPE_LIST)
-        server.GroupChannelInterface.__init__(self)
-        server.NamedChannelInterface.__init__(self, 'subscribe')
+        telepathy.server.Channel.__init__(self, conn, telepathy.server.CHANNEL_TYPE_LIST)
+        telepathy.server.GroupChannelInterface.__init__(self)
+        telepathy.server.NamedChannelInterface.__init__(self, 'subscribe')
 
     def InviteMembers(self, members):
         print members
 
-class JabberIMChannel(server.ChannelTypeText, server.ChannelInterfaceIndividual):
+class JabberIMChannel(telepathy.server.ChannelTypeText, telepathy.server.ChannelInterfaceIndividual):
     def __init__(self, conn, recipient):
-        server.ChannelTypeText.__init__(self, conn)
-        server.ChannelInterfaceIndividual.__init__(self, recipient)
+        telepathy.server.ChannelTypeText.__init__(self, conn)
+        telepathy.server.ChannelInterfaceIndividual.__init__(self, recipient)
 
     def sendCallback(self, id, text):
         msg = xmpp.protocol.Message(self.recipient, text)
@@ -56,7 +56,7 @@ class JabberIMChannel(server.ChannelTypeText, server.ChannelInterfaceIndividual)
 
         return True
 
-class JabberConnection(server.Connection):
+class JabberConnection(telepathy.server.Connection):
     def __init__(self, manager, account, conn_info):
         self.jid = xmpp.protocol.JID(account)
         if self.jid.getResource() == '':
@@ -66,7 +66,7 @@ class JabberConnection(server.Connection):
         for j in ['jabber', self.jid.getDomain(), self.jid.getNode(), self.jid.getResource()]:
             parts += j.split('.')[::-1]
 
-        server.Connection.__init__(self, manager, 'jabber', account, parts)
+        telepathy.server.Connection.__init__(self, manager, 'jabber', account, parts)
 
         self.password = conn_info['password']
 
@@ -166,9 +166,9 @@ class JabberConnection(server.Connection):
         else:
             raise IOError('Unknown channel type %s' % type)
 
-class JabberConnectionManager(server.ConnectionManager):
+class JabberConnectionManager(telepathy.server.ConnectionManager):
     def __init__(self):
-        server.ConnectionManager.__init__(self, "cheddar")
+        telepathy.server.ConnectionManager.__init__(self, "cheddar")
         self.protos['jabber'] = JabberConnection
 
 if __name__ == '__main__':
