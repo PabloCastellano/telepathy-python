@@ -130,33 +130,34 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     not be granted).
 
     As well as the basic Channel's member list, this interface implements a
-    further two lists: invited and requested members. Contacts on the invited
-    list have been invited to the channel, but the remote user has not accepted
-    the invitation. Contacts on the requested list have requested membership of
-    the channel, but the user of the framework must accept their request before
-    they may join. A single contact should never appear on more than one of the
-    three lists. The lists are empty when the interface is created, and the
-    MembersChanged signal should be emitted when information is retrieved from
-    the server, or changes occur.
+    further two lists: local pending and remote pending members. Contacts on
+    the remote pending list have been invited to the channel, but the remote
+    user has not accepted the invitation. Contacts on the local pending list
+    have requested membership of the channel, but the local user of the
+    framework must accept their request before they may join. A single
+    contact should never appear on more than one of the three lists. The
+    lists are empty when the channel is created, and the MembersChanged
+    signal should be emitted when information is retrieved from the
+    server, or changes occur.
 
     Addition of members to the channel may be requested by using AddMembers. If
     remote acknowledgement is required, use of the AddMembers method will cause
-    users to appear on the invited list. If no acknowledgement is required,
-    AddMembers will add contacts to the member list directly.  If a contact is
-    awaiting authorisation on the requested list, AddMembers will grant their
-    membership request.
+    users to appear on the remote pending list. If no acknowledgement is
+    required, AddMembers will add contacts to the member list directly.
+    If a contact is awaiting authorisation on the local pending list,
+    AddMembers will grant their membership request.
 
     Removal of contacts from the channel may be requested by using
-    RemoveMembers.  If a contact is awaiting authorisation on the requested
-    list, RemoveMembers will refuse their membership request. If a contact has
-    been invited to the channel but not yet joined, RemoveMembers may rescind
-    their request.
+    RemoveMembers.  If a contact is awaiting authorisation on the local pending
+    list, RemoveMembers will refuse their membership request. If a contact is
+    on the remote pending list but has not yet accepted the invitation,
+    RemoveMembers will rescind the request if possible.
 
     It should not be presumed that the requestor of a channel implementing this
     interface is immediately granted membership, or indeed that they are a
     member at all, unless they appear in the list. They may, for instance,
-    be placed into the requested list until a connection has been established
-    or the request acknowledged remotely.
+    be placed into the remote pending list until a connection has been
+    established or the request acknowledged remotely.
 
     This interface must never be implemented alongside Channel.Interface.Individual.
     """
@@ -164,15 +165,15 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     def __init__(self, me):
         assert(CHANNEL_INTERFACE_INDIVIDUAL not in self.interfaces)
         self.interfaces.add(CHANNEL_INTERFACE_GROUP)
-        self.requested = set()
-        self.invited = set()
+        self.local_pending = set()
+        self.remote_pending = set()
         self.me = me
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='as', out_signature='')
     def AddMembers(self, contacts):
         """
-        Invite all the given contacts into the channel, or approve
-        their requests for channel membership.
+        Invite all the given contacts into the channel, or approve requests
+        for channel membership for contacts on the pending local list.
         """
         pass
 
@@ -180,7 +181,8 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     def RemoveMembers(self, contacts):
         """
         Requests the removal of contacts from a channel, refuse their request
-        for channel membership, or rescind their invitation.
+        for channel membership on the pending local list, or rescind their
+        invitation on the pending remote list.
         """
         pass
 
@@ -193,32 +195,39 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         return self.me
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='as')
-    def GetRequestedMembers(self):
-        """ Returns an array of identifiers for the contacts requesting channel membership. """
-        return dbus.Array(self.requested, signature='s')
+    def GetLocalPendingMembers(self):
+        """
+        Returns an array of identifiers for the contacts requesting
+        channel membership and awaiting local approval with AddMembers.
+        """
+        return dbus.Array(self.local_pending, signature='s')
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='as')
-    def GetInvitedMembers(self):
-        """ Returns an array of identifiers for contacts who have been invited to the channel. """
-        return dbus.Array(self.invited, signature='s')
+    def GetRemotePendingMembers(self):
+        """
+        Returns an array of identifiers for contacts who have been
+        invited to the channel and are awaiting remote approval.
+        """
+        return dbus.Array(self.remote_pending, signature='s')
 
     @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='asasasas')
-    def MembersChanged(self, added, removed, requested, invited):
+    def MembersChanged(self, added, removed, local_pending, remote_pending):
         """
-        Emitted when contacts join any of the three lists (members, requested or invited).
-        Contacts are listed in the removed list when they leave any of the three lists.
+        Emitted when contacts join any of the three lists (members, local
+        pending or remote pending).  Contacts are listed in the removed
+        list when they leave any of the three lists.
         """
 
         self.members.update(added)
         self.members.difference_update(removed)
 
-        self.requested.update(requested)
-        self.requested.difference_update(added)
-        self.requested.difference_update(removed)
+        self.local_pending.update(local_pending)
+        self.local_pending.difference_update(added)
+        self.local_pending.difference_update(removed)
 
-        self.invited.update(invited)
-        self.invited.difference_update(added)
-        self.invited.difference_update(removed)
+        self.remote_pending.update(remote_pending)
+        self.remote_pending.difference_update(added)
+        self.remote_pending.difference_update(removed)
 
 class ChannelInterfaceNamed(dbus.service.Interface):
     """
