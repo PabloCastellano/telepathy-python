@@ -2,7 +2,6 @@ Specification Todo
 ------------------
 
 capabilities!
-connection.interface.renaming
 for group, check ability to add/remove in advance
 pending local/pending remote
 ***error handling***

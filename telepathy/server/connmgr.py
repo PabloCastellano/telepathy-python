@@ -711,6 +711,28 @@ class ConnectionInterfaceRenaming(dbus.service.Interface):
     def __init__(self):
         self.interfaces.add(CONN_INTERFACE_RENAMING)
 
+    @dbus.service.method(CONN_INTERFACE_RENAMING, in_signature='s', out_signature='')
+    def RequestRename(self, name):
+        """
+        Request that the users own identifier is changed on the server. Success
+        is indicated by a Renamed signal being emitted.
+
+        Parameters:
+        name - a string of the desired identifier
+        """
+        pass
+
+    @dbus.service.signal(CONN_INTERFACE_RENAMING, signature='ss')
+    def Renamed(self, original, new):
+        """
+        Emitted when the unique identifier of a contact on the server changes.
+
+        Parameters:
+        original - a string of the original identifier
+        new - a string of the new identifier
+        """
+        pass
+
 class ConnectionInterfaceAliasing(dbus.service.Interface):
     """
     An interface on connections to support protocols where contacts have an
