@@ -955,24 +955,20 @@ class Connection(dbus.service.Object):
         """
         raise IOError('Unknown channel type %s' % type)
 
-#    @dbus.service.method(CONN_INTERFACE, in_signature='s', out_signature='s')
-#    def MakeCanonicalID(self, contact):
-#        """
-#        A function that can be called on the connection to render the
-#        unique identifier of a contact on this connection into a
-#        canonical form which can be compared to the form used in other
-#        places throughout the connection manager. This might often
-#        remove whitespace or put the identifier into lower case.
-#        This is useful for storing identifiers in a form that allows
-#        them to be directly compared with those in use on the connection.
-#
-#        Parameters:
-#        contact - the contact ID to make canonical
-#
-#        Returns:
-#        a string with the canonical form of the ID
-#        """
-#        return contact
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
+    def GetMatchFlags(self):
+        """
+        A function that returns a list of flags telling the user interface
+        which policies to follow when comparing contact IDs from the server.
+        Well-known values that should be supported by all client
+        implementations are 'ignore-case' and 'ignore-whitespace', but further
+        flags can be agreed between connection manager and client
+        implementations as necessary.
+
+        Returns:
+        an array of strings of policy flags to follow when comparing contact IDs
+        """
+        return ['ignore-case', 'ignore-whitespace']
 
 class ConnectionManager(dbus.service.Object):
     """
