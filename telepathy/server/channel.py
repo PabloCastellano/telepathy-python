@@ -413,19 +413,50 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     def __init__(self, me):
         assert(CHANNEL_INTERFACE_INDIVIDUAL not in self.interfaces)
         self.interfaces.add(CHANNEL_INTERFACE_GROUP)
+        self.group_flags = set()
         self.local_pending = set()
         self.remote_pending = set()
         self.me = me
+
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='as')
+    def GetGroupFlags(self):
+        """
+        Returns a list of the flags relevant to this group channel. The user
+        interface can use this to present information about which operations
+        are currently valid.
+
+        These can be:
+         can_add - the AddMembers method can be used to add or invite members who are not already in the local pending list (which is always valid)
+         can_remove - the RemoveMembers method can be used to remove channel members (removing those on the pending local list is always valid)
+         can_rescind - the RemoveMembers method can be used on people on the remote pending list
+
+        Returns:
+        an array of strings of flags
+        """
+        return self.group_flags
+
+    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='asas')
+    def GroupFlagsChanged(self, added, removed):
+        """
+        Emitted when the flags as returned by GetGroupFlags are changed.
+        The user interface should be updated as appropriate.
+
+        Parameters:
+        added - the flags which have been set
+        removed - the flags which are no longer set
+        """
+        self.group_flags.update(added)
+        self.group_flags.difference_update(removed)
+
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='as', out_signature='')
     def AddMembers(self, contacts):
         """
         Invite all the given contacts into the channel, or approve requests
-        for channel membership for contacts on the pending local list. Calling
-        this method with an empty array will do nothing if the user is able
-        to invite or add members to this channel, or will fail appropriately
-        if they are not allowed to do this. This can be used by user interfaces
-        to test whether a particular option should be presented to the user.
+        for channel membership for contacts on the pending local list.
+
+        Parameters:
+        contacts - contact IDs to invite to the channel
         """
         pass
 
@@ -434,11 +465,10 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         """
         Requests the removal of contacts from a channel, refuse their request
         for channel membership on the pending local list, or rescind their
-        invitation on the pending remote list. Calling this method with an
-        empty array will do nothing if the user is able to remove or request
-        the removal of members from the channel, or will fail appropriately
-        if they are not allowed to do this. This can be used by user interfaces
-        to test whether a particular option should be presented to the user.
+        invitation on the pending remote list.
+
+        Parameters:
+        contacts - contact IDs to remove from the channel
         """
         pass
 
