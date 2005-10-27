@@ -75,7 +75,7 @@ class Channel(dbus.service.Object):
         print 'object_path: %s signal: Closed' % (self.object_path)
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='s')
-    def GetType(self):
+    def GetChannelType(self):
         """ Returns the interface name for the type of this channel. """
         return self.type
 
