@@ -3,11 +3,12 @@ Specification Todo
 
 capabilities!
 ***error handling***
-default privacy policy
 searching for users
 channel listing
 
 ponder:
+conference server with jabber
+destination for JUD searches
 IRC quit messages
 handling moderated/invite only channels?
 draw sequence diagrams?

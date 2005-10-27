@@ -4,6 +4,7 @@ org.freedesktop.Telepathy.Connection.Interface.Aliasing
 org.freedesktop.Telepathy.Connection.Interface.ContactInfo
 org.freedesktop.Telepathy.Connection.Interface.Forwarding
 org.freedesktop.Telepathy.Connection.Interface.Presence
+org.freedesktop.Telepathy.Connection.Interface.Privacy
 org.freedesktop.Telepathy.Connection.Interface.Renaming
 org.freedesktop.Telepathy.Channel
 org.freedesktop.Telepathy.Channel.Type.List

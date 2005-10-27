@@ -466,13 +466,77 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         pass
 
 
+class ConnectionInterfacePrivacy(dbus.service.Interface):
+    """
+    An interface to support getting and setting privacy modes to configure
+    situations such as not being contactable by people who are not on your
+    subscribe list. If this interface is not implemented, the default can be
+    presumed to be allow-all (as defined in GetPrivacyModes).
+    """
+    def __init__(self, modes):
+        """
+        Initialise privacy interface.
+
+        Parameters:
+        modes - a list of privacy modes available on this interface
+        """
+        self.interfaces.add(CONN_INTERFACE_PRIVACY)
+        self.mode = ''
+        self.modes = modes
+
+    @dbus.service.method(CONN_INTERFACE_PRIVACY, in_signature='', out_signature='as')
+    def GetPrivacyModes(self):
+        """
+        Returns the privacy modes available on this connection. The following
+        well-known names should be used where appropriate:
+         allow-all - any contact may initiate communication
+         allow-subscribed - only contacts on your subscriction list may initiate communication
+
+        Returns:
+        an array of valid privacy modes for this connection
+        """
+        return self.modes
+
+    @dbus.service.method(CONN_INTERFACE_PRIVACY, in_signature='', out_signature='s')
+    def GetPrivacyMode(self):
+        """
+        Return the current privacy mode, which must be one of the values
+        returned by GetPrivacyModes.
+
+        Returns:
+        a string of the current privacy mode
+        """
+        return self.mode
+
+    @dbus.service.method(CONN_INTERFACE_PRIVACY, in_signature='s', out_signature='')
+    def SetPrivacyMode(self, mode):
+        """
+        Request that the privacy mode be changed to the given value, which
+        must be one of the values returned by GetPrivacyModes. Success is
+        indicated by the method returning and the PrivacyModeChanged
+        signal being emitted.
+
+        Parameters:
+        mode - the desired privacy mode
+        """
+        pass
+
+    @dbus.service.signal(CONN_INTERFACE_PRIVACY, signature='s')
+    def PrivacyModeChanged(self, mode):
+        """
+        Emitted when the privacy mode is changed or the value has been
+        initially received from the server.
+
+        Parameters:
+        mode - the current privacy mode
+        """
+        self.mode = mode
+
 class ConnectionInterfaceRenaming(dbus.service.Interface):
     """
     An interface on connections to support protocols where the unique identifiers
     of contacts can change.
     """
-    _dbus_interfaces = [CONN_INTERFACE_RENAMING]
-
     def __init__(self):
         self.interfaces.add(CONN_INTERFACE_RENAMING)
 

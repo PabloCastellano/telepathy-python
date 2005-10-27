@@ -427,9 +427,9 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         are currently valid.
 
         These can be:
-         can_add - the AddMembers method can be used to add or invite members who are not already in the local pending list (which is always valid)
-         can_remove - the RemoveMembers method can be used to remove channel members (removing those on the pending local list is always valid)
-         can_rescind - the RemoveMembers method can be used on people on the remote pending list
+         can-add - the AddMembers method can be used to add or invite members who are not already in the local pending list (which is always valid)
+         can-remove - the RemoveMembers method can be used to remove channel members (removing those on the pending local list is always valid)
+         can-rescind - the RemoveMembers method can be used on people on the remote pending list
 
         Returns:
         an array of strings of flags
@@ -698,7 +698,7 @@ class ChannelInterfaceSubject(dbus.service.Interface):
         subject. The following well-known values are defined and should
         be used where appropriate:
          u:timestamp - the UNIX timestamp when the subject was set
-         s:set_by - the contact ID of the individual who set it
+         s:set-by - the contact ID of the individual who set it
          s:username - the local username of the individual who set it
          s:hostname - the FQDN, IPV4 or IPv6 address of the contact who set it
 

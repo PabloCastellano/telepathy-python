@@ -12,6 +12,7 @@ CONN_INTERFACE_ALIASING = 'org.freedesktop.Telepathy.Connection.Interface.Aliasi
 CONN_INTERFACE_CONTACT_INFO = 'org.freedesktop.Telepathy.Connection.Interface.ContactInfo'
 CONN_INTERFACE_FORWARDING = 'org.freedesktop.Telepathy.Connection.Interface.Forwarding'
 CONN_INTERFACE_PRESENCE = 'org.freedesktop.Telepathy.Connection.Interface.Presence'
+CONN_INTERFACE_PRIVACY = 'org.freedesktop.Telepathy.Connection.Interface.Privacy'
 CONN_INTERFACE_RENAMING = 'org.freedesktop.Telepathy.Connection.Interface.Renaming'
 
 CHANNEL_INTERFACE = 'org.freedesktop.Telepathy.Channel'
