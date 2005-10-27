@@ -4,10 +4,10 @@ Specification Todo
 capabilities!
 ***error handling***
 default privacy policy
-passworded channels
 searching for users
 channel listing
 channel transfer interface
+subject/group flags
 
 ponder:
 IRC quit messages
@@ -22,6 +22,6 @@ password changing interface
 moderated channels?
 buddy list groups
 typing notification
-editing/recieving vcards
+submitting vcards
 sketching/drawing
 buddy icons

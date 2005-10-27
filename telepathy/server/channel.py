@@ -537,6 +537,88 @@ class ChannelInterfaceNamed(dbus.service.Interface):
         return self.name
 
 
+class ChannelInterfacePassword(dbus.service.Interface):
+    """
+    Interface for channels that may have a password set that users need
+    to provide before being able to join, or may be able to view or change
+    once they have joined the channel.
+
+    The GetPasswordFlags method and the associated PasswordFlagsChanged
+    signal indicate whether the channel has a password, whether the user
+    must now provide it to join, and whether it can be viewed or changed
+    by the user.
+    """
+    def __init__(self):
+        self.interfaces.add(CHANNEL_INTERFACE_PASSWORD)
+        self.password_flags = set()
+        self.needs_password = False
+        self.password = ''
+
+    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='', out_signature='')
+    def GetPasswordFlags(self):
+        """
+        Returns a list of the flags relevant to the password on this channel.
+        The user interface can use this to present information about which
+        operations are currently valid.
+
+        These can be:
+         modifiable - the SetPassword method can be used to change the password
+         required - the password is required for users to join this channel
+         provide - the ProvidePassword method must be called now for the user to join
+         visible - the GetPassword method can be used to retreive the password
+
+        Returns:
+        an array of strings of flags
+        """
+        return self.password_flags
+
+    @dbus.service.signal(CHANNEL_INTERFACE_PASSWORD, signature='asas')
+    def PasswordFlagsChanged(self, added, removed):
+        """
+        Emitted when the flags as returned by GetPasswordFlags are changed.
+        The user interface should be updated.
+
+        Parameters:
+        added - the flags which have been set
+        removed - the flags which are no longer set
+        """
+        self.password_flags.update(added)
+        self.password_flags.difference_update(removed)
+
+    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='s', out_signature='')
+    def ProvidePassword(self, password):
+        """
+        Provide the password so that the channel can be joined. Must be
+        called with the correct password in order for channel joining to
+        proceed if the 'provide' password flag is set.
+
+        Parameters:
+        password - the password
+        """
+        pass
+
+    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='', out_signature='s')
+    def GetPassword(self):
+        """
+        Retrieve the password for the channel. Only valid if the 'visible'
+        password flag is set (see GetPasswordFlags).
+
+        Returns:
+        a string containing the channel's password
+        """
+        return self.password
+
+    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='s', out_signature='')
+    def SetPassword(self, password):
+        """
+        Change the password of the channel. Only valid if the 'modifiable'
+        password flag is set (see GetPasswordFlags).
+
+        Parameters:
+        password - the password to set
+        """
+        self.password = password
+
 class ChannelInterfaceSubject(dbus.service.Interface):
     """
     Interface for channels that have a modifiable subject or topic. A

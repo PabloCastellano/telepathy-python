@@ -23,6 +23,6 @@ CHANNEL_INTERFACE_DTMF = 'org.freedesktop.Telepathy.Channel.Interface.DTMF'
 CHANNEL_INTERFACE_GROUP = 'org.freedesktop.Telepathy.Channel.Interface.Group'
 CHANNEL_INTERFACE_INDIVIDUAL = 'org.freedesktop.Telepathy.Channel.Interface.Individual'
 CHANNEL_INTERFACE_NAMED = 'org.freedesktop.Telepathy.Channel.Interface.Named'
+CHANNEL_INTERFACE_PASSWORD = 'org.freedesktop.Telepathy.Channel.Interface.Password'
 CHANNEL_INTERFACE_SUBJECT = 'org.freedesktop.Telepathy.Channel.Interface.Subject'
-
 
