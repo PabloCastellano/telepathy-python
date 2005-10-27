@@ -649,25 +649,61 @@ class ChannelInterfacePassword(dbus.service.Interface):
 
 class ChannelInterfaceSubject(dbus.service.Interface):
     """
-    Interface for channels that have a modifiable subject or topic. A
+    Interface for channels that may have a modifiable subject or topic. A
     SubjectChanged signal should be emitted whenever the subject is changed,
     and once when the subject is initially discovered from the server.
     """
     def __init__(self):
         self.interfaces.add(CHANNEL_INTERFACE_SUBJECT)
         self.subject = ''
-        self.subject_set_by = ''
-        self.subject_set_at = 0
+        self.subject_info = {}
+        self.subject_flags = set()
 
-    @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='', out_signature='ssu')
+    @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='', out_signature='as')
+    def GetSubjectFlags(self):
+        """
+        Returns a list of the flags relevant to the subject of this channel.
+        The user interface can use this to present information about which
+        operations are currently valid.
+
+        These can be:
+         modifiable - the SetSubject method can be used to change the subject
+         present - the subject is set and can be obtained with GetSubject
+
+        Returns:
+        an array of strings of flags
+        """
+        return self.subject_flags
+
+    @dbus.service.signal(CHANNEL_INTERFACE_SUBJECT, signature='asas')
+    def SubjectFlagsChanged(self, added, removed):
+        """
+        Emitted when the flags as returned by GetSubjectFlags are changed.
+        The user interface should be updated as appropriate.
+
+        Parameters:
+        added - the flags which have been set
+        removed - the flags which are no longer set
+        """
+        self.subject_flags.update(added)
+        self.subject_flags.difference_update(removed)
+
+    @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='', out_signature='sa{sv}')
     def GetSubject(self):
         """
-        Get this channel's current subject.
+        Get this channel's current subject. Information such as the user
+        who set it and the time are represented in a dictionary of keys
+        to values so that arbitrary information can be associated with a
+        subject. The following well-known values are defined and should
+        be used where appropriate:
+         u:timestamp - the UNIX timestamp when the subject was set
+         s:set_by - the contact ID of the individual who set it
+         s:username - the local username of the individual who set it
+         s:hostname - the FQDN, IPV4 or IPv6 address of the contact who set it
 
         Returns:
         the subject text
-        the contact who set the subject (blank if unknown)
-        the unix timestamp of the last change (zero if unknown)
+        a dictionary mapping string attribute names to variant boxed values
         """
         return self.subject, self.subject_set_by, self.subject_set_at
 
@@ -682,14 +718,14 @@ class ChannelInterfaceSubject(dbus.service.Interface):
         """
         pass
 
-    @dbus.service.signal(CHANNEL_INTERFACE_SUBJECT, signature='ssu')
+    @dbus.service.signal(CHANNEL_INTERFACE_SUBJECT, signature='sa{sv}')
     def SubjectChanged(self, subject, set_by, set_at):
         """
-        Emitted when the subject changes or is initially discovered from the server.
+        Emitted when the subject changes or is initially discovered from the
+        server.
 
         Parameters:
         subject - the new subject string
-        contact - the identifier of the contact who was responsible for this change, which may be blank if unknown
-        time - the unix timestamp of the subject change, which may be zero if unknown
+        info - a dictionary containing named information mapped to boxed values
         """
         self.subject = subject
