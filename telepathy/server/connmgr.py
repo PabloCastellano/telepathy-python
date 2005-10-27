@@ -64,6 +64,7 @@ class ConnectionManager(dbus.service.Object):
          msn - MSN Messenger
          napster - Napster
          silc - SILC
+         sip - Session Initiation Protocol (SIP)
          trepia - Trepia
          yahoo - Yahoo! Messenger
          zephyr - Zephyr
