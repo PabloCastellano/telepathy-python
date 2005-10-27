@@ -100,16 +100,17 @@ class ChannelTypeList(Channel):
     A channel type for representing a list of people on the server which is
     not used for communication. This is intended for use with the interface
     Channel.Interface.Group for managing buddy lists and privacy lists
-    on the server.
+    on the server. This channel type has no methods because all of the
+    functionality it represents is available via the group interface.
 
     The following named instances (obtained by specifying as an argument to
     Channel.Interface.Named) of this channel type may be created by the connection
     manager to allow clients to manipulate certain server-side lists:
-    subscribe - the group of contacts for whom you wish to receive presence
-    publish - the group of contacts who may recieve your presence
-    hide - a group of contacts who are on the publish list but are temporarily disallowed from recieving your presence
-    allow - a group of contacts who may send you messages
-    deny - a group of contacts who may not send you messages
+     subscribe - the group of contacts for whom you wish to receive presence
+     publish - the group of contacts who may recieve your presence
+     hide - a group of contacts who are on the publish list but are temporarily disallowed from recieving your presence
+     allow - a group of contacts who may send you messages
+     deny - a group of contacts who may not send you messages
     """
     _dbus_interfaces = [CHANNEL_TYPE_LIST]
 
@@ -582,7 +583,7 @@ class ChannelInterfacePassword(dbus.service.Interface):
         self.needs_password = False
         self.password = ''
 
-    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='', out_signature='')
+    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='', out_signature='as')
     def GetPasswordFlags(self):
         """
         Returns a list of the flags relevant to the password on this channel.
@@ -604,7 +605,7 @@ class ChannelInterfacePassword(dbus.service.Interface):
     def PasswordFlagsChanged(self, added, removed):
         """
         Emitted when the flags as returned by GetPasswordFlags are changed.
-        The user interface should be updated.
+        The user interface should be updated as appropriate.
 
         Parameters:
         added - the flags which have been set
