@@ -960,15 +960,18 @@ class Connection(dbus.service.Object):
         """
         A function that returns a list of flags telling the user interface
         which policies to follow when comparing contact IDs from the server.
-        Well-known values that should be supported by all client
-        implementations are 'ignore-case' and 'ignore-whitespace', but further
-        flags can be agreed between connection manager and client
+        In keeping with Galago's service flags, the well-known values
+        that should be supported by all client implementations are:
+         preserve-case - preserve case during matching
+         preserve-spaces - preserve spaces during matching
+         strip-slash - strip the last slash and everything following it before matching
+        Further flags may be agreed between connection manager and client
         implementations as necessary.
 
         Returns:
         an array of strings of policy flags to follow when comparing contact IDs
         """
-        return ['ignore-case', 'ignore-whitespace']
+        return []
 
 class ConnectionManager(dbus.service.Object):
     """
