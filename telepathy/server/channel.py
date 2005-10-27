@@ -493,8 +493,15 @@ class ChannelInterfaceIndividual(dbus.service.Interface):
     channel closes. If there is the potential for other members to join, be
     invited, or request to join, the group channel interface should be used.
 
+    This interface has no methods so that if an individual channel is
+    requested, and a group channel containing that individual is provided
+    instead, the client will still operate correctly even if it doesn't
+    implement the group channel interface.
+
     This interface must never be implemented alongside Channel.Interface.Group.
     """
+    _dbus_interfaces = [CHANNEL_INTERFACE_INDIVIDUAL]
+
     def __init__(self, recipient):
         """
         Initialise the individual channel interface.
@@ -505,15 +512,6 @@ class ChannelInterfaceIndividual(dbus.service.Interface):
         assert(CHANNEL_INTERFACE_GROUP not in self.interfaces)
         self.interfaces.add(CHANNEL_INTERFACE_INDIVIDUAL)
         self.members.add(recipient)
-        self.recipient = recipient
-
-    @dbus.service.method(CHANNEL_INTERFACE_INDIVIDUAL, in_signature='', out_signature='s')
-    def GetRecipient(self):
-        """
-        Return the identifier of the other member of the channel (besides
-        yourself).
-        """
-        return self.recipient
 
 
 class ChannelInterfaceNamed(dbus.service.Interface):
