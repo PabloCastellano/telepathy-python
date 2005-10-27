@@ -1,6 +1,7 @@
 org.freedesktop.Telepathy.ConnectionManager
 org.freedesktop.Telepathy.Connection
 org.freedesktop.Telepathy.Connection.Interface.Aliasing
+org.freedesktop.Telepathy.Connection.Interface.Forwarding
 org.freedesktop.Telepathy.Connection.Interface.Presence
 org.freedesktop.Telepathy.Connection.Interface.Renaming
 org.freedesktop.Telepathy.Channel

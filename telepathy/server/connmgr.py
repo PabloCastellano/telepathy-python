@@ -792,6 +792,49 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
         """
         pass
 
+class ConnectionInterfaceForwarding(dbus.service.Interface):
+    """
+    A connection interface for services which can signal to contacts
+    that they should instead contact a different user ID, effectively
+    forward all incoming communication channels to another contact on
+    the service.
+    """
+    def __init__(self):
+        self.interfaces.add(CONN_INTERFACE_FORWARDING)
+        self.forwarding = ''
+
+    @dbus.service.method(CONN_INTERFACE_FORWARDING, in_signature='', out_signature='s')
+    def GetForwarding(self):
+        """
+        Returns the current forwarding ID, or blank if none is set.
+
+        Returns:
+        a string contact ID to whom incoming communication is forwarded
+        """
+        return self.forwarding
+
+    @dbus.service.method(CONN_INTERFACE_FORWARDING, in_signature='s', out_signature='')
+    def SetForwarding(self, forward_to):
+        """
+        Set a contact ID to forward incoming communications to. An empty
+        string disables forwarding.
+
+        Parameters:
+        forward_to - a contact ID to forward incoming communications to
+        """
+        pass
+
+    @dbus.service.signal(CONN_INTERFACE_FORWARDING, signature='s')
+    def ForwardingChanged(self, forward_to):
+        """
+        Emitted when the forwarding contact for this connection has been
+        changed. An empty string indicates forwarding is disabled.
+
+        Parameters:
+        forward_to - a string contact ID to forward communication to
+        """
+        self.forwarding = forward_to
+
 class Connection(dbus.service.Object):
     """
     This models a connection to a single user account on a communication
