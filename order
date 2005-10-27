@@ -14,3 +14,4 @@ org.freedesktop.Telepathy.Channel.Interface.Group
 org.freedesktop.Telepathy.Channel.Interface.Individual
 org.freedesktop.Telepathy.Channel.Interface.Named
 org.freedesktop.Telepathy.Channel.Interface.Subject
+org.freedesktop.Telepathy.Channel.Interface.Transfer

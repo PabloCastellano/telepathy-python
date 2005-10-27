@@ -25,4 +25,5 @@ CHANNEL_INTERFACE_INDIVIDUAL = 'org.freedesktop.Telepathy.Channel.Interface.Indi
 CHANNEL_INTERFACE_NAMED = 'org.freedesktop.Telepathy.Channel.Interface.Named'
 CHANNEL_INTERFACE_PASSWORD = 'org.freedesktop.Telepathy.Channel.Interface.Password'
 CHANNEL_INTERFACE_SUBJECT = 'org.freedesktop.Telepathy.Channel.Interface.Subject'
+CHANNEL_INTERFACE_TRANSFER = 'org.freedesktop.Telepathy.Channel.Interface.Transfer'
 

@@ -729,3 +729,25 @@ class ChannelInterfaceSubject(dbus.service.Interface):
         info - a dictionary containing named information mapped to boxed values
         """
         self.subject = subject
+
+
+class ChannelInterfaceTransfer(dbus.service.Interface):
+    """
+    An interface for channels where you may request that one of the members
+    connects to somewhere else instead.
+    """
+    def __init__(self):
+        self.interfaces.add(CHANNEL_INTERFACE_TRANSFER)
+        pass
+
+    @dbus.service.method(CHANNEL_INTERFACE_TRANSFER, in_signature='ss', out_signature='')
+    def Transfer(self, member, destination):
+        """
+        Request that the given channel member instead connects to a different
+        contact ID.
+
+        Parameters:
+        member - the member to transfer
+        destination - the destination contact ID
+        """
+        pass
