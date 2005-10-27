@@ -5,13 +5,12 @@ capabilities!
 ***error handling***
 default privacy policy
 passworded channels
-account registration interface
-connection forwarding interface
 searching for users
 channel listing
 channel transfer interface
 
 ponder:
+IRC quit messages
 adding error signals?
 handling moderated/invite only channels?
 draw sequence diagrams?

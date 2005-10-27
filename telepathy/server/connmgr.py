@@ -286,6 +286,9 @@ class ChannelInterfaceSubject(dbus.service.Interface):
         """
         Request that the subject of this channel be changed. Success will be
         indicated by an emission of the SubjectChanged signal.
+
+        Parameters:
+        subject - the subject to set
         """
         pass
 
@@ -1155,7 +1158,7 @@ class ConnectionManager(dbus.service.Object):
         relevant:
 
         s:server - a fully qualified domain name or numeric IPv4 or IPv6
-        address. Using the fully-qualified domain name form is RECOMMENDED
+        address. Using the fully-qualified domain name form is recommended
         whenever possible. If this paramter is specified and the account
         for that protocol also specifies a server, this parameter should
         override that in the user id.
@@ -1171,6 +1174,15 @@ class ConnectionManager(dbus.service.Object):
         b:require-encryption - Require encryption for this connection. A
         connection should fail to connect if require-encryption is set
         and an encrypted connection is not possible.
+
+        b:register - This account should be created on the server if it
+        does not already exist.
+
+        s:username - The local username to report to the server if
+        appropriate.
+
+        s:fullname - The user's full name if the service requires this
+        when authenticating.
 
         Parameters:
         proto - the protocol identifier
