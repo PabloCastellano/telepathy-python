@@ -835,6 +835,51 @@ class ConnectionInterfaceForwarding(dbus.service.Interface):
         """
         self.forwarding = forward_to
 
+class ConnectionInterfaceContactInfo(dbus.service.Interface):
+    """
+    An interface for requesting information about a contact on a given
+    connection. Information is returned as a vCard represented as an XML
+    string, in the format defined by JEP-0054: vcard-temp speficiation
+    from the Jabber Software Foundation (this is derived from the
+    aborted IETF draft draft-dawson-vcard-xml-dtd-01).
+
+    Implementations using PHOTO or SOUND elements should use the URI encoding
+    where possible, and not provide base64 encoded data to avoid unnecessary
+    bus traffic. Clients should not implement support for these encoded forms.
+    A seperate interface will be provided for transferring user avatars.
+
+    The following extended element names are also added to represent
+    information from other systems which are not based around vCards:
+     USERNAME - the username of the contact on their local system (used on IRC for example)
+     HOSTNAME - the fully qualified hostname, or IPv4 or IPv6 address of the contact in dotted quad or colon-separated form
+    """
+    def __init__(self):
+        self.interfaces.add(CONN_INTERFACE_CONTACT_INFO)
+
+    @dbus.service.method(CONN_INTERFACE_CONTACT_INFO, in_signature='s', out_signature='')
+    def RequestContactInfo(self, contact):
+        """
+        Request information for a given contact. The function will return
+        after a GotContactInfo signal has been emitted for the contact, or
+        an error returned.
+
+        Parameters:
+        contact - a string identifier for the contact to request info for
+        """
+        pass
+
+    @dbus.service.signal(CONN_INTERFACE_CONTACT_INFO, signature='ss')
+    def GotContactInfo(self, contact, vcard):
+        """
+        Emitted when information has been received from the server with
+        the details of a particular contact.
+
+        Parameters:
+        contact - a string of the contact ID on the server
+        vcard - the XML string containing their vcard information
+        """
+        pass
+
 class Connection(dbus.service.Object):
     """
     This models a connection to a single user account on a communication
