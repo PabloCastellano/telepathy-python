@@ -315,9 +315,9 @@ class ChannelTypeText(Channel):
         been successfully sent on the parent connection.
 
         Parameters:
-        the numeric identifier of the message
-        the unix timestamp indicating when the message was sent
-        the text of the message
+        id - the numeric identifier of the message
+        timestamp - the unix timestamp indicating when the message was sent
+        text - the text of the message
         """
         print 'object_path: %s signal: Sent %d %d %s' % (self.object_path, id, timestamp, text)
 
@@ -331,10 +331,10 @@ class ChannelTypeText(Channel):
         AcknowledgePendingMessage method.
 
         Parameters:
-        a numeric identifier
-        a unix timestamp indicating when the message was received
-        the contact who sent the message
-        the text of the message
+        id - a numeric identifier
+        timestamp - a unix timestamp indicating when the message was received
+        sender - the contact who sent the message
+        text - the text of the message
         """
         print 'object_path: %s signal: Received %d %d %s %s' % (self.object_path, id, timestamp, sender, text)
 
