@@ -95,6 +95,112 @@ class Channel(dbus.service.Object):
         return dbus.Array(self.members, signature='s')
 
 
+class ChannelTypeContactSearch(Channel):
+    """
+    A channel type for searching server-stored user directories. A new channel
+    should be requested by a client for each search attempt, and it should be
+    closed to free resources when the user has finished interacting with the
+    results.
+
+    Before searching, the GetSearchKeys method should be used to discover any
+    instructions sent by the server, and the valid search keys which can be
+    provided to the Search method. A search request is then started by
+    providing some of these terms to the Search method, and the search status
+    will be set to 'during'. When results are returned by the server, the
+    SearchResultReceived signal is emitted for each contact found, and when the
+    search is complete, the search status will be set to 'after'.
+
+    The search can be cancelled at any time by calling the channel Close
+    method, although depending upon the protocol the connection manager may not
+    be able to prevent the server from sending further results.
+    """
+    def __init__(self, connection):
+        """
+        Initialise the contact search channel.
+        """
+        Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_SEARCH)
+        self.search_state = 'before'
+        self.search_results = {}
+
+    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='sa{s(bg)}')
+    def GetSearchKeys(self):
+        """
+        Returns any instructions from the server along with a dictionary of
+        search key names to their types, and a boolean indicating if the key is
+        mandatory. The following well-known search key names should be used
+        where appropriate:
+         s:first - the desired contact's given name
+         s:last - the desired contact's family name
+         s:nick - the desired contact's nickname
+         s:email - the e-mail address of the desired contact
+
+        Returns:
+        a string with any instructions from the server
+        a dictionary mapping string search key names to an array of:
+            booleans indicating if the search key is mandatory
+            type signature of the value for this search key
+        """
+        pass
+
+    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='a{sv}', out_signature='')
+    def Search(self, terms):
+        """
+        Send a request to start a search for contacts on this connection. A
+        valid search request will cause the SearchStateChanged signal to be
+        emitted with the status 'during'.
+
+        Parameters:
+        a dictionary mapping search key names to the desired values
+        """
+        pass
+
+    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='s')
+    def GetSearchState(self):
+        """
+        Returns the current state of this search channel object. One of the following
+        values:
+         before - the search has not started
+         during - the search is in progress
+         after - the search has been completed
+
+        Returns:
+        a string representing the search state
+        """
+        return self.search_state
+
+    @dbus.service.signal(CHANNEL_TYPE_CONTACT_SEARCH, signature='s')
+    def SearchStateChanged(self, state):
+        """
+        Emitted when the search state (as returned by the GetSearchState method) changes.
+
+        Parameters:
+        state - a string representing the search state
+        """
+        self.search_state = state
+
+    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='a{sa{sv}}')
+    def GetSearchResults(self):
+        """
+        Return the information about all users found by this search so far.
+
+        Returns:
+        a dictionary mapping contact identifiers to:
+            a dictionary mapping search key names to values for this contact
+        """
+        return self.search_results
+
+    @dbus.service.signal(CHANNEL_TYPE_CONTACT_SEARCH, signature='sa{sv}')
+    def SearchResultReceived(self, contact, values):
+        """
+        Emitted when a search result is received from the server.
+
+        Parameters:
+        a string contact identifier
+        a dictionary mapping search key names to values for this contact
+        """
+        self.search_results[contact] = values
+
+
 class ChannelTypeList(Channel):
     """
     A channel type for representing a list of people on the server which is

@@ -8,6 +8,7 @@ org.freedesktop.Telepathy.Connection.Interface.Presence
 org.freedesktop.Telepathy.Connection.Interface.Privacy
 org.freedesktop.Telepathy.Connection.Interface.Renaming
 org.freedesktop.Telepathy.Channel
+org.freedesktop.Telepathy.Channel.Type.ContactSearch
 org.freedesktop.Telepathy.Channel.Type.List
 org.freedesktop.Telepathy.Channel.Type.StreamedMedia
 org.freedesktop.Telepathy.Channel.Type.Text
