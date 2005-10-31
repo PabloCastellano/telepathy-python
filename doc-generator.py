@@ -58,7 +58,13 @@ else:
     print '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">'
     print '<head>'
     print '<title>Telepathy: D-Bus Interface Specification</title>' # inspectmod.__name__,'</title>'
-    print '<link rel="stylesheet" type="text/css" media="screen" href="style.css" />'
+#    print '<link rel="stylesheet" type="text/css" media="screen" href="style.css" />'
+    print '<style type="text/css">'
+    style = file('style.css')
+    for line in style:
+        print line.strip()
+    del style
+    print '</style>'
     print '</head>'
     print '<body>'
     print '<div class="topbox">Telepathy</div>'
