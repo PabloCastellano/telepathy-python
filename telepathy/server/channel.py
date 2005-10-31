@@ -14,9 +14,9 @@ class Channel(dbus.service.Object):
     All communication in the Telepathy framework is carried out via channel
     objects which are created and managed by connections. This interface must
     be implemented by all channel objects, along with one single channel type,
-    such as Channel.Type.List which represents a list of people (such as a
-    buddy list) or a Channel.Type.Text which represents a channel over which
-    textual messages are sent and received.
+    such as Channel.Type.ContactList which represents a list of people (such
+    as a buddy list) or a Channel.Type.Text which represents a channel over
+    which textual messages are sent and received.
 
     Other optional interfaces can be implemented to indicate other available
     functionality, such as Channel.Interface.Individual or
@@ -201,7 +201,7 @@ class ChannelTypeContactSearch(Channel):
         self.search_results[contact] = values
 
 
-class ChannelTypeList(Channel):
+class ChannelTypeContactList(Channel):
     """
     A channel type for representing a list of people on the server which is
     not used for communication. This is intended for use with the interface
@@ -209,16 +209,17 @@ class ChannelTypeList(Channel):
     on the server. This channel type has no methods because all of the
     functionality it represents is available via the group interface.
 
-    The following named instances (obtained by specifying as an argument to
-    Channel.Interface.Named) of this channel type may be created by the connection
-    manager to allow clients to manipulate certain server-side lists:
+    The following named singleton instances (obtained by specifying as an
+    argument to Channel.Interface.Named) of this channel type should be
+    created by the connection manager at connection time if the list
+    exists on the server:
      subscribe - the group of contacts for whom you wish to receive presence
      publish - the group of contacts who may recieve your presence
      hide - a group of contacts who are on the publish list but are temporarily disallowed from recieving your presence
      allow - a group of contacts who may send you messages
      deny - a group of contacts who may not send you messages
     """
-    _dbus_interfaces = [CHANNEL_TYPE_LIST]
+    _dbus_interfaces = [CHANNEL_TYPE_CONTACT_LIST]
 
     def __init__(self):
         """
@@ -227,7 +228,7 @@ class ChannelTypeList(Channel):
         Parameters:
         connection - the parent Telepathy Connection object
         """
-        Channel.__init__(self, connection, CHANNEL_TYPE_LIST)
+        Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_LIST)
 
 
 class ChannelTypeStreamedMedia(Channel):
