@@ -25,10 +25,13 @@ for (cname,val) in inspectmod.__dict__.items():
                     doc[iname]["methods"]={}
                     doc[iname]["signals"]={}
                 doc[iname]["methods"][mname]={}
-                sigin=dbus.Signature(mval.__dict__["_dbus_in_signature"])
+                sigin=tuple(dbus.Signature(mval.__dict__["_dbus_in_signature"]))
                 argspec=inspect.getargspec(mval)
-                args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sigin,argspec[0][1:]))) # chop off self
-                doc[iname]["methods"][mname]["in_sig"]=args
+                args=argspec[0][1:] # chop off self
+                if len(args) != len(sigin):
+                    raise Exception('number of arguments in signature %s differs from number of arguments to method %s in interface %s' % (mval.__dict__["_dbus_in_signature"], mname, iname))
+                decorated_args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sigin,args)))
+                doc[iname]["methods"][mname]["in_sig"]=decorated_args
                 if mval.__dict__["_dbus_out_signature"] == "":
                     doc[iname]["methods"][mname]["out_sig"]="None"
                 else:
@@ -42,8 +45,10 @@ for (cname,val) in inspectmod.__dict__.items():
                     doc[iname]["methods"]={}
                     doc[iname]["signals"]={}
                 doc[iname]["signals"][mname]={}
-                sig=dbus.Signature(mval.__dict__["_dbus_signature"])
+                sig=tuple(dbus.Signature(mval.__dict__["_dbus_signature"]))
                 argspec=mval.__dict__["_dbus_args"]
+                if len(argspec) != len(sig):
+                    raise Exception('number of arguments in signature %s differs from number of arguments to signature %s in interface %s' % (mval.__dict__["_dbus_signature"], mname, iname))
                 args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sig,argspec)))
                 doc[iname]["signals"][mname]["sig"]=args
                 doc[iname]["signals"][mname]["text"]= mval.__doc__
