@@ -396,12 +396,18 @@ class ChannelTypeText(Channel):
     with GetPendingMessages. A client which has handled the message by showing
     it to the user (or equivalent) should acknowledge the receipt using the
     AcknowledgePendingMessage method, and the message will then be removed from
-    the pending queue.
+    the pending queue. Numeric identifiers for recieved messages may be reused
+    over the lifetime of the channel.
 
-    Sending messages can be requested using the Send method, which allocates a
-    message identifier, and the Sent signal will be emitted when the message has been
-    delivered to the server. Numeric identifiers for sent and recieved messages
-    may collide and may be reused over the lifetime of the channel.
+    Each message has an associated 'type' value, which should be one of the
+    following well-known values where appropriate:
+     normal - a standard message
+     action - an action which might be presented to the user as * <sender> <action>
+     notice - an automated message not expecting a reply
+
+    Sending messages can be requested using the Send method, which will return
+    and cause the Sent signal to be emitted when the message has been delivered
+    to the server.
     """
 
     def __init__(self, connection):
@@ -413,47 +419,20 @@ class ChannelTypeText(Channel):
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_TEXT)
 
-        self.send_id = 0
         self.recv_id = 0
         self.pending_messages = {}
 
-    def sendCallback(self, id, text):
-        """ Ovveride this stub to send a message over the parent Connection. """
-        pass
-
-    def stampMessage(self, id, text):
-        """ Stamp a message with a timestamp and signal it as sent. FIXME server time? """
-        timestamp = int(time.time())
-        self.Sent(id, timestamp, text)
-
-    def queueMessage(self, timestamp, sender, text):
-        """
-        Place a message 'text' from 'sender' 
-        into the messagequeue with the given timestamp,
-        and signal it as received
-        """
-        id = self.recv_id
-        self.recv_id += 1
-
-        self.pending_messages[id] = (timestamp, sender, text)
-        self.Received(id, timestamp, sender, text)
-
-    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='s', out_signature='u')
-    def Send(self, text):
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='ss', out_signature='')
+    def Send(self, type, text):
         """
         Request that a message be sent on this channel. The Sent signal will be
-        emitted when the message has been sent.
+        emitted when the message has been sent, and this method will return.
 
         Parameters:
+        type - the type of the message (normal, action, notice, etc)
         text - the message to send
-
-        Returns:
-        a numeric identifier
         """
-        id = self.send_id
-        self.send_id += 1
-        gobject.idle_add(self.sendCallback, id, text)
-        return id
+        pass
 
     @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='u', out_signature='b')
     def AcknowledgePendingMessage(self, id):
@@ -473,7 +452,7 @@ class ChannelTypeText(Channel):
         else:
             return False
 
-    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='a(uuss)')
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='a(uusss)')
     def ListPendingMessages(self):
         """
         List the messages currently in the pending queue.
@@ -482,46 +461,48 @@ class ChannelTypeText(Channel):
         an array of structs containing:
             a numeric identifier
             a unix timestamp indicating when the message was received
-            the contact who sent the message
-            the text of the message
+            a string of the contact who sent the message
+            a string of the message type
+            a string of the text of the message
         """
         messages = []
         for id in self.pending_messages.keys():
-            (timestamp, sender, text) = self.pending_messages[id]
-            message = (id, timestamp, sender, text)
+            (timestamp, sender, type, text) = self.pending_messages[id]
+            message = (id, timestamp, sender, type, text)
             messages.append(message)
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
-        return dbus.Array(messages, signature='(uuss)')
+        return dbus.Array(messages, signature='(uusss)')
 
-    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uus')
-    def Sent(self, id, timestamp, text):
+    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uss')
+    def Sent(self, timestamp, type, text):
         """
-        Signals that a message with the given id, timestamp and text has
-        been successfully sent on the parent connection.
+        Signals that a message has been sent on this channel.
 
         Parameters:
-        id - the numeric identifier of the message
         timestamp - the unix timestamp indicating when the message was sent
+        type - the message type (normal, action, normal, etc)
         text - the text of the message
         """
-        print 'object_path: %s signal: Sent %d %d %s' % (self.object_path, id, timestamp, text)
+        print 'object_path: %s signal: Sent %d %s %s' % (self.object_path, timestamp, type, text)
 
-    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uuss')
-    def Received(self, id, timestamp, sender, text):
+    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uusss')
+    def Received(self, id, timestamp, sender, type, text):
         """
-        Signals that a message with the given id, timestamp, sender and text
-        has been received on the parent connection. Applications that catch
+        Signals that a message with the given id, timestamp, sender, type
+        and text has been received on this channel. Applications that catch
         this signal and reliably inform the user of the message should
         acknowledge that they have dealt with the message with the
         AcknowledgePendingMessage method.
 
         Parameters:
-        id - a numeric identifier
+        id - a numeric identifier for acknowleding the method
         timestamp - a unix timestamp indicating when the message was received
         sender - the contact who sent the message
+        type - the type of the message (normal, action, notice, etc)
         text - the text of the message
         """
-        print 'object_path: %s signal: Received %d %d %s %s' % (self.object_path, id, timestamp, sender, text)
+        self.pending_messages[id] = (timestamp, sender, type, text)
+        print 'object_path: %s signal: Received %d %d %s %s %s' % (self.object_path, id, timestamp, sender, type, text)
 
 
 class ChannelInterfaceDTMF(dbus.service.Interface):
