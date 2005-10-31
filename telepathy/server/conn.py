@@ -289,7 +289,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         """
         return self.caps
 
-    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='', out_signature='a(sas)')
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='s', out_signature='a(sas)')
     def GetContactCapabilities(self, contact):
         """
         Return an array of capabilities for a given contact on this connection.
@@ -317,7 +317,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         self.caps.update(added)
         self.caps.difference_update(removed)
 
-    @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(sas)a(sas)')
+    @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='sa(sas)a(sas)')
     def ContactCapabilitiesChanged(self, contact, added, removed):
         """
         Announce the availability or the removal of capabilities for a given

@@ -720,7 +720,7 @@ class ChannelInterfaceSubject(dbus.service.Interface):
         pass
 
     @dbus.service.signal(CHANNEL_INTERFACE_SUBJECT, signature='sa{sv}')
-    def SubjectChanged(self, subject, set_by, set_at):
+    def SubjectChanged(self, subject, info):
         """
         Emitted when the subject changes or is initially discovered from the
         server.
