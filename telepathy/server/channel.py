@@ -307,6 +307,84 @@ class ChannelTypeStreamedMedia(Channel):
             return ''
 
 
+class ChannelTypeRoomList(Channel):
+    """
+    A channel type for listing named channels available on the server. Once the
+    ListRooms method is called, it emits signals for rooms present on the
+    server, until you Close this channel. In some cases, it may not be possible
+    to stop the deluge of information from the server.
+
+    This channel type may be implemented as a singleton on some protocols, so
+    clients should be prepared for the eventuality that they are given a
+    channel that is already in the middle of listing channels. The ListingRooms
+    signal, or GetListingRooms method, can be used to check this.
+    """
+    def __init__(self, connection):
+        """
+        Initialise the channel.
+
+        Parameters:
+        connection - the parent Telepathy Connection object
+        """
+        Channel.__init__(self, connection, CHANNEL_TYPE_ROOM_LIST)
+        self.listing_rooms = False
+        self.rooms = {}
+
+    @dbus.service.method(CHANNEL_TYPE_ROOM_LIST, in_signature='', out_signature='')
+    def ListRooms(self):
+        """
+        Request the list of rooms from the server. The ListingRooms signal
+        should be emitted when this request is being processed, GotRooms when
+        any room information is received, and ListingRooms when the request
+        is complete.
+        """
+        pass
+
+    @dbus.service.method(CHANNEL_TYPE_ROOM_LIST, in_signature='', out_signature='b')
+    def GetListingRooms(self):
+        """
+        Check to see if there is already a room list request in progress
+        on this channel.
+
+        Returns:
+        a boolean indicating if room listing is in progress
+        """
+        return self.listing_rooms
+
+    @dbus.service.signal(CHANNEL_TYPE_ROOM_LIST, signature='b')
+    def ListingRooms(self, listing):
+        """
+        Emitted to indicate whether or not room listing request is currently
+        in progress.
+
+        Parameters:
+        listing - a boolean indicating if room listing is in progress
+        """
+        self.listing_rooms = listing
+
+    @dbus.service.signal(CHANNEL_TYPE_ROOM_LIST, signature='a(ssa{sv})')
+    def GotRooms(self, rooms):
+        """
+        Emitted when information about rooms on the server becomes available.
+        The array contains the room name (as can be passed to the Named channel
+        interface when requesting a room), the channel type, and a dictionary
+        containing further information about the room as available. The
+        following well-known keys and types are recommended for use where
+        appropriate:
+         s:subject - the subject of the room
+         u:members - the number of members of the room
+         b:password - true if the room requires a password to enter
+
+        Parameters:
+        rooms - an array of structs containing:
+            a string room identifier
+            a string channel type
+            an dictionary mapping string keys to variant boxed information
+        """
+        for (room, type, details) in rooms:
+            self.rooms[room] = (type, details)
+
+
 class ChannelTypeText(Channel):
     """
     A channel type for sending and receiving messages in plain text, with no

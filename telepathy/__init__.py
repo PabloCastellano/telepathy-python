@@ -20,6 +20,7 @@ CHANNEL_INTERFACE = 'org.freedesktop.Telepathy.Channel'
 CHANNEL_TYPE_CONTACT_SEARCH = 'org.freedesktop.Telepathy.Channel.Type.ContactSearch'
 CHANNEL_TYPE_TEXT = 'org.freedesktop.Telepathy.Channel.Type.Text'
 CHANNEL_TYPE_LIST = 'org.freedesktop.Telepathy.Channel.Type.List'
+CHANNEL_TYPE_ROOM_LIST = 'org.freedesktop.Telepathy.Channel.Type.RoomList'
 CHANNEL_TYPE_STREAMED_MEDIA = 'org.freedesktop.Telepathy.Channel.Type.StreamedMedia'
 
 CHANNEL_INTERFACE_DTMF = 'org.freedesktop.Telepathy.Channel.Interface.DTMF'
