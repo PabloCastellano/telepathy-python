@@ -230,6 +230,111 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
         pass
 
 
+class ConnectionInterfaceCapabilities(dbus.service.Interface):
+    """
+    An interface for connections where it is possible to know what channel
+    types may be requested before the request is made to the connection object.
+    Each capability represents a commitment by the connection manager that it
+    will ordinarily be able to create a channel when given a request with the
+    given type and interfaces. The channel created by these requests may still
+    implement other interfaces (such as the subject or password interfaces)
+    which are not part of the capability.
+
+    Capabilities can be pertaining to a certain contact, representing
+    activities such as having a text chat or a voice call with the user, or can
+    be on the connection itself, where they represent the ability to create
+    channels for chat rooms or activities such as searching and room listing.
+    When the group interface is included in a capability on a certain contact,
+    this is an indication that the user may be invited into channels of this
+    type.
+
+    For example, a capability on a contact indicating you can have a private
+    text chat with them would be:
+     Type: org.freedesktop.Telepathy.Channel.Type.Text
+     Interfaces: org.freedesktop.Telepathy.Channel.Interface.Individual
+
+    A capability indicating that a contact could be invited into a named chat
+    room:
+     Type: org.freedesktop.Telepathy.Channel.Type.Text
+     Interfaces: org.freedesktop.Telepathy.Channel.Interface.Named,
+                 org.freedesktop.Telepathy.Channel.Interface.Group
+    The same capability on the connection itself would indicate that the
+    connection supports named chat rooms at all.
+
+    A capability indicating that a contact can be invited into a multi-person
+    audio or video call:
+     Type: org.freedesktop.Telepathy.Channel.Type.StreamedMedia
+     Interfaces: org.freedesktop.Telepathy.Channel.Interface.Group
+
+    A capability indicating that the connection supports listing the available chat rooms:
+     Type: org.freedesktop.Telepathy.Channel.Type.RoomList
+    """
+    def __init__(self):
+        """
+        Initialise the capabilities interface.
+        """
+        self.interfaces.add(CONN_INTERFACE_CAPABILITIES)
+        self.caps = set()
+        self.contact_caps = {}
+
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='', out_signature='a(sas)')
+    def GetCapabilities(self):
+        """
+        Returns an array of capabilities for the connection.
+
+        Returns:
+        an array of structs containing:
+            a string of channel types
+            an array of strings of channel interface names
+        """
+        return self.caps
+
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='', out_signature='a(sas)')
+    def GetContactCapabilities(self, contact):
+        """
+        Return an array of capabilities for a given contact on this connection.
+
+        Returns:
+        an array of structs containing:
+            a string of channel types
+            an array of strings of channel interface names
+        """
+        if contact in self.contact_caps:
+            return self.contact_caps[contact]
+        else:
+            return []
+
+    @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(sas)a(sas)')
+    def CapabilitiesChanged(self, added, removed):
+        """
+        Announce the availability or the removal of capabilities on the
+        connection.
+
+        Parameters:
+        added - an array of structs as returned by GetCapabilities
+        removed - an array of structs as returned by GetCapabilities
+        """
+        self.caps.update(added)
+        self.caps.difference_update(removed)
+
+    @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(sas)a(sas)')
+    def ContactCapabilitiesChanged(self, contact, added, removed):
+        """
+        Announce the availability or the removal of capabilities for a given
+        contact.
+
+        Parameters:
+        contact - the contact in question
+        added - an array of structs as returned by GetContactCapabilities
+        removed - an array of structs as returned by GetContactCapabilities
+        """
+        if not contact in self.contact_caps:
+            self.contact_caps[contact] = set()
+
+        self.caps.update(added)
+        self.caps.difference_update(removed)
+
+
 class ConnectionInterfaceContactInfo(dbus.service.Interface):
     """
     An interface for requesting information about a contact on a given

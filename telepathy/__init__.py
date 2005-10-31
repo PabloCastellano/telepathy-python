@@ -9,6 +9,7 @@ CONN_OBJECT = '/org/freedesktop/Telepathy/Connection'
 CONN_INTERFACE = 'org.freedesktop.Telepathy.Connection'
 
 CONN_INTERFACE_ALIASING = 'org.freedesktop.Telepathy.Connection.Interface.Aliasing'
+CONN_INTERFACE_CAPABILITIES = 'org.freedesktop.Telepathy.Connection.Interface.Capabilities'
 CONN_INTERFACE_CONTACT_INFO = 'org.freedesktop.Telepathy.Connection.Interface.ContactInfo'
 CONN_INTERFACE_FORWARDING = 'org.freedesktop.Telepathy.Connection.Interface.Forwarding'
 CONN_INTERFACE_PRESENCE = 'org.freedesktop.Telepathy.Connection.Interface.Presence'
