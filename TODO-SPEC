@@ -4,10 +4,9 @@ Specification Todo
 ***error handling***
 
 ponder:
-sending/receiving messages when adding/removing people?
+sending messages when adding people to your contact list?
 conference server with jabber
 destination for JUD searches
-IRC quit messages - handling quit vs part?
 handling moderated/invite only channels?
 how do you map people in chats to real identifiers if they're different?
 should privacy modes be discoverable/settable offline?

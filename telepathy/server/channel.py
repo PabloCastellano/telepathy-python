@@ -663,12 +663,21 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         """
         return dbus.Array(self.remote_pending, signature='s')
 
-    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='asasasas')
-    def MembersChanged(self, added, removed, local_pending, remote_pending):
+    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sasasasas')
+    def MembersChanged(self, message, added, removed, local_pending, remote_pending):
         """
         Emitted when contacts join any of the three lists (members, local
         pending or remote pending).  Contacts are listed in the removed
-        list when they leave any of the three lists.
+        list when they leave any of the three lists. There may also be
+        a message from the server regarding this change, which may be
+        displayed to the user if desired.
+
+        Parameters:
+        message - a string message from the server, or blank if not
+        added - a list of members added to the channel
+        removed - a list of members removed from the channel
+        local_pending - a list of members who are pending local approval
+        remote_pending - a list of members who are pending remote approval
         """
 
         self.members.update(added)
