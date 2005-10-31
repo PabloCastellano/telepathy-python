@@ -6,13 +6,14 @@ searching for users
 channel listing
 
 ponder:
+sending/receiving messages when adding/removing people?
 conference server with jabber
 destination for JUD searches
-IRC quit messages
+IRC quit messages - handling quit vs part?
 handling moderated/invite only channels?
-draw sequence diagrams?
-mapping people in chats to real identifiers?
-how does mission control know if the channel was user or remote initiated?
+how do you map people in chats to real identifiers if they're different?
+should privacy modes be discoverable/settable offline?
+how do you specify the server and your nickname when joining a chat?
 
 later:
 password changing interface

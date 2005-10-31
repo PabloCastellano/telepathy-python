@@ -49,7 +49,7 @@ class Connection(dbus.service.Object):
     def addChannel(self, channel):
         """ add a new channel and signal its creation""" 
         self.channels.add(channel)
-        self.NewChannel(channel.type, channel.object_path)
+        self.NewChannel(channel.type, channel.object_path, channel.requested)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
@@ -119,15 +119,18 @@ class Connection(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(CONN_INTERFACE, signature='so')
-    def NewChannel(self, type, object_path):
+    @dbus.service.signal(CONN_INTERFACE, signature='sob')
+    def NewChannel(self, type, object_path, requested):
         """
         Emitted when a new Channel object is created, either through user
-        request or incoming information from the service.
+        request or incoming information from the service. The requested boolean
+        indicates if the channel was requested by an existing client, or is an
+        incoming communication and needs to have a handler launched.
 
         Parameters:
         type - a D-Bus interface name representing the channel type
         object_path - a D-Bus object path for the channel object on this service
+        requested - a boolean indicating if the channel was requested or not
         """
         print 'service_name: %s object_path: %s signal: NewChannel %s %s' % (self.service_name, self.object_path, type, object_path)
 
