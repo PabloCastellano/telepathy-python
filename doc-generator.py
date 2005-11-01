@@ -93,7 +93,6 @@ else:
     print '<h3>Version %d.%d</h3>' % (major,minor)
 
     print '<pre>%s</pre>' % doc['top']
-#    print '<p><b>Please note that this is a draft specification and is subject to change without notice.</b></p>'
 
     order=file(sys.argv[2])
     for name in order:
