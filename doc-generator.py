@@ -7,9 +7,15 @@ import dbus
 inspectmod=__import__(sys.argv[1],globals(), locals(),['*'])
 
 doc={}
+doc['top'] = inspectmod.__doc__
+doc['version'] = inspectmod.version
 
 for (cname,val) in inspectmod.__dict__.items():
     if inspect.isclass(val):
+        if '_dbus_error_name' in val.__dict__:
+            ename = val._dbus_error_name
+            doc[ename] = {}
+            doc[ename]['maintext'] = val.__doc__
         if val.__dict__.has_key("_dbus_interfaces"):
             for iname in val._dbus_interfaces:
                 doc[iname]={}
@@ -83,7 +89,11 @@ else:
 #        print '  <a href="#%s">%s</a><br />' % (name, pretty)
 #    print '</div>'
 
-    print '<p><b>Please note that this is a draft specification and is subject to change without notice.</b></p>'
+    (major, minor, patch) = doc['version']
+    print '<h3>Version %d.%d</h3>' % (major,minor)
+
+    print '<pre>%s</pre>' % doc['top']
+#    print '<p><b>Please note that this is a draft specification and is subject to change without notice.</b></p>'
 
     order=file(sys.argv[2])
     for name in order:
@@ -93,25 +103,27 @@ else:
         print '<h1>'+name+'</h1>'
         print '<pre>', doc[name]["maintext"], '</pre>'
 
-        if len(doc[name]["methods"]) > 0:
-            print '<h2>Methods:</h2>'
-            for method in doc[name]["methods"].keys(): 
-                print '<div class="method">'
-                print '<h2>%s ( %s ) -> %s</h2>' % (method,doc[name]["methods"][method]["in_sig"], doc[name]["methods"][method]["out_sig"])
-                print '<pre>', doc[name]["methods"][method]["text"], '</pre>'
-                print '</div>'
-        else:
-            print '<p>Interface has no methods.</p>'
+        if 'methods' in doc[name]:
+            if len(doc[name]["methods"]) > 0:
+                print '<h2>Methods:</h2>'
+                for method in doc[name]["methods"].keys(): 
+                    print '<div class="method">'
+                    print '<h2>%s ( %s ) -> %s</h2>' % (method,doc[name]["methods"][method]["in_sig"], doc[name]["methods"][method]["out_sig"])
+                    print '<pre>', doc[name]["methods"][method]["text"], '</pre>'
+                    print '</div>'
+            else:
+                print '<p>Interface has no methods.</p>'
 
-        if len(doc[name]["signals"]) > 0:
-            print '<h2>Signals:</h2>'
-            for signal in doc[name]["signals"].keys(): 
-                print '<div class="signal">'
-                print '<h2>%s ( %s )</h2>' % (signal,doc[name]["signals"][signal]["sig"])
-                print '<pre>', doc[name]["signals"][signal]["text"], '</pre>'
-                print '</div>'
-        else:
-            print '<p>Interface has no signals.</p>'
+        if 'signals' in doc[name]:
+            if len(doc[name]["signals"]) > 0:
+                print '<h2>Signals:</h2>'
+                for signal in doc[name]["signals"].keys(): 
+                    print '<div class="signal">'
+                    print '<h2>%s ( %s )</h2>' % (signal,doc[name]["signals"][signal]["sig"])
+                    print '<pre>', doc[name]["signals"][signal]["text"], '</pre>'
+                    print '</div>'
+            else:
+                print '<p>Interface has no signals.</p>'
 
     print '</body></html>'
 

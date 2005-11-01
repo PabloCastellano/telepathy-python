@@ -20,3 +20,12 @@ org.freedesktop.Telepathy.Channel.Interface.Named
 org.freedesktop.Telepathy.Channel.Interface.Password
 org.freedesktop.Telepathy.Channel.Interface.Subject
 org.freedesktop.Telepathy.Channel.Interface.Transfer
+org.freedesktop.Telepathy.Error.AuthenticationFailure
+org.freedesktop.Telepathy.Error.Disconnected
+org.freedesktop.Telepathy.Error.EncryptionError
+org.freedesktop.Telepathy.Error.InvalidArgument
+org.freedesktop.Telepathy.Error.NetworkError
+org.freedesktop.Telepathy.Error.NotAvailable
+org.freedesktop.Telepathy.Error.NotImplemented
+org.freedesktop.Telepathy.Error.PermissionDenied
+org.freedesktop.Telepathy.Error.UnknownContact
