@@ -61,6 +61,9 @@ class Channel(dbus.service.Object):
         the Closed signal has been emitted, and depending on the connection
         manager this may simply remove you from the channel on the server,
         rather than causing it to stop existing entirely.
+
+        Possible Errors:
+        Disconnected, NetworkError
         """
         pass
 
@@ -91,7 +94,12 @@ class Channel(dbus.service.Object):
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetMembers(self):
-        """ Returns an array of identifiers for the members of this channel. """
+        """
+        Returns an array of identifiers for the members of this channel.
+
+        Possible Errors:
+        Disconnected, NetworkError
+        """
         return dbus.Array(self.members, signature='s')
 
 
@@ -99,8 +107,10 @@ class ChannelTypeContactSearch(Channel):
     """
     A channel type for searching server-stored user directories. A new channel
     should be requested by a client for each search attempt, and it should be
-    closed to free resources when the user has finished interacting with the
-    results.
+    closed when the search is completed or the required result has been found.
+    The search can be cancelled at any time by calling the channel Close
+    method, although depending upon the protocol the connection manager may not
+    be able to prevent the server from sending further results.
 
     Before searching, the GetSearchKeys method should be used to discover any
     instructions sent by the server, and the valid search keys which can be
@@ -109,10 +119,6 @@ class ChannelTypeContactSearch(Channel):
     will be set to 'during'. When results are returned by the server, the
     SearchResultReceived signal is emitted for each contact found, and when the
     search is complete, the search status will be set to 'after'.
-
-    The search can be cancelled at any time by calling the channel Close
-    method, although depending upon the protocol the connection manager may not
-    be able to prevent the server from sending further results.
     """
     def __init__(self, connection):
         """
@@ -139,6 +145,9 @@ class ChannelTypeContactSearch(Channel):
         a dictionary mapping string search key names to an array of:
             booleans indicating if the search key is mandatory
             type signature of the value for this search key
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable
         """
         pass
 
@@ -151,6 +160,9 @@ class ChannelTypeContactSearch(Channel):
 
         Parameters:
         a dictionary mapping search key names to the desired values
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidArgument
         """
         pass
 
@@ -177,17 +189,6 @@ class ChannelTypeContactSearch(Channel):
         state - a string representing the search state
         """
         self.search_state = state
-
-    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='a{sa{sv}}')
-    def GetSearchResults(self):
-        """
-        Return the information about all users found by this search so far.
-
-        Returns:
-        a dictionary mapping contact identifiers to:
-            a dictionary mapping search key names to values for this contact
-        """
-        return self.search_results
 
     @dbus.service.signal(CHANNEL_TYPE_CONTACT_SEARCH, signature='sa{sv}')
     def SearchResultReceived(self, contact, values):
@@ -253,7 +254,7 @@ class ChannelTypeStreamedMedia(Channel):
         Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA)
         self.last_received = {}
 
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='ss', out_signature='u')
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='ss', out_signature='')
     def Send(self, recipient, sdp):
         """
         Attempt to send an SDP message on this channel.
@@ -262,18 +263,17 @@ class ChannelTypeStreamedMedia(Channel):
         recipient - the member to send to
         sdp - the SDP message to send
 
-        Returns:
-        a numeric identifier for the message
+        Possible Errors:
+        Disconnected, NetworkError, UnknownContact, InvalidArgument, PermissionDenied
         """
         pass
 
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uss')
-    def Sent(self, id, recipient, sdp):
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='ss')
+    def Sent(self, recipient, sdp):
         """
         Signals that an SDP message has been sent to the given recipient on this channel.
 
         Parameters:
-        id - the numeric identifier returned by Send
         recipient - the member the message was sent to
         sdp - the SDP message itself
         """
@@ -300,12 +300,15 @@ class ChannelTypeStreamedMedia(Channel):
         contact - the member to retrieve the last message from
 
         Returns:
-        a string of the message (which may be blank if nothing has been received from the given contact)
+        a string of the message
+
+        Possible Errors:
+        Disconnected, UnknownContact, NotAvailable (if the contact has sent nothing to us on this channel)
         """
         if contact in self.last_received:
             return self.last_received[contact]
         else:
-            return ''
+            raise Exception
 
 
 class ChannelTypeRoomList(Channel):
@@ -338,6 +341,9 @@ class ChannelTypeRoomList(Channel):
         should be emitted when this request is being processed, GotRooms when
         any room information is received, and ListingRooms when the request
         is complete.
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable, PermissionDenied
         """
         pass
 
@@ -431,10 +437,13 @@ class ChannelTypeText(Channel):
         Parameters:
         type - the type of the message (normal, action, notice, etc)
         text - the message to send
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidArgument, PermissionDenied
         """
         pass
 
-    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='u', out_signature='b')
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='u', out_signature='')
     def AcknowledgePendingMessage(self, id):
         """
         Inform the channel that you have handled a message by displaying it to
@@ -443,14 +452,14 @@ class ChannelTypeText(Channel):
         Parameters:
         id - the message to acknowledge
 
-        Returns:
-        a boolean indicating if the message was found on the pending queue and removed
+        Possible Errors:
+        InvalidArgument (the given message ID was not found)
         """
         if self.pending_messages.has_key(id):
             del self.pending_messages[id]
             return True
         else:
-            return False
+            raise Exception
 
     @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='a(uusss)')
     def ListPendingMessages(self):
@@ -522,6 +531,9 @@ class ChannelInterfaceDTMF(dbus.service.Interface):
         Parameters:
         signal - a numeric signal number
         duration - a numeric duration in milliseconds
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable, InvalidArgument
         """
         pass
 
@@ -599,6 +611,9 @@ class ChannelInterfaceGroup(dbus.service.Interface):
 
         Returns:
         an array of strings of flags
+
+        Possible Errors:
+        Disconnected, NetworkError
         """
         return self.group_flags
 
@@ -624,6 +639,9 @@ class ChannelInterfaceGroup(dbus.service.Interface):
 
         Parameters:
         contacts - contact IDs to invite to the channel
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable, PermissionDenied, UnknownContact
         """
         pass
 
@@ -636,6 +654,9 @@ class ChannelInterfaceGroup(dbus.service.Interface):
 
         Parameters:
         contacts - contact IDs to remove from the channel
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable, PermissionDenied, UnknownContact
         """
         pass
 
@@ -652,6 +673,9 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         """
         Returns an array of identifiers for the contacts requesting
         channel membership and awaiting local approval with AddMembers.
+
+        Possible Errors:
+        Disconnected, NetworkError
         """
         return dbus.Array(self.local_pending, signature='s')
 
@@ -660,6 +684,9 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         """
         Returns an array of identifiers for contacts who have been
         invited to the channel and are awaiting remote approval.
+
+        Possible Errors:
+        Disconnected, NetworkError
         """
         return dbus.Array(self.remote_pending, signature='s')
 
@@ -773,6 +800,9 @@ class ChannelInterfacePassword(dbus.service.Interface):
 
         Returns:
         an array of strings of flags
+
+        Possible Errors:
+        Disconnected, NetworkError
         """
         return self.password_flags
 
@@ -798,6 +828,9 @@ class ChannelInterfacePassword(dbus.service.Interface):
 
         Parameters:
         password - the password
+
+        Possible Errors:
+        Disconnected, NetworkError, AuthenticationFailure, InvalidArgument
         """
         pass
 
@@ -809,6 +842,9 @@ class ChannelInterfacePassword(dbus.service.Interface):
 
         Returns:
         a string containing the channel's password
+
+        Possible Errors:
+        Disconnected, NetworkError, PermissionDenied, NotAvailable
         """
         return self.password
 
@@ -820,6 +856,9 @@ class ChannelInterfacePassword(dbus.service.Interface):
 
         Parameters:
         password - the password to set
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidArgument, PermissionDenied
         """
         self.password = password
 
@@ -848,6 +887,9 @@ class ChannelInterfaceSubject(dbus.service.Interface):
 
         Returns:
         an array of strings of flags
+
+        Possible Errors:
+        Disconnected, NetworkError
         """
         return self.subject_flags
 
@@ -880,8 +922,11 @@ class ChannelInterfaceSubject(dbus.service.Interface):
         Returns:
         the subject text
         a dictionary mapping string attribute names to variant boxed values
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable
         """
-        return self.subject, self.subject_set_by, self.subject_set_at
+        return self.subject, self.subject_info
 
     @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='s', out_signature='')
     def SetSubject(self, subject):
@@ -891,6 +936,9 @@ class ChannelInterfaceSubject(dbus.service.Interface):
 
         Parameters:
         subject - the subject to set
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidArgument
         """
         pass
 
@@ -905,6 +953,7 @@ class ChannelInterfaceSubject(dbus.service.Interface):
         info - a dictionary containing named information mapped to boxed values
         """
         self.subject = subject
+        self.subject_info = info
 
 
 class ChannelInterfaceTransfer(dbus.service.Interface):
@@ -925,5 +974,8 @@ class ChannelInterfaceTransfer(dbus.service.Interface):
         Parameters:
         member - the member to transfer
         destination - the destination contact ID
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable, UnknownContact, PermissionDenied
         """
         pass

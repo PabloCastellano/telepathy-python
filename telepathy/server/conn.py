@@ -34,8 +34,8 @@ class Connection(dbus.service.Object):
         name_parts - a list of strings with which to form the service and      
         object names.
         """
-        self.service_name = '.'.join([CONN_SERVICE] + name_parts)
-        self.object_path = '/'.join([CONN_OBJECT] + name_parts)
+        self.service_name = '.'.join(name_parts)
+        self.object_path = '/'.join(name_parts)
         self.bus_name = dbus.service.BusName(self.service_name, bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, self.bus_name, self.object_path)
 
@@ -168,6 +168,9 @@ class Connection(dbus.service.Object):
 
         Returns:
         the D-Bus object path for the channel created or retrieved
+
+        Possible Errors:
+        Disconnected, NetworkError, NotImplemented (unknown channel type), InvalidArgument (invalid interface parameters), NotAvailable (requested interfaces unavailable), UnknownContact
         """
         raise IOError('Unknown channel type %s' % type)
 
@@ -218,6 +221,9 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
         """
         Request the value of a contact's alias (or that of the user themselves).
         The value is returned in an AliasUpdate signal.
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable, UnknownContact
         """
         pass
 
@@ -229,6 +235,9 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
 
         Parameters:
         alias - the new alias to set
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidArgument, NotAvailable, PermissionDenied
         """
         pass
 
@@ -289,6 +298,9 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         an array of structs containing:
             a string of channel types
             an array of strings of channel interface names
+
+        Possible Errors:
+        Disconnected, NetworkError
         """
         return self.caps
 
@@ -301,6 +313,9 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         an array of structs containing:
             a string of channel types
             an array of strings of channel interface names
+
+        Possible Errors:
+        Disconnected, NetworkError, UnknownContact
         """
         if contact in self.contact_caps:
             return self.contact_caps[contact]
@@ -368,6 +383,9 @@ class ConnectionInterfaceContactInfo(dbus.service.Interface):
 
         Parameters:
         contact - a string identifier for the contact to request info for
+
+        Possible Errors:
+        Disconnected, NetworkError, UnknownContact, PermissionDenied, NotAvailable
         """
         pass
 
@@ -402,6 +420,9 @@ class ConnectionInterfaceForwarding(dbus.service.Interface):
 
         Returns:
         a string contact ID to whom incoming communication is forwarded
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable
         """
         return self.forwarding
 
@@ -413,6 +434,9 @@ class ConnectionInterfaceForwarding(dbus.service.Interface):
 
         Parameters:
         forward_to - a contact ID to forward incoming communications to
+
+        Possible Errors:
+        Disconnected, NetworkError, PermissionDenied, NotAvailable, UnknownContact
         """
         pass
 
@@ -489,6 +513,9 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         - a boolean to indicate if this status may be set on yourself
         - a boolean to indicate if this is an exclusive status which you may not set alongside any other
         - a dictionary of valid optional string argument names mapped to their types
+
+        Possible Errors:
+        Disconnected, NetworkError
         """
         pass
 
@@ -500,6 +527,9 @@ class ConnectionInterfacePresence(dbus.service.Interface):
 
         Parameters:
         contacts - an array of the contacts whose presence should be obtained
+
+        Possible Errors:
+        Disconnected, NetworkError, UnknownContact, PermissionDenied
         """
         pass
 
@@ -526,6 +556,9 @@ class ConnectionInterfacePresence(dbus.service.Interface):
 
         Parameters:
         time - the idle time of the user in seconds
+
+        Possible Errors:
+        Disconnected, NetworkError, NotImplemented (this protocol has no concept of idle time)
         """
         pass
 
@@ -539,6 +572,9 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         Parameters:
         a dictionary of status identifiers mapped to:
             a dictionary of optional parameter names mapped to their variant-boxed values
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidArgument, NotAvailable, PermissionDenied
         """
         pass
 
@@ -549,6 +585,9 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         that this request may simply result in the statuses being replaced by a
         default available status. Changes will be indicated by PresenceUpdate
         signals being emitted.
+
+        Possible Errors:
+        Disconnected, NetworkError, PermissionDenied
         """
         pass
 
@@ -562,6 +601,9 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         Parameters:
         status - the string identifier of the desired status
         parms - a dictionary of optional parameter names mapped to their variant-boxed values
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidArgument, NotAvailable, PermissionDenied
         """
         pass
 
@@ -570,6 +612,9 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         """
         Request that the given presence status is no longer published for the
         user. Changes will be indicated by PresenceUpdate signals being emitted.
+
+        Possible Errors:
+        Disconnected, NetworkError, PermissionDenied
         """
         pass
 
@@ -613,6 +658,9 @@ class ConnectionInterfacePrivacy(dbus.service.Interface):
 
         Returns:
         a string of the current privacy mode
+
+        Possible Errors:
+        Disconnected, NetworkError
         """
         return self.mode
 
@@ -626,6 +674,9 @@ class ConnectionInterfacePrivacy(dbus.service.Interface):
 
         Parameters:
         mode - the desired privacy mode
+
+        Possible Errors:
+        Disconnected, NetworkError, PermissionDenied, InvalidArgument
         """
         pass
 
@@ -656,6 +707,9 @@ class ConnectionInterfaceRenaming(dbus.service.Interface):
 
         Parameters:
         name - a string of the desired identifier
+
+        Possible Errors:
+        Disconnected, NetworkError, NotAvailable, InvalidArgument, PermissionDenied
         """
         pass
 

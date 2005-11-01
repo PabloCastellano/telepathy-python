@@ -26,14 +26,12 @@ class ConnectionManager(dbus.service.Object):
     causing a new connection manager to be activated when somebody attempts to
     make a new connection.
     """
-    def __init__(self, name):
+    def __init__(self, bus_name, object_path):
         """
-        Initialise the connection manager. The service will appear as the
-        service org.freedesktop.Telepathy.ConnectionManager.name, and publish
-        an object called as /org/freedesktop/Telepathy/ConnectionManager/name.
+        Initialise the connection manager.
         """
-        self.bus_name = dbus.service.BusName(CONN_MGR_SERVICE+'.'+name, bus=dbus.SessionBus())
-        dbus.service.Object.__init__(self, self.bus_name, CONN_MGR_OBJECT+'/'+name)
+        self.bus_name = dbus.service.BusName(bus_name, bus=dbus.SessionBus())
+        dbus.service.Object.__init__(self, self.bus_name, object_path)
 
         self.connections = set()
         self.protos = {}
@@ -134,6 +132,9 @@ class ConnectionManager(dbus.service.Object):
         Returns:
         a D-Bus service name where the new Connection object can be found
         the D-Bus object path to the Connection on this service
+
+        Potential Errors:
+        NetworkError, EncryptionError (handshaking failed, or SSL not available and require-encryption set), NotImplemented (unknown protocol), InvalidArgument (unrecognised connection parameters), AuthenticationFailure (invalid username or password)
         """
         if self.protos.has_key(proto):
             conn = self.protos[proto](self, account, connect_info)
