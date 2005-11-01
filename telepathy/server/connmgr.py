@@ -99,11 +99,11 @@ class ConnectionManager(dbus.service.Object):
 
         s:server - a fully qualified domain name or numeric IPv4 or IPv6
         address. Using the fully-qualified domain name form is recommended
-        whenever possible. If this paramter is specified and the account
+        whenever possible. If this parameter is specified and the account
         for that protocol also specifies a server, this parameter should
         override that in the user id.
 
-        q:port - a TCP or UDP port number. If this paramter is specified
+        q:port - a TCP or UDP port number. If this parameter is specified
         and the account for that protocol also specifies a port, this
         parameter should override that in the account.
 

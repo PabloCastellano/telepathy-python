@@ -357,14 +357,14 @@ class ConnectionInterfaceContactInfo(dbus.service.Interface):
     """
     An interface for requesting information about a contact on a given
     connection. Information is returned as a vCard represented as an XML
-    string, in the format defined by JEP-0054: vcard-temp speficiation
+    string, in the format defined by JEP-0054: vcard-temp specifiation
     from the Jabber Software Foundation (this is derived from the
     aborted IETF draft draft-dawson-vcard-xml-dtd-01).
 
     Implementations using PHOTO or SOUND elements should use the URI encoding
     where possible, and not provide base64 encoded data to avoid unnecessary
     bus traffic. Clients should not implement support for these encoded forms.
-    A seperate interface will be provided for transferring user avatars.
+    A separate interface will be provided for transferring user avatars.
 
     The following extended element names are also added to represent
     information from other systems which are not based around vCards:
@@ -643,7 +643,8 @@ class ConnectionInterfacePrivacy(dbus.service.Interface):
         Returns the privacy modes available on this connection. The following
         well-known names should be used where appropriate:
          allow-all - any contact may initiate communication
-         allow-subscribed - only contacts on your subscriction list may initiate communication
+         allow-specified - only contacts on your 'allow' list may initiate communication
+         allow-subscribed - only contacts on your subscription list may initiate communication
 
         Returns:
         an array of valid privacy modes for this connection

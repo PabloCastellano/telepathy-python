@@ -215,8 +215,8 @@ class ChannelTypeContactList(Channel):
     created by the connection manager at connection time if the list
     exists on the server:
      subscribe - the group of contacts for whom you wish to receive presence
-     publish - the group of contacts who may recieve your presence
-     hide - a group of contacts who are on the publish list but are temporarily disallowed from recieving your presence
+     publish - the group of contacts who may receive your presence
+     hide - a group of contacts who are on the publish list but are temporarily disallowed from receiving your presence
      allow - a group of contacts who may send you messages
      deny - a group of contacts who may not send you messages
     """
@@ -402,7 +402,7 @@ class ChannelTypeText(Channel):
     with GetPendingMessages. A client which has handled the message by showing
     it to the user (or equivalent) should acknowledge the receipt using the
     AcknowledgePendingMessage method, and the message will then be removed from
-    the pending queue. Numeric identifiers for recieved messages may be reused
+    the pending queue. Numeric identifiers for received messages may be reused
     over the lifetime of the channel.
 
     Each message has an associated 'type' value, which should be one of the
@@ -504,7 +504,7 @@ class ChannelTypeText(Channel):
         AcknowledgePendingMessage method.
 
         Parameters:
-        id - a numeric identifier for acknowleding the method
+        id - a numeric identifier for acknowledging the message
         timestamp - a unix timestamp indicating when the message was received
         sender - the contact who sent the message
         type - the type of the message (normal, action, notice, etc)
@@ -580,7 +580,7 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     on the remote pending list but has not yet accepted the invitation,
     RemoveMembers will rescind the request if possible.
 
-    It should not be presumed that the requestor of a channel implementing this
+    It should not be presumed that the requester of a channel implementing this
     interface is immediately granted membership, or indeed that they are a
     member at all, unless they appear in the list. They may, for instance,
     be placed into the remote pending list until a connection has been
@@ -725,6 +725,8 @@ class ChannelInterfaceIndividual(dbus.service.Interface):
     connection and a single other individual, and if either party leaves, the
     channel closes. If there is the potential for other members to join, be
     invited, or request to join, the group channel interface should be used.
+    When requesting channels, this interface accepts the parameter of a
+    contact to communicate with, with D-Bus type 's'.
 
     This interface has no methods so that if an individual channel is
     requested, and a group channel containing that individual is provided
@@ -751,7 +753,7 @@ class ChannelInterfaceNamed(dbus.service.Interface):
     """
     Interface for channels which have an immutable name. When requesting
     channels, this interface accepts the parameter of a name to obtain,
-    with dbus type 's'.
+    with D-Bus type 's'.
     """
     def __init__(self, name):
         """ Initialise the interface.
@@ -796,7 +798,7 @@ class ChannelInterfacePassword(dbus.service.Interface):
          modifiable - the SetPassword method can be used to change the password
          required - the password is required for users to join this channel
          provide - the ProvidePassword method must be called now for the user to join
-         visible - the GetPassword method can be used to retreive the password
+         visible - the GetPassword method can be used to retrieve the password
 
         Returns:
         an array of strings of flags

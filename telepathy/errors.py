@@ -40,7 +40,7 @@ class NotAvailable(dbus.DBusException):
 
 class PermissionDenied(dbus.DBusException):
     """
-    The user is not permitted to perform th requested operation.
+    The user is not permitted to perform the requested operation.
     """
     _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.PermissionDenied'
 
