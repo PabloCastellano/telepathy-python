@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import dbus
 import dbus.service
 
 from telepathy import *
@@ -25,30 +24,29 @@ class Connection(dbus.service.Object):
     can be discovered using GetInterfaces, and must not change
     at runtime.
     """
-    def __init__(self, manager, proto, account, name_parts):
+    def __init__(self, proto, account, name_parts):
         """
-        parameters:
-        manager - the Telepathy ConectionManager that created this Connection.
-        proto - the name of the protcol this conection should be handling. 
+        Parameters:
+        proto - the name of the protcol this conection should be handling.
         account - a protocol-specific account name
-        name_parts - a list of strings with which to form the service and      
-        object names.
+        name_parts - a list of strings with which to form the service and
+        object names
         """
-        self.service_name = '.'.join(name_parts)
-        self.object_path = '/'.join(name_parts)
-        self.bus_name = dbus.service.BusName(self.service_name, bus=dbus.SessionBus())
-        dbus.service.Object.__init__(self, self.bus_name, self.object_path)
+        bus_name = dbus.service.BusName('org.freedesktop.Telepathy.Connection.' + '.'.join(name_parts))
+        object_path = '/org/freedesktop/Telepathy/Connection/' + '/'.join(name_parts)
+        print bus_name, object_path
+        dbus.service.Object.__init__(self, bus_name, object_path)
 
-        self.interfaces = set()
-        self.channels = set()
-        self.lists = {}
-        self.manager = manager
-        self.proto = proto
-        self.account = account
+        self._proto = proto
+        self._account = account
+
+        self._status = 'connecting'
+        self._interfaces = set()
+        self._channels = set()
 
     def addChannel(self, channel):
         """ add a new channel and signal its creation""" 
-        self.channels.add(channel)
+        self._channels.add(channel)
         self.NewChannel(channel.type, channel.object_path, channel.requested)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
@@ -59,7 +57,7 @@ class Connection(dbus.service.Object):
         Returns:
         an array of D-Bus interface names
         """
-        return self.interfaces
+        return self._interfaces
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
     def GetProtocol(self):
@@ -69,7 +67,7 @@ class Connection(dbus.service.Object):
         Returns:
         a string identifier for the protocol
         """
-        return self.proto
+        return self._proto
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
     def GetAccount(self):
@@ -79,7 +77,7 @@ class Connection(dbus.service.Object):
         Returns:
         a string identifier for the user
         """
-        return self.account
+        return self._account
 
     @dbus.service.signal(CONN_INTERFACE, signature='s')
     def StatusChanged(self, status):
@@ -100,7 +98,7 @@ class Connection(dbus.service.Object):
         status - a string indicating the new status
         """
         print 'service_name: %s object_path: %s signal: StatusChanged %s' % (self.service_name, self.object_path, status)
-        self.status = status
+        self._status = status
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
     def GetStatus(self):
@@ -110,7 +108,7 @@ class Connection(dbus.service.Object):
         Returns:
         a string representing the current status
         """
-        return self.status
+        return self._status
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='')
     def Disconnect(self):
@@ -145,10 +143,10 @@ class Connection(dbus.service.Object):
             a D-Bus object path for the channel object on this service
         """
         ret = []
-        for channel in self.channels:
+        for channel in self._channels:
             chan = (channel.type, channel.object_path)
             ret.append(chan)
-        return dbus.Array(ret, signature='(ss)')
+        return ret
 
     @dbus.service.method(CONN_INTERFACE, in_signature='sa{sv}', out_signature='o')
     def RequestChannel(self, type, interfaces):
@@ -203,7 +201,7 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
     """
 
     def __init__(self):
-        self.interfaces.add(CONN_INTERFACE_ALIASING)
+        self._interfaces.add(CONN_INTERFACE_ALIASING)
 
     @dbus.service.signal(CONN_INTERFACE_ALIASING, signature='ss')
     def AliasUpdate(self, contact, alias):
@@ -285,7 +283,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         """
         Initialise the capabilities interface.
         """
-        self.interfaces.add(CONN_INTERFACE_CAPABILITIES)
+        self._interfaces.add(CONN_INTERFACE_CAPABILITIES)
         self.caps = set()
         self.contact_caps = {}
 
@@ -372,7 +370,7 @@ class ConnectionInterfaceContactInfo(dbus.service.Interface):
      HOSTNAME - the fully qualified hostname, or IPv4 or IPv6 address of the contact in dotted quad or colon-separated form
     """
     def __init__(self):
-        self.interfaces.add(CONN_INTERFACE_CONTACT_INFO)
+        self._interfaces.add(CONN_INTERFACE_CONTACT_INFO)
 
     @dbus.service.method(CONN_INTERFACE_CONTACT_INFO, in_signature='s', out_signature='')
     def RequestContactInfo(self, contact):
@@ -410,7 +408,7 @@ class ConnectionInterfaceForwarding(dbus.service.Interface):
     the service.
     """
     def __init__(self):
-        self.interfaces.add(CONN_INTERFACE_FORWARDING)
+        self._interfaces.add(CONN_INTERFACE_FORWARDING)
         self.forwarding = ''
 
     @dbus.service.method(CONN_INTERFACE_FORWARDING, in_signature='', out_signature='s')
@@ -500,7 +498,7 @@ class ConnectionInterfacePresence(dbus.service.Interface):
     """
 
     def __init__(self):
-        self.interfaces.add(CONN_INTERFACE_PRESENCE)
+        self._interfaces.add(CONN_INTERFACE_PRESENCE)
 
     @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='', out_signature='a{s(ubba{sg})}')
     def GetStatuses(self):
@@ -523,13 +521,16 @@ class ConnectionInterfacePresence(dbus.service.Interface):
     def RequestPresence(self, contacts):
         """
         Request the presence for contacts on this connection. A PresenceUpdate
-        signal will be emitted when they are received.
+        signal will be emitted when they are received. This is not the same as
+        subscribing to the presence of a contact, which must be done using the
+        'subscription' Channel.Type.ContactList, and on some protocols presence
+        information may not be available unless a subscription exists.
 
         Parameters:
         contacts - an array of the contacts whose presence should be obtained
 
         Possible Errors:
-        Disconnected, NetworkError, UnknownContact, PermissionDenied
+        Disconnected, NetworkError, UnknownContact, PermissionDenied, NotAvailable (if the presence of the requested contacts is not reported to this connection)
         """
         pass
 
@@ -633,7 +634,7 @@ class ConnectionInterfacePrivacy(dbus.service.Interface):
         Parameters:
         modes - a list of privacy modes available on this interface
         """
-        self.interfaces.add(CONN_INTERFACE_PRIVACY)
+        self._interfaces.add(CONN_INTERFACE_PRIVACY)
         self.mode = ''
         self.modes = modes
 
@@ -698,7 +699,7 @@ class ConnectionInterfaceRenaming(dbus.service.Interface):
     of contacts can change.
     """
     def __init__(self):
-        self.interfaces.add(CONN_INTERFACE_RENAMING)
+        self._interfaces.add(CONN_INTERFACE_RENAMING)
 
     @dbus.service.method(CONN_INTERFACE_RENAMING, in_signature='s', out_signature='')
     def RequestRename(self, name):
