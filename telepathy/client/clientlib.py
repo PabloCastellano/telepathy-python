@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import dbus
-if getattr(dbus, 'version', (0,0,0)) >= (0,41,0):
-    import dbus.glib
+import dbus.glib
+
+assert(getattr(dbus, 'version', (0,0,0)) >= (0,51,0))
+
 import getpass
 import gobject
 import signal
@@ -88,13 +90,11 @@ class Connection:
 
         print 'StatusChanged', status
 
-    def __init__(self, mainloop, manager, proto, account, conn_opts):
+    def __init__(self, mainloop, mgr_bus_name, mgr_object_path, proto, account, conn_opts):
         self.bus = dbus.SessionBus()
         self.mainloop = mainloop
 
-        mgr_serv_name = CONN_MGR_SERVICE+'.'+manager
-        mgr_obj_path = CONN_MGR_OBJECT+'/'+manager
-        mgr_obj = self.bus.get_object(mgr_serv_name, mgr_obj_path)
+        mgr_obj = self.bus.get_object(mgr_bus_name, mgr_object_path)
         mgr = dbus.Interface(mgr_obj, CONN_MGR_INTERFACE)
         self.serv_name, obj_path = mgr.Connect(proto, account, conn_opts)
 
@@ -119,40 +119,37 @@ class Connection:
             self.channel_callback(type, obj_path)
 
 if __name__ == '__main__':
-   
     reg = ManagerRegistry()
     reg.LoadManagers()
 
     protocol=''
     protos=reg.GetProtos()
 
-    print protos
-
-    if len(protos)==0:
-        print "Sorry, no managers found!"
-        sys.exit(1) 
+    if len(protos) == 0:
+        print "Sorry, no connection managers found!"
+        sys.exit(1)
 
     while (protocol not in protos):
         if len(sys.argv) > 2:
             protocol = sys.argv[2]
         else:
-            print protos
-            print protos[0]
-            protocol = raw_input('Protocol (one of %s) [%s]: ' % (' '.join(protos),protos[0]))
+            protocol = raw_input('Protocol (one of: %s) [%s]: ' % (' '.join(protos),protos[0]))
             if protocol == '':
                 protocol = protos[0]
 
     manager=''
     managers=reg.GetManagers(protocol)
-    
+
     while (manager not in managers):
         if len(sys.argv) > 1:
             manager = sys.argv[1]
         else:
-            manager = raw_input('Manager (one of %s) [%s]: ' % (' '.join(managers),managers[0]))
+            manager = raw_input('Manager (one of: %s) [%s]: ' % (' '.join(managers),managers[0]))
             if manager == '':
                 manager = managers[0]
 
+    mgr_bus_name = reg.GetBusName(manager)
+    mgr_object_path = reg.GetObjectPath(manager)
 
     if len(sys.argv) > 3:
         account = sys.argv[3]
@@ -165,7 +162,7 @@ if __name__ == '__main__':
         pw = getpass.getpass()
 
     mainloop = gobject.MainLoop()
-    connection = Connection(mainloop, manager, protocol, account, {'password':dbus.Variant(pw)})
+    connection = Connection(mainloop, mgr_bus_name, mgr_object_path, protocol, account, {'password':dbus.Variant(pw)})
 
     def quit_cb():
         connection.conn.Disconnect()
