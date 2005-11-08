@@ -10,22 +10,7 @@ import sys
 
 from managerregistry import *
 
-CONN_INTERFACE = 'org.freedesktop.telepathy.Connection'
-CONN_OBJECT = '/org/freedesktop/telepathy/Connection'
-CONN_SERVICE = 'org.freedesktop.telepathy.Connection'
-
-CONN_MGR_INTERFACE = 'org.freedesktop.telepathy.ConnectionManager'
-CONN_MGR_OBJECT = '/org/freedesktop/telepathy/ConnectionManager'
-CONN_MGR_SERVICE = 'org.freedesktop.telepathy.ConnectionManager'
-
-CHANNEL_INTERFACE = 'org.freedesktop.telepathy.Channel'
-TEXT_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.TextChannel'
-LIST_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.ListChannel'
-
-INDIVIDUAL_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.IndividualChannelInterface'
-GROUP_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.GroupChannelInterface'
-NAMED_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.NamedChannelInterface'
-PRESENCE_CHANNEL_INTERFACE = 'org.freedesktop.telepathy.PresenceChannelInterface'
+from telepathy import *
 
 class Channel(object):
     def __init__(self, conn, obj_path):
@@ -43,7 +28,7 @@ class ListChannel(Channel):
 class TextChannel(Channel):
     def __init__(self, conn, obj_path):
         Channel.__init__(self, conn, obj_path)
-        self.text = dbus.Interface(self.chan_obj, TEXT_CHANNEL_INTERFACE)
+        self.text = dbus.Interface(self.chan_obj, CHANNEL_TYPE_TEXT)
         self.text.connect_to_signal('Received', self.received_callback)
         self.doack = True
 
@@ -80,9 +65,9 @@ class Connection:
 
         channel = None
 
-        if type == TEXT_CHANNEL_INTERFACE:
+        if type == CHANNEL_TYPE_TEXT:
             channel = TextChannel(self, obj_path)
-        elif type == LIST_CHANNEL_INTERFACE:
+        elif type == CHANNEL_TYPE_LIST:
             channel = ListChannel(self, obj_path)
 
         if channel != None:
@@ -97,7 +82,7 @@ class Connection:
             self.status = status
 
         #if status == 'connected':
-            #obj_path = self.conn.RequestChannel(TEXT_CHANNEL_INTERFACE, {'recipient':'test2@localhost'})
+            #obj_path = self.conn.RequestChannel(CHANNEL_TYPE_TEXT, {'recipient':'test2@localhost'})
         if status == 'disconnected':
             self.mainloop.quit()
 
@@ -180,7 +165,7 @@ if __name__ == '__main__':
         pw = getpass.getpass()
 
     mainloop = gobject.MainLoop()
-    connection = Connection(mainloop, manager, protocol, account, {'password':pw})
+    connection = Connection(mainloop, manager, protocol, account, {'password':dbus.Variant(pw)})
 
     def quit_cb():
         connection.conn.Disconnect()
