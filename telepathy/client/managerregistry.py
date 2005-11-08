@@ -10,14 +10,14 @@ are searched for in /usr/share/telepathy/services or in ~/.telepathy.
 
 [ConnectionManager]
 Name = value
-ServiceName = value
-ManagerObject = value
+BusName = value
+ObjectPath = value
 
 
 where:
 'Name' field sets the name of connection manager.
-'ServiceName' sets the DBus bus name of this connetion manager.
-'ManagerObject' sets the Dbus object path to the ConnectionManager object under this service.
+'BusName' sets the D-Bus bus name of this connection manager.
+'ObjectPath' sets the D-Bus object path to the ConnectionManager object under this service.
 
 Then any number of proctol support declarators of the form:
 
