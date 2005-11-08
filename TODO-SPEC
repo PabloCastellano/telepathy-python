@@ -3,7 +3,8 @@ Specification Todo
 
 ponder:
 sending messages when adding people to your contact list?
-conference server with jabber
+handling conference server for jabber chats
+number of people in rooms when listing
 destination for JUD searches
 handling moderated/invite only channels?
 how do you map people in chats to real identifiers if they're different?
