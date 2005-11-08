@@ -243,6 +243,7 @@ class ChannelTypeStreamedMedia(Channel):
     any given time, this channel can be queried for the last received SDP
     information from a given member to allow negotiation to proceed even
     if a Received signal from a recipient has been missed.
+  
     """
     def __init__(self, connection):
         """
@@ -253,6 +254,7 @@ class ChannelTypeStreamedMedia(Channel):
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA)
         self.last_received = {}
+        self.flags = {}
 
     @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='ss', out_signature='')
     def Send(self, recipient, sdp):
@@ -291,6 +293,38 @@ class ChannelTypeStreamedMedia(Channel):
         self.last_received[sender] = sdp
         pass
 
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='s', out_signature='as')
+    def GetMemberState(self, member):
+        """
+        Get state for a given conversation particiapant
+
+        Parameters:
+        member - member to enquire the state of
+
+        Returns: an array containing the flags for this user
+        valid flags are:
+        sdp-required - this recipent needs to be notified of your current 
+                       capabilities
+    
+        Potential errors:
+        UnknownContact  
+        """
+        if self.flags.has_key(member):
+            return self.flags[memeber]
+        else:
+            raise UnknownContact
+
+    
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='sasas')
+    def MemberStateChanged(self, member, flags_removed, flags_added):
+        """
+        Signal emitted when state flags change for a channel participant
+        Parameters:
+        flags_removed: flags removed from the member's state
+        flags_added: flags added to the member's state
+        """
+        pass     
+        
     @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='s', out_signature='s')
     def GetLastMessage(self, contact):
         """
