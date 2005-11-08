@@ -100,7 +100,17 @@ class ManagerRegistry:
                 if self.services[service]["protos"].has_key(proto):
                     managers.append(service)
         return managers
-                    
+
+    def GetBusName(self, manager):
+        assert(manager in self.services)
+        assert('busname' in self.services[manager])
+        return self.services[manager]['busname']
+
+    def GetObjectPath(self, manager):
+        assert(manager in self.services)
+        assert('objectpath' in self.services[manager])
+        return self.services[manager]['objectpath']
+
     def GetParams(self, manager, proto):
         """
         Returns two dicts of paramters for the given proto on the given manager.
