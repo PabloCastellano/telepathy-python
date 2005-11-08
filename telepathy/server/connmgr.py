@@ -140,11 +140,21 @@ class ConnectionManager(dbus.service.Object):
         b:register - This account should be created on the server if it
         does not already exist.
 
-        s:username - The local username to report to the server if
-        appropriate.
+        s:ident- The local username to report to the server if
+        necessary, such as in irc
 
         s:fullname - The user's full name if the service requires this
         when authenticating.
+
+        s:authentication-realm  - a string identifier for your authentication
+        realm
+
+        s:authentication-username - a username to use for authentication, if 
+        necessary.
+
+        s:authentication-type - a string representation of authentication type,
+        such as 'Digest'
+        
 
         Parameters:
         proto - the protocol identifier
