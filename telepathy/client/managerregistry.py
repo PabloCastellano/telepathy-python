@@ -79,25 +79,24 @@ class ManagerRegistry:
                 if section[:6]=="Proto ":
                     self.services[connection_manager["name"]]["protos"]={section[6:]:dict(config.items(section))}
             del config
-                
 
     def GetProtos(self):
         """
         returns a list of protocols supported on this system
         """
-        protos=[]
+        protos=set()
         for service in self.services.keys():
             if self.services[service].has_key("protos"):
-                protos.extend(self.services[service]["protos"].keys())
-        return protos
-       
+                protos.update(self.services[service]["protos"].keys())
+        return list(protos)
+
     def GetManagers(self, proto):
         """
         Returns names of managers that can handle the given protocol.
         """
         managers = []
         for service in self.services.keys():
-            if self.services[service].has_key("protos"):
+            if "protos" in self.services[service]:
                 if self.services[service]["protos"].has_key(proto):
                     managers.append(service)
         return managers
