@@ -518,7 +518,7 @@ class ConnectionInterfacePresence(dbus.service.Interface):
     def __init__(self):
         self._interfaces.add(CONN_INTERFACE_PRESENCE)
 
-    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='', out_signature='a{s(ubba{sg})}')
+    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='', out_signature='a{s(ubba{ss})}')
     def GetStatuses(self):
         """
         Get a dictionary of the valid presence statuses for this connection.

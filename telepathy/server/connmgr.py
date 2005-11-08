@@ -81,7 +81,7 @@ class ConnectionManager(dbus.service.Object):
         """
         return self._protos.keys()
 
-    @dbus.service.method(CONN_MGR_INTERFACE, in_signature='s', out_signature='a{sg}')
+    @dbus.service.method(CONN_MGR_INTERFACE, in_signature='s', out_signature='a{ss}')
     def GetProtocolParameters(self, proto):
         """
         Get a list of the parameter names and types which are understood
