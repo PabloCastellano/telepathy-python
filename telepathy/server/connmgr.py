@@ -26,25 +26,34 @@ class ConnectionManager(dbus.service.Object):
     causing a new connection manager to be activated when somebody attempts to
     make a new connection.
     """
-    def __init__(self, bus_name, object_path):
+    def __init__(self, name):
         """
         Initialise the connection manager.
         """
-        self.bus_name = dbus.service.BusName(bus_name, bus=dbus.SessionBus())
-        dbus.service.Object.__init__(self, self.bus_name, object_path)
+        bus_name = 'org.freedesktop.Telepathy.ConnectionManager.%s' % name
+        object_path = '/org/freedesktop/Telepathy/ConnectionManager/%s' % name
+        dbus.service.Object.__init__(self, dbus.service.BusName(bus_name), object_path)
 
-        self.connections = set()
-        self.protos = {}
+        self._connections = set()
+        self._protos = {}
 
     def __del__(self):
-        print str(self.bus_name), "deleted"
+        print str(self._object_path), "deleted"
         dbus.service.Object.__del__(self)
+
+    def connected(self, conn):
+        """
+        Add a connection to the list of connections, emit the appropriate
+        signal.
+        """
+        self._connections.add(conn)
+        self.NewConnection(conn._name.get_name(), conn._object_path, conn._proto, conn._account)
 
     def disconnected(self, conn):
         """
         Remove a connection from the list of connections.
         """
-        self.connections.remove(conn)
+        self._connections.remove(conn)
         del conn
 
     @dbus.service.method(CONN_MGR_INTERFACE, in_signature='', out_signature='as')
@@ -70,7 +79,7 @@ class ConnectionManager(dbus.service.Object):
         Returns:
         a list of string protocol identifiers supported by this manager
         """
-        return self.protos.keys()
+        return self._protos.keys()
 
     @dbus.service.method(CONN_MGR_INTERFACE, in_signature='s', out_signature='a{sg}')
     def GetProtocolParameters(self, proto):
@@ -83,8 +92,17 @@ class ConnectionManager(dbus.service.Object):
 
         Returns:
         an dictionary mapping parameter identifiers to type signatures
+
+        Potential Errors:
+        NotImplemented (the requested protocol is not supported by this manager)
         """
-        pass
+        if proto in self._protos:
+            if getattr(self._protos[proto], '_protocol_parameters', None):
+                return self._protos[proto]._protocol_parameters
+            else:
+                return {}
+        else:
+            raise telepathy.NotImplemented('unknown protocol %s' % proto)
 
     @dbus.service.method(CONN_MGR_INTERFACE, in_signature='ssa{sv}', out_signature='so')
     def Connect(self, proto, account, parameters):
@@ -136,21 +154,20 @@ class ConnectionManager(dbus.service.Object):
         Potential Errors:
         NetworkError, EncryptionError (handshaking failed, or SSL not available and require-encryption set), NotImplemented (unknown protocol), InvalidArgument (unrecognised connection parameters), AuthenticationFailure (invalid username or password)
         """
-        if self.protos.has_key(proto):
-            conn = self.protos[proto](self, account, connect_info)
-            self.connections.add(conn)
-            self.NewConnection(conn.service_name, conn.object_path, conn.proto, conn.account)
-            return (conn.service_name, conn.object_path)
+        if proto in self._protos:
+            conn = self._protos[proto](self, account, parameters)
+            self.connected(conn)
+            return (conn._name.get_name(), conn._object_path)
         else:
-            raise IOError('Unknown protocol %s' % (proto))
+            raise telepathy.NotImplemented('unknown protocol %s' % proto)
 
     @dbus.service.signal(CONN_MGR_INTERFACE, signature='soss')
-    def NewConnection(self, service_name, object_path, proto, account):
+    def NewConnection(self, bus_name, object_path, proto, account):
         """
         Emitted when a new Connection object is created.
 
         Parameters:
-        service_name - the D-Bus service where the connection object can be found
+        bus_name - the D-Bus service where the connection object can be found
         object_path - the object path of the Connection object on this service
         proto - the identifier for the protocol this connection uses
         account - the identifier for the user's account on this protocol
