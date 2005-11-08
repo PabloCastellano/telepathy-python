@@ -108,7 +108,11 @@ class ConnectionManager(dbus.service.Object):
     def Connect(self, proto, account, parameters):
         """
         Connect to a given account on a given protocol with the given
-        parameters. The parameters accepted by a protocol are specified
+        parameters. The method returns the bus name and the object path
+        where the new Connection object can be found, which should
+        be in the 'connecting' state.
+
+        The parameters accepted by a protocol are specified
         in a file shipped by the connection manager, and can be retrieved
         at run-time with the GetProtocolParameters method. The client
         must have prior knowledge of the meaning of these parameters,
@@ -152,7 +156,7 @@ class ConnectionManager(dbus.service.Object):
         the D-Bus object path to the Connection on this service
 
         Potential Errors:
-        NetworkError, EncryptionError (handshaking failed, or SSL not available and require-encryption set), NotImplemented (unknown protocol), InvalidArgument (unrecognised connection parameters), AuthenticationFailure (invalid username or password)
+        NetworkError, NotImplemented (unknown protocol), InvalidArgument (unrecognised connection parameters)
         """
         if proto in self._protos:
             conn = self._protos[proto](self, account, parameters)

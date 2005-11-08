@@ -8,18 +8,6 @@ class NetworkError(dbus.DBusException):
     """
     _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.NetworkError'
 
-class EncryptionError(dbus.DBusException):
-    """
-    Raised when there is a failure in SSL handshaking.
-    """
-    _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.EncryptionError'
-
-class AuthenticationFailure(dbus.DBusException):
-    """
-    Raised when the specified username or password is incorrect.
-    """
-    _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.AuthenticationFailure'
-
 class NotImplemented(dbus.DBusException):
     """
     Raised when the requested method, channel, etc is not available on this connection.

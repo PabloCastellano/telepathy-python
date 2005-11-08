@@ -52,10 +52,15 @@ class Connection(dbus.service.Object):
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
         """
-        Get the optional interfaces supported by the connection.
+        Get the optional interfaces supported by the connection. Not valid
+        until the connection has been established (GetState returns
+        'connected').
 
         Returns:
         an array of D-Bus interface names
+
+        Potential Errors:
+        Disconnected
         """
         return self._interfaces
 
@@ -79,8 +84,8 @@ class Connection(dbus.service.Object):
         """
         return self._account
 
-    @dbus.service.signal(CONN_INTERFACE, signature='s')
-    def StatusChanged(self, status):
+    @dbus.service.signal(CONN_INTERFACE, signature='ss')
+    def StatusChanged(self, status, reason):
         """
         Emitted when the status of the connection changes. The currently
         defined states are:
@@ -93,6 +98,19 @@ class Connection(dbus.service.Object):
 
         disconnected - The connection has been severed and no method calls are
         valid. The object may be removed from the bus at any time.
+
+        The reason should be one of the following:
+
+        requested - The change is in response to a user request.
+
+        network-error - There was an error sending or receiving on the
+        network socket.
+
+        authentication-failed - The username or password was invalid.
+
+        encryption-error - There was an error negotiating SSL on this
+        connection, or encryption was unavailable and require-encryption was
+        set when the connection was created.
 
         Parameters:
         status - a string indicating the new status

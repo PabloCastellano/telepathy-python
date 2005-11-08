@@ -821,7 +821,7 @@ class ChannelInterfacePassword(dbus.service.Interface):
         self.password_flags.update(added)
         self.password_flags.difference_update(removed)
 
-    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='s', out_signature='')
+    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='s', out_signature='b')
     def ProvidePassword(self, password):
         """
         Provide the password so that the channel can be joined. Must be
@@ -831,8 +831,11 @@ class ChannelInterfacePassword(dbus.service.Interface):
         Parameters:
         password - the password
 
+        Returns:
+        a boolean indicating whether or not the password was correct
+
         Possible Errors:
-        Disconnected, NetworkError, AuthenticationFailure, InvalidArgument
+        Disconnected, NetworkError, InvalidArgument
         """
         pass
 
