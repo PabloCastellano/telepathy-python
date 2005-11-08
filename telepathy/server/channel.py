@@ -46,9 +46,9 @@ class Channel(dbus.service.Object):
         type - interface name for the type of this channel
         """
         self.conn = connection
-        self.object_path = self.conn.object_path+'/channel'+str(Channel.count)
+        self._object_path = self.conn._object_path+'/channel'+str(Channel.count)
         Channel.count += 1
-        dbus.service.Object.__init__(self, self.conn.bus_name, self.object_path)
+        dbus.service.Object.__init__(self, self.conn._name, self._object_path)
 
         self.type = type
         self.interfaces = set()
@@ -75,7 +75,7 @@ class Channel(dbus.service.Object):
         and the connection manager may then remove the object from the bus
         at any point.
         """
-        print 'object_path: %s signal: Closed' % (self.object_path)
+        print 'object_path: %s signal: Closed' % (self._object_path)
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='s')
     def GetChannelType(self):
@@ -526,7 +526,7 @@ class ChannelTypeText(Channel):
         type - the message type (normal, action, normal, etc)
         text - the text of the message
         """
-        print 'object_path: %s signal: Sent %d %s %s' % (self.object_path, timestamp, type, text)
+        print 'object_path: %s signal: Sent %d %s %s' % (self._object_path, timestamp, type, text)
 
     @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uusss')
     def Received(self, id, timestamp, sender, type, text):
@@ -545,7 +545,7 @@ class ChannelTypeText(Channel):
         text - the text of the message
         """
         self.pending_messages[id] = (timestamp, sender, type, text)
-        print 'object_path: %s signal: Received %d %d %s %s %s' % (self.object_path, id, timestamp, sender, type, text)
+        print 'object_path: %s signal: Received %d %d %s %s %s' % (self._object_path, id, timestamp, sender, type, text)
 
 
 class ChannelInterfaceDTMF(dbus.service.Interface):
