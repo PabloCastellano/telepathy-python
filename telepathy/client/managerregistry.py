@@ -68,23 +68,16 @@ class ManagerRegistry:
         local_path=os.path.expanduser("~/.telepathy")
         if os.path.exists(local_path):
             all_services += map( lambda dir: local_path +'/'+dir, dircache.listdir(local_path))
-        print all_services
         for service in all_services:
-            print service
             config = ConfigParser.SafeConfigParser()
             config.read(service)
-            print config.sections()
             connection_manager =dict(config.items("ConnectionManager"))
             if "name" not in connection_manager.keys():
-                print "no name"
                 raise ConfigParser.NoOptionError("name","ConnectionManager")
             self.services[connection_manager["name"]]=connection_manager
             for section in set(config.sections()) - set(["ConnectionManager"]):
-                print connection_manager["name"]
-                print section
                 if section[:6]=="Proto ":
                     self.services[connection_manager["name"]]["protos"]={section[6:]:dict(config.items(section))}
-                    print self.services[connection_manager["name"]]["protos"]
             del config
                 
 
