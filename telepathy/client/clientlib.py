@@ -129,10 +129,10 @@ if __name__ == '__main__':
         print "Sorry, no connection managers found!"
         sys.exit(1)
 
-    while (protocol not in protos):
-        if len(sys.argv) > 2:
-            protocol = sys.argv[2]
-        else:
+    if len(sys.argv) > 2:
+        protocol = sys.argv[2]
+    else:
+        while (protocol not in protos):
             protocol = raw_input('Protocol (one of: %s) [%s]: ' % (' '.join(protos),protos[0]))
             if protocol == '':
                 protocol = protos[0]
@@ -151,18 +151,25 @@ if __name__ == '__main__':
     mgr_bus_name = reg.GetBusName(manager)
     mgr_object_path = reg.GetObjectPath(manager)
 
+     
     if len(sys.argv) > 3:
         account = sys.argv[3]
     else:
         account = raw_input('Account: ')
 
-    if len(sys.argv) > 4:
-        pw = sys.argv[4]
-    else:
-        pw = getpass.getpass()
+    cmdline_params = dict((p.split('=') for p in sys.argv[4:]))
+    params={}
 
+    for (name, (type, default)) in reg.GetParams(manager, protocol)[0].iteritems():
+        if name in cmdline_params:
+            params[name] = dbus.Variant(cmdline_params[name],type)    
+        elif name == 'password':
+            params[name] == dbus.Variant(getpass.getpass(),type)
+        else:
+            params[name] = dbus.Variant(raw_input(name+': '),type)
+            
     mainloop = gobject.MainLoop()
-    connection = Connection(mainloop, mgr_bus_name, mgr_object_path, protocol, account, {'password':dbus.Variant(pw)})
+    connection = Connection(mainloop, mgr_bus_name, mgr_object_path, protocol, account, params)
 
     def quit_cb():
         connection.conn.Disconnect()

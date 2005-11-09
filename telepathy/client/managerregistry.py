@@ -78,6 +78,7 @@ class ManagerRegistry:
             for section in set(config.sections()) - set(["ConnectionManager"]):
                 if section[:6]=="Proto ":
                     self.services[connection_manager["name"]]["protos"]={section[6:]:dict(config.items(section))}
+                    print  self.services[connection_manager["name"]]["protos"]
             del config
 
     def GetProtos(self):
@@ -119,22 +120,23 @@ class ManagerRegistry:
         (dbus type, default value). If no default value is specified, the second
         item in the tuple will be None.
         """
-        ret=()
+        ret=[]
        
-        for field in ["MandatoryParams","OptionalParams"]:
+        for field in ["mandatoryparams","optionalparams"]:
             params={}
-            for item in split(self.services[manager][proto][field],','):
-                type, name = split(strip(item),':')
-                default=None
-                for key in self.services[manager][proto].keys():
-                    strip(key)
-                    if key=="Default-"+name:
-                        default=key[8:]
-                        break
-                if default:
-                    params[name]=(type, dbus.Variant(default,signature=type))
-                else:
-                    params[name]=(type, None)
+            for item in self.services[manager]["protos"][proto][field].split(','):
+                if item.strip() != '':
+                    type, name = item.strip().split(':')
+                    default=None
+                    for key in self.services[manager]["protos"][proto].keys():
+                        key.strip()
+                        if key=="default-"+name:
+                            default=key[8:]
+                            break
+                    if default:
+                        params[name]=(type, dbus.Variant(default,signature=type))
+                    else:
+                        params[name]=(type, None)
             ret.append(params)
         
         return ret
