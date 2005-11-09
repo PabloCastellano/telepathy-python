@@ -34,7 +34,6 @@ class Connection(dbus.service.Object):
         """
         bus_name = dbus.service.BusName('org.freedesktop.Telepathy.Connection.' + '.'.join(name_parts))
         object_path = '/org/freedesktop/Telepathy/Connection/' + '/'.join(name_parts)
-        print bus_name, object_path
         dbus.service.Object.__init__(self, bus_name, object_path)
 
         self._proto = proto
@@ -43,11 +42,17 @@ class Connection(dbus.service.Object):
         self._status = 'connecting'
         self._interfaces = set()
         self._channels = set()
+        self._next_channel_id = 0
 
-    def addChannel(self, channel):
+    def get_channel_path(self):
+        ret = '%s/channel%d' % (self._object_path, self._next_channel_id)
+        self._next_channel_id += 1
+        return ret
+
+    def add_channel(self, channel, requested):
         """ add a new channel and signal its creation""" 
         self._channels.add(channel)
-        self.NewChannel(channel.type, channel.object_path, channel.requested)
+        self.NewChannel(channel._type, channel._object_path, requested)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
@@ -126,7 +131,6 @@ class Connection(dbus.service.Object):
         status - an integer indicating the new status
         reason - an integer indicating the reason for disconnected 
         """
-        print 'service_name: %s object_path: %s signal: StatusChanged %s' % (self.service_name, self.object_path, status)
         self._status = status
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
@@ -159,7 +163,7 @@ class Connection(dbus.service.Object):
         object_path - a D-Bus object path for the channel object on this service
         requested - a boolean indicating if the channel was requested or not
         """
-        print 'service_name: %s object_path: %s signal: NewChannel %s %s' % (self.service_name, self.object_path, type, object_path)
+        pass
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='a(so)')
     def ListChannels(self):

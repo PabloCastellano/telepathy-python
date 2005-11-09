@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 
-import dbus
 import dbus.service
-if getattr(dbus, 'version', (0,0,0)) >= (0,41,0):
-    import dbus.glib
-import gobject
-import time
 
 from telepathy import *
 
@@ -35,8 +30,6 @@ class Channel(dbus.service.Object):
     methods or signals with conflicting names, the D-Bus interface names should
     always be used to invoke methods and bind signals.
     """
-    count = 0
-
     def __init__(self, connection, type):
         """
         Initialise the base channel object.
@@ -45,14 +38,13 @@ class Channel(dbus.service.Object):
         connection - the parent Connection object
         type - interface name for the type of this channel
         """
-        self.conn = connection
-        self._object_path = self.conn._object_path+'/channel'+str(Channel.count)
-        Channel.count += 1
-        dbus.service.Object.__init__(self, self.conn._name, self._object_path)
+        self._conn = connection
+        object_path = self._conn.get_channel_path()
+        dbus.service.Object.__init__(self, self._conn._name, object_path)
 
-        self.type = type
-        self.interfaces = set()
-        self.members = set()
+        self._type = type
+        self._interfaces = set()
+        self._members = set()
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
@@ -75,12 +67,12 @@ class Channel(dbus.service.Object):
         and the connection manager may then remove the object from the bus
         at any point.
         """
-        print 'object_path: %s signal: Closed' % (self._object_path)
+        pass
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='s')
     def GetChannelType(self):
         """ Returns the interface name for the type of this channel. """
-        return self.type
+        return self._type
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
@@ -90,7 +82,7 @@ class Channel(dbus.service.Object):
         Returns:
         an array of the D-Bus interface names
         """
-        return dbus.Array(self.interfaces, signature='s')
+        return self._interfaces
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetMembers(self):
@@ -100,7 +92,7 @@ class Channel(dbus.service.Object):
         Possible Errors:
         Disconnected, NetworkError
         """
-        return dbus.Array(self.members, signature='s')
+        return self._members
 
 
 class ChannelTypeContactSearch(Channel):
@@ -459,8 +451,7 @@ class ChannelTypeText(Channel):
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_TEXT)
 
-        self.recv_id = 0
-        self.pending_messages = {}
+        self._pending_messages = {}
 
     @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='ss', out_signature='')
     def Send(self, type, text):
@@ -489,11 +480,10 @@ class ChannelTypeText(Channel):
         Possible Errors:
         InvalidArgument (the given message ID was not found)
         """
-        if self.pending_messages.has_key(id):
-            del self.pending_messages[id]
-            return True
+        if id in self._pending_messages:
+            del self._pending_messages[id]
         else:
-            raise Exception
+            raise telepathy.InvalidArgument("the given message ID was not found")
 
     @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='a(uusss)')
     def ListPendingMessages(self):
@@ -509,12 +499,12 @@ class ChannelTypeText(Channel):
             a string of the text of the message
         """
         messages = []
-        for id in self.pending_messages.keys():
-            (timestamp, sender, type, text) = self.pending_messages[id]
+        for id in self._pending_messages.keys():
+            (timestamp, sender, type, text) = self._pending_messages[id]
             message = (id, timestamp, sender, type, text)
             messages.append(message)
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
-        return dbus.Array(messages, signature='(uusss)')
+        return messages
 
     @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uss')
     def Sent(self, timestamp, type, text):
@@ -526,7 +516,7 @@ class ChannelTypeText(Channel):
         type - the message type (normal, action, normal, etc)
         text - the text of the message
         """
-        print 'object_path: %s signal: Sent %d %s %s' % (self._object_path, timestamp, type, text)
+        pass
 
     @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uusss')
     def Received(self, id, timestamp, sender, type, text):
@@ -544,8 +534,7 @@ class ChannelTypeText(Channel):
         type - the type of the message (normal, action, notice, etc)
         text - the text of the message
         """
-        self.pending_messages[id] = (timestamp, sender, type, text)
-        print 'object_path: %s signal: Received %d %d %s %s %s' % (self._object_path, id, timestamp, sender, type, text)
+        self._pending_messages[id] = (timestamp, sender, type, text)
 
 
 class ChannelInterfaceDTMF(dbus.service.Interface):
@@ -555,7 +544,7 @@ class ChannelInterfaceDTMF(dbus.service.Interface):
     audio.
     """
     def __init__(self):
-        self.interfaces.add(CHANNEL_INTERFACE_DTMF)
+        self._interfaces.add(CHANNEL_INTERFACE_DTMF)
 
     @dbus.service.method(CHANNEL_INTERFACE_DTMF, in_signature='uu', out_signature='')
     def SendDTMF(self, signal, duration):
@@ -624,8 +613,8 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     """
  
     def __init__(self, me):
-        assert(CHANNEL_INTERFACE_INDIVIDUAL not in self.interfaces)
-        self.interfaces.add(CHANNEL_INTERFACE_GROUP)
+        assert(CHANNEL_INTERFACE_INDIVIDUAL not in self._interfaces)
+        self._interfaces.add(CHANNEL_INTERFACE_GROUP)
         self.group_flags = set()
         self.local_pending = set()
         self.remote_pending = set()
@@ -711,7 +700,7 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         Possible Errors:
         Disconnected, NetworkError
         """
-        return dbus.Array(self.local_pending, signature='s')
+        return self.local_pending
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='as')
     def GetRemotePendingMembers(self):
@@ -722,7 +711,7 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         Possible Errors:
         Disconnected, NetworkError
         """
-        return dbus.Array(self.remote_pending, signature='s')
+        return self.remote_pending
 
     @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sasasasas')
     def MembersChanged(self, message, added, removed, local_pending, remote_pending):
@@ -741,8 +730,8 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         remote_pending - a list of members who are pending remote approval
         """
 
-        self.members.update(added)
-        self.members.difference_update(removed)
+        self._members.update(added)
+        self._members.difference_update(removed)
 
         self.local_pending.update(local_pending)
         self.local_pending.difference_update(added)
@@ -778,9 +767,9 @@ class ChannelInterfaceIndividual(dbus.service.Interface):
         Parameters:
         recipient - the identifier for the other member of the channel
         """
-        assert(CHANNEL_INTERFACE_GROUP not in self.interfaces)
-        self.interfaces.add(CHANNEL_INTERFACE_INDIVIDUAL)
-        self.members.add(recipient)
+        assert(CHANNEL_INTERFACE_GROUP not in self._interfaces)
+        self._interfaces.add(CHANNEL_INTERFACE_INDIVIDUAL)
+        self._members.add(recipient)
 
 
 class ChannelInterfaceNamed(dbus.service.Interface):
@@ -795,7 +784,7 @@ class ChannelInterfaceNamed(dbus.service.Interface):
         Parameters:
         name - the immutable name of this channel
         """
-        self.interfaces.add(CHANNEL_INTERFACE_NAMED)
+        self._interfaces.add(CHANNEL_INTERFACE_NAMED)
         self.name = name
 
     @dbus.service.method(CHANNEL_INTERFACE_NAMED, in_signature='', out_signature='s')
@@ -816,7 +805,7 @@ class ChannelInterfacePassword(dbus.service.Interface):
     by the user.
     """
     def __init__(self):
-        self.interfaces.add(CHANNEL_INTERFACE_PASSWORD)
+        self._interfaces.add(CHANNEL_INTERFACE_PASSWORD)
         self.password_flags = set()
         self.needs_password = False
         self.password = ''
@@ -908,7 +897,7 @@ class ChannelInterfaceSubject(dbus.service.Interface):
     and once when the subject is initially discovered from the server.
     """
     def __init__(self):
-        self.interfaces.add(CHANNEL_INTERFACE_SUBJECT)
+        self._interfaces.add(CHANNEL_INTERFACE_SUBJECT)
         self.subject = ''
         self.subject_info = {}
         self.subject_flags = set()
@@ -1001,8 +990,7 @@ class ChannelInterfaceTransfer(dbus.service.Interface):
     connects to somewhere else instead.
     """
     def __init__(self):
-        self.interfaces.add(CHANNEL_INTERFACE_TRANSFER)
-        pass
+        self._interfaces.add(CHANNEL_INTERFACE_TRANSFER)
 
     @dbus.service.method(CHANNEL_INTERFACE_TRANSFER, in_signature='ss', out_signature='')
     def Transfer(self, member, destination):
