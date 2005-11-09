@@ -38,12 +38,12 @@ class TextChannel(Channel):
         pending_messages = self.text.ListPendingMessages()
         print pending_messages
         for msg in pending_messages:
-            (id, timestamp, sender, message) = msg
+            (id, timestamp, sender, type, message) = msg
             print "Handling pending message", id
-            self.received_callback(id, timestamp, sender, message)
+            self.received_callback(id, timestamp, sender, type, message)
             self._handled_pending_message = id
 
-    def received_callback(self, id, timestamp, sender, message):
+    def received_callback(self, id, timestamp, sender, type, message):
         if self._handled_pending_message != None:
             if id > self._handled_pending_message:
                 print "Now handling messages directly"
@@ -52,18 +52,18 @@ class TextChannel(Channel):
                 print "Skipping already handled message", id
                 return
 
-        print "Received", id, timestamp, sender, message
-        self.text.Send('got message ' + str(id) + '(' + message + ')')
+        print "Received", id, timestamp, sender, type, message
+        self.text.Send('normal', 'got message ' + str(id) + '(' + message + ')')
         if self.doack:
             print "Acknowledging...", id
             self.text.AcknowledgePendingMessage(id)
 
 class Connection:
-    def channel_callback(self, type, obj_path):
+    def channel_callback(self, type, obj_path, requested):
         if self.channels.has_key(obj_path):
             return
 
-        print 'NewChannel', type, obj_path
+        print 'NewChannel', type, obj_path, requested
 
         channel = None
 
@@ -77,7 +77,7 @@ class Connection:
         else:
             print 'Unknown channel type', type
 
-    def status_callback(self, status):
+    def status_callback(self, status, reason):
         if self.status == status:
             return
         else:
@@ -106,7 +106,7 @@ class Connection:
 
         # handle race condition when connecting completes before the
         # status changed signal handler is registered
-        self.status_callback(self.conn.GetStatus())
+        self.status_callback(self.conn.GetStatus(), 'request')
 
         self.channels = {}
         self.conn.connect_to_signal('NewChannel', self.channel_callback)
