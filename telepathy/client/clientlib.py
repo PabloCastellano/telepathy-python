@@ -69,7 +69,7 @@ class Connection:
 
         if type == CHANNEL_TYPE_TEXT:
             channel = TextChannel(self, obj_path)
-        elif type == CHANNEL_TYPE_LIST:
+        elif type == CHANNEL_TYPE_CONTACT_LIST:
             channel = ListChannel(self, obj_path)
 
         if channel != None:
