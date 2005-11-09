@@ -1,0 +1,9 @@
+[ConnectionManager]
+Name = brie
+BusName = org.freedesktop.Telepathy.ConnectionManager.brie
+ObjectPath = /org/freedesktop/Telepathy/ConnectionManager/brie
+
+[Proto jabber]
+MandatoryParams = s:password
+OptionalParams  = s:server, q:port
+default-port = 5222
