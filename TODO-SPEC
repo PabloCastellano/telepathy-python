@@ -2,6 +2,7 @@ Specification Todo
 ------------------
 
 ponder:
+make enum strings into numbers where appropriate
 sending messages when adding people to your contact list?
 handling conference server for jabber chats
 number of people in rooms when listing
