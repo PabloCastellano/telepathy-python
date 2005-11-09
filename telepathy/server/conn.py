@@ -84,36 +84,47 @@ class Connection(dbus.service.Object):
         """
         return self._account
 
-    @dbus.service.signal(CONN_INTERFACE, signature='ss')
+    @dbus.service.signal(CONN_INTERFACE, signature='ii')
     def StatusChanged(self, status, reason):
         """
-        Emitted when the status of the connection changes. The currently
-        defined states are:
+        Emitted when the status of the connection changes. 
+        All states and reasons have numerical values, as defined here
+        The currently defined states are:
 
-        connected - The connection is alive and all methods are available.
+        0 - connected 
+          - The connection is alive and all methods are available.
 
-        connecting - The connection has not yet been established, or has been
-        severed and reconnection is being attempted. Some methods may fail
-        until the connection has been established.
+        1 - connecting 
+          - The connection has not yet been established, or has been
+            severed and reconnection is being attempted. Some methods may fail
+            until the connection has been established.
 
-        disconnected - The connection has been severed and no method calls are
-        valid. The object may be removed from the bus at any time.
+        2 - disconnected 
+          - The connection has been severed and no method calls are
+            valid. The object may be removed from the bus at any time.
 
         The reason should be one of the following:
 
-        requested - The change is in response to a user request.
+        0 - no-reason 
+          - There is no reason set for this state
 
-        network-error - There was an error sending or receiving on the
-        network socket.
+        1 - requested 
+          - The change is in response to a user request.
 
-        authentication-failed - The username or password was invalid.
+        2 - network-error 
+          - There was an error sending or receiving on the network socket.
 
-        encryption-error - There was an error negotiating SSL on this
-        connection, or encryption was unavailable and require-encryption was
-        set when the connection was created.
+        3 - authentication-failed 
+          - The username or password was invalid.
+
+        4 - encryption-error 
+          - There was an error negotiating SSL on this
+            connection, or encryption was unavailable and require-encryption 
+            was set when the connection was created.
 
         Parameters:
-        status - a string indicating the new status
+        status - an integer indicating the new status
+        reason - an integer indicating the reason for disconnected 
         """
         print 'service_name: %s object_path: %s signal: StatusChanged %s' % (self.service_name, self.object_path, status)
         self._status = status
