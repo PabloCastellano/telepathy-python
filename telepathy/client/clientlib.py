@@ -116,7 +116,7 @@ class Connection:
         channels = self.conn.ListChannels()
         for channel in channels:
             (type, obj_path) = channel
-            self.channel_callback(type, obj_path)
+            self.channel_callback(type, obj_path, TRUE)
 
 if __name__ == '__main__':
     reg = ManagerRegistry()
