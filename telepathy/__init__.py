@@ -1,4 +1,5 @@
-version = (0, 9, 0)
+version = (0, 10, 0)
 
-from interfaces import *
+from constants import *
 from errors import *
+from interfaces import *

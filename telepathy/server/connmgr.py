@@ -110,7 +110,7 @@ class ConnectionManager(dbus.service.Object):
         Connect to a given account on a given protocol with the given
         parameters. The method returns the bus name and the object path
         where the new Connection object can be found, which should
-        be in the 'connecting' state.
+        have the status of CONNECTION_STATUS_CONNECTING.
 
         The parameters accepted by a protocol are specified
         in a file shipped by the connection manager, and can be retrieved

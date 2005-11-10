@@ -39,7 +39,7 @@ class Connection(dbus.service.Object):
         self._proto = proto
         self._account = account
 
-        self._status = 'connecting'
+        self._status = CONNECTION_STATUS_CONNECTING
         self._interfaces = set()
         self._channels = set()
         self._next_channel_id = 0
@@ -89,51 +89,51 @@ class Connection(dbus.service.Object):
         """
         return self._account
 
-    @dbus.service.signal(CONN_INTERFACE, signature='ii')
+    @dbus.service.signal(CONN_INTERFACE, signature='uu')
     def StatusChanged(self, status, reason):
         """
         Emitted when the status of the connection changes. 
         All states and reasons have numerical values, as defined here
         The currently defined states are:
 
-        0 - connected 
+        0 - CONNECTION_STATUS_CONNECTED
           - The connection is alive and all methods are available.
 
-        1 - connecting 
+        1 - CONNECTION_STATUS_CONNECTING
           - The connection has not yet been established, or has been
             severed and reconnection is being attempted. Some methods may fail
             until the connection has been established.
 
-        2 - disconnected 
+        2 - CONNECTION_STATUS_DISCONNECTED
           - The connection has been severed and no method calls are
             valid. The object may be removed from the bus at any time.
 
         The reason should be one of the following:
 
-        0 - no-reason 
+        0 - CONNECTION_STATUS_REASON_NONE_SPECIFIED
           - There is no reason set for this state
 
-        1 - requested 
+        1 - CONNECTION_STATUS_REASON_REQUESTED
           - The change is in response to a user request.
 
-        2 - network-error 
+        2 - CONNECTION_STATUS_REASON_NETWORK_ERROR
           - There was an error sending or receiving on the network socket.
 
-        3 - authentication-failed 
+        3 - CONNECTION_STATUS_REASON_AUTHENTICATION_FAILED
           - The username or password was invalid.
 
-        4 - encryption-error 
+        4 - CONNECTION_STATUS_REASON_ENCRYPTION_ERROR
           - There was an error negotiating SSL on this
             connection, or encryption was unavailable and require-encryption 
             was set when the connection was created.
 
         Parameters:
         status - an integer indicating the new status
-        reason - an integer indicating the reason for disconnected 
+        reason - an integer indicating the reason for the status change
         """
         self._status = status
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='u')
     def GetStatus(self):
         """
         Get the current status as defined in the StatusChanged signal.
