@@ -50,6 +50,7 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
     _protocol_parameters = {'server':'s', 'port':'q', 'password':'s'}
 
     def __init__(self, manager, account, parameters):
+        self._die = False
         self._manager = manager
 
         jid = pyxmpp.jid.JID(account)
@@ -101,7 +102,12 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
         return False
 
     def idle_cb(self):
+        if self._status == CONNECTION_STATUS_DISCONNECTED:
+            print "removing idle cb"
+            return False
+
         self.idle()
+
         return True
 
     def stream_created(self, stream):
@@ -110,12 +116,25 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
     def session_started(self):
         print "session started"
         pyxmpp.jabber.client.JabberClient.session_started(self)
-        self.StatusChanged('connected', 'requested')
-        stream=self.get_stream()
-        stream.set_message_handler('normal', self.message_handler)
+
+        # set up handlers for <presence/> stanzas
+        self.stream.set_presence_handler("available",self.presence_handler)
+        self.stream.set_presence_handler("unavailable",self.presence_handler)
+
+        # set up handlers for <presence/> stanzas which deal with subscriptions
+        self.stream.set_presence_handler("subscribe",self.subscription_handler)
+        self.stream.set_presence_handler("subscribed",self.subscription_handler)
+        self.stream.set_presence_handler("unsubscribe",self.subscription_handler)
+        self.stream.set_presence_handler("unsubscribed",self.subscription_handler)
+
+        # set up handler for <message/> stanzas
+        self.stream.set_message_handler('normal', self.message_handler)
+
+        self.StatusChanged(CONNECTION_STATUS_CONNECTED, CONNECTION_STATUS_REASON_REQUESTED)
 
     def stream_io_cb(self, fd, condition):
-        print "stream io cb"
+        print "stream io cb, condition", condition
+
         try:
             stream = self.get_stream()
             stream.process()
@@ -125,18 +144,60 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
             print e
             traceback.print_exc()
             return False
+
+        if self._status == CONNECTION_STATUS_DISCONNECTED:
+            print "removing stream io cb"
+            return False
+
         return True
 
     def connected(self):
         print "connected"
 
     def roster_updated(self, item=None):
-        print "roster update"
-        print item
-        roster = self.request_roster()
-        print roster
-        for i in roster.get_items():
-            print i
+        pyxmpp.jabber.client.JabberClient.roster_updated(self, item)
+
+        print "roster update, item=%s, roster=%s" % (item, self.roster)
+        if self.roster:
+            for i in self.roster.get_items():
+                print "roster item:", i
+
+    def presence_handler(self, stanza):
+        """Handle 'available' (without 'type') and 'unavailable' <presence/>."""
+        msg=u"%s has become " % (stanza.get_from())
+        t=stanza.get_type()
+        if t=="unavailable":
+            msg+=u"unavailable"
+        else:
+            msg+=u"available"
+
+        show=stanza.get_show()
+        if show:
+            msg+=u"(%s)" % (show,)
+
+        status=stanza.get_status()
+        if status:
+            msg+=u": "+status
+        print msg
+
+    def subscription_handler(self, stanza):
+        """Handle subscription control <presence/> stanzas -- acknowledge
+        them."""
+        msg=unicode(stanza.get_from())
+        t=stanza.get_type()
+        if t=="subscribe":
+            msg+=u" has requested subscription to our presence."
+        elif t=="subscribed":
+            msg+=u" has accepted our presence subscription request."
+        elif t=="unsubscribe":
+            msg+=u" has cancelled subscription to our presence."
+        elif t=="unsubscribed":
+            msg+=u" has cancelled our subscription of his presence."
+
+        print msg
+        p=stanza.make_accept_response()
+        self.stream.send(p)
+        return True
 
     def message_handler(self, stanza):
         subject=stanza.get_subject()
@@ -167,6 +228,19 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
             handled = chan.message_handler(stanza)
 
         return handled
+
+    def Disconnect(self):
+        self._die = True
+        self.disconnect()
+
+    def disconnected(self):
+        print "disconnected"
+        if self._die:
+            self.StatusChanged(CONNECTION_STATUS_DISCONNECTED, CONNECTION_STATUS_REASON_REQUESTED)
+            gobject.idle_add(self._manager.disconnected, self)
+        else:
+            self.StatusChanged(CONNECTION_STATUS_CONNECTING, CONNECTION_STATUS_REASON_REAQUESTED)
+            gobject.idle_add(self.connect_cb())
 
     def RequestChannel(self, type, interfaces):
         chan = None
