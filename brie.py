@@ -9,10 +9,11 @@ assert(getattr(dbus, 'version', (0,0,0)) >= (0,51,0))
 import gobject
 import pyxmpp.jid
 import pyxmpp.jabber.client
-import telepathy
 import telepathy.server
 import time
 import traceback
+
+from telepathy import *
 
 class JabberIMChannel(telepathy.server.ChannelTypeText, telepathy.server.ChannelInterfaceIndividual):
     def __init__(self, conn, recipient):
@@ -100,14 +101,11 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
         return False
 
     def idle_cb(self):
-        
         self.idle()
         return True
 
     def stream_created(self, stream):
         print "stream created"
-        print stream
-        #fd = stream.fileno()
 
     def session_started(self):
         print "session started"
@@ -131,6 +129,14 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
 
     def connected(self):
         print "connected"
+
+    def roster_updated(self, item=None):
+        print "roster update"
+        print item
+        roster = self.request_roster()
+        print roster
+        for i in roster.get_items():
+            print i
 
     def message_handler(self, stanza):
         subject=stanza.get_subject()
@@ -161,6 +167,33 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
             handled = chan.message_handler(stanza)
 
         return handled
+
+    def RequestChannel(self, type, interfaces):
+        chan = None
+
+        if type == CHANNEL_TYPE_TEXT:
+            if interfaces.keys() == [CHANNEL_INTERFACE_INDIVIDUAL]:
+                recipient = interfaces[CHANNEL_INTERFACE_INDIVIDUAL]
+                jid = pyxmpp.jid.JID(recipient).bare()
+
+                for c in self._channels:
+                    if isinstance(c, JabberIMChannel):
+                        if c._members == [jid]:
+                            chan = c
+                            break
+
+                chan = JabberIMChannel(self, jid)
+            else:
+                raise telepathy.NotAvailable('requested interfaces %s unavailable' % interfaces.keys())
+        else:
+            raise telepathy.NotImplemented('unknown channel type %s', type)
+
+        assert(chan)
+
+        if not chan in self._channels:
+            self.add_channel(chan, requested=True)
+
+        return chan._object_path
 
 
 class JabberConnectionManager(telepathy.server.ConnectionManager):
