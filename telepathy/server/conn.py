@@ -177,7 +177,7 @@ class Connection(dbus.service.Object):
         """
         ret = []
         for channel in self._channels:
-            chan = (channel.type, channel.object_path)
+            chan = (channel._type, channel._object_path)
             ret.append(chan)
         return ret
 
@@ -203,7 +203,7 @@ class Connection(dbus.service.Object):
         Possible Errors:
         Disconnected, NetworkError, NotImplemented (unknown channel type), InvalidArgument (invalid interface parameters), NotAvailable (requested interfaces unavailable), UnknownContact
         """
-        raise IOError('Unknown channel type %s' % type)
+        raise telepathy.NotImplemented('unknown channel type %s' % type)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetMatchFlags(self):
