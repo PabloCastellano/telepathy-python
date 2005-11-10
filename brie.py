@@ -9,6 +9,7 @@ assert(getattr(dbus, 'version', (0,0,0)) >= (0,51,0))
 import gobject
 import pyxmpp.jid
 import pyxmpp.jabber.client
+import signal
 import telepathy.server
 import time
 import traceback
@@ -275,7 +276,25 @@ class JabberConnectionManager(telepathy.server.ConnectionManager):
         telepathy.server.ConnectionManager.__init__(self, 'brie')
         self._protos['jabber'] = JabberConnection
 
+    def quit(self):
+        for c in self._connections:
+            c.Disconnect()
+
 if __name__ == '__main__':
     manager = JabberConnectionManager()
     mainloop = gobject.MainLoop()
-    mainloop.run()
+
+    def quit_cb():
+        manager.quit()
+        mainloop.quit()
+
+    def sigterm_cb():
+        gobject.idle_add(quit_cb)
+
+    signal.signal(signal.SIGTERM, sigterm_cb)
+
+    while mainloop.is_running():
+        try:
+            mainloop.run()
+        except KeyboardInterrupt:
+            quit_cb()
