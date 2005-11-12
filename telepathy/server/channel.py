@@ -228,14 +228,17 @@ class ChannelTypeStreamedMedia(Channel):
     """
     A channel that can send and receive streamed media such as audio or video.
     All communication on this channel takes the form of messages exchanged in
-    SDP (see IETF RFC 2327).
+    SDP (see IETF RFC 2327). This interface is designed so that the connection
+    manager will use the 'user' media parameters set on the connection with the
+    Connection.Interface.StreamedMedia, and carry out negotiations on behalf of
+    the user according to IETF RFC 3264, "An Offer/Answer Model with the
+    Session Description Protocol".
 
-    In general, negotiations over this channel will take the form of IETF RFC
-    3264, "An Offer/Answer Model with the Session Description Protocol". At
-    any given time, this channel can be queried for the last received SDP
-    information from a given member to allow negotiation to proceed even
-    if a Received signal from a recipient has been missed.
-  
+    When the negotiations are completed, the ReceivedMediaParameters signal is
+    emitted, containing the 'local' media parameters, which contain the SDP
+    information for the local user's media streams, and the 'remote' media
+    parameters which contains the same information for the remote user's
+    streams.
     """
     def __init__(self, connection):
         """
@@ -245,96 +248,68 @@ class ChannelTypeStreamedMedia(Channel):
         connection - the parent Telepathy Connection object
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA)
-        self.last_received = {}
-        self.flags = {}
+        self._media_parameters = {}
 
     @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='ss', out_signature='')
-    def Send(self, recipient, sdp):
+    def SendMediaParameters(self, recipient, parameters):
         """
-        Attempt to send an SDP message on this channel.
+        Send an message to a member of this channel proposing a new
+        set of codecs to use. This is used for case-by case overrides
+        of the per-connection 'user' media parameters which are set with
+        the Connection.Interface.StreamedMedia.
 
         Parameters:
-        recipient - the member to send to
-        sdp - the SDP message to send
+        recipient - a string the member to send the parameters to
+        parameters - a string of SDP with the new media parameters to propose
 
         Possible Errors:
         Disconnected, NetworkError, UnknownContact, InvalidArgument, PermissionDenied
         """
         pass
 
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='ss')
-    def Sent(self, recipient, sdp):
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='sss')
+    def ReceivedMediaParameters(self, member, local, remote):
         """
-        Signals that an SDP message has been sent to the given recipient on this channel.
+        Signals that an message has been received from a member of this
+        channel containing the negotiated local and remote media parameters
+        to use for the streams with this member.
 
         Parameters:
-        recipient - the member the message was sent to
-        sdp - the SDP message itself
+        member - a string indicating the member the parameters were sent by
+        local - a string of SDP describing the local media parameters
+        remote - a string of SDP describing the remote media parameters
         """
-        pass
+        self._media_parameters[member] = (local, remote)
 
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='ss')
-    def Received(self, sender, sdp):
-        """
-        Signals that an SDP message has been received on this channel.
-
-        Parameters:
-        sender - the member the message was sent by
-        sdp - the SDP message itself
-        """
-        self.last_received[sender] = sdp
-        pass
-
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='s', out_signature='as')
-    def GetMemberState(self, member):
-        """
-        Get state for a given conversation particiapant
-
-        Parameters:
-        member - member to enquire the state of
-
-        Returns: an array containing the flags for this user
-        valid flags are:
-        sdp-required - this recipent needs to be notified of your current 
-                       capabilities
-    
-        Potential errors:
-        UnknownContact  
-        """
-        if self.flags.has_key(member):
-            return self.flags[memeber]
-        else:
-            raise UnknownContact
-
-    
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='sasas')
-    def MemberStateChanged(self, member, flags_removed, flags_added):
-        """
-        Signal emitted when state flags change for a channel participant
-        Parameters:
-        flags_removed: flags removed from the member's state
-        flags_added: flags added to the member's state
-        """
-        pass     
-        
     @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='s', out_signature='s')
-    def GetLastMessage(self, contact):
+    def GetMediaParameters(self, member):
         """
-        Retrieve the last SDP message received from a given contact.
+        Retrieve the last received media parameters for a given member
+        of this channel.
 
         Parameters:
-        contact - the member to retrieve the last message from
+        contact - a channel member to retrieve the parameters for
 
         Returns:
-        a string of the message
+        a string of SDP containing the local media parameters
+        a string of SDP containing the remote media parameters
 
         Possible Errors:
         Disconnected, UnknownContact, NotAvailable (if the contact has sent nothing to us on this channel)
         """
-        if contact in self.last_received:
-            return self.last_received[contact]
+        if CHANNEL_INTERFACE_GROUP in self._interfaces:
+            if (contact not in self.local_pending and
+                contact not in self.remote_pending and
+                contact not in self._members):
+                raise telepathy.UnknownContact
         else:
-            raise Exception
+            if contact not in self._members:
+                raise telepathy.UnknownContact
+
+        if contact in self._media_parameters:
+            return self._media_parameters[contact]
+        else:
+            raise telepathy.NotAvailable
 
 
 class ChannelTypeRoomList(Channel):
