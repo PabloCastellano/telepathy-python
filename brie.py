@@ -240,7 +240,7 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
             self.StatusChanged(CONNECTION_STATUS_DISCONNECTED, CONNECTION_STATUS_REASON_REQUESTED)
             gobject.idle_add(self._manager.disconnected, self)
         else:
-            self.StatusChanged(CONNECTION_STATUS_CONNECTING, CONNECTION_STATUS_REASON_REAQUESTED)
+            self.StatusChanged(CONNECTION_STATUS_CONNECTING, CONNECTION_STATUS_REASON_REQUESTED)
             gobject.idle_add(self.connect_cb())
 
     def RequestChannel(self, type, interfaces):
