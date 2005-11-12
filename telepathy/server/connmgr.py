@@ -56,6 +56,8 @@ class ConnectionManager(dbus.service.Object):
         self._connections.remove(conn)
         del conn
 
+        return False # when called in an idle callback
+
     @dbus.service.method(CONN_MGR_INTERFACE, in_signature='', out_signature='as')
     def ListProtocols(self):
         """
