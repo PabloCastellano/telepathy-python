@@ -311,14 +311,20 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
 
     A capability indicating that the connection supports listing the available chat rooms:
      Type: org.freedesktop.Telepathy.Channel.Type.RoomList
+
+    This interface also provides for user interfaces notifying the connection
+    manager of what capabilities to advertise for the user. This is done by
+    using the AdvertiseCapabilities method, and deals only with the interface
+    names of channel types which are implemented by available client processes.
     """
     def __init__(self):
         """
         Initialise the capabilities interface.
         """
         self._interfaces.add(CONN_INTERFACE_CAPABILITIES)
-        self.caps = set()
-        self.contact_caps = {}
+        self._own_caps = set()
+        self._conn_caps = set()
+        self._contact_caps = {}
 
     @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='', out_signature='a(sas)')
     def GetCapabilities(self):
@@ -333,7 +339,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         Possible Errors:
         Disconnected, NetworkError
         """
-        return self.caps
+        return self._conn_caps
 
     @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='s', out_signature='a(sas)')
     def GetContactCapabilities(self, contact):
@@ -346,10 +352,10 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
             an array of strings of channel interface names
 
         Possible Errors:
-        Disconnected, NetworkError, UnknownContact
+        Disconnected, NetworkError, UnknownContact, PermissionDenied
         """
-        if contact in self.contact_caps:
-            return self.contact_caps[contact]
+        if contact in self._contact_caps:
+            return self._contact_caps[contact]
         else:
             return []
 
@@ -363,8 +369,8 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         added - an array of structs as returned by GetCapabilities
         removed - an array of structs as returned by GetCapabilities
         """
-        self.caps.update(added)
-        self.caps.difference_update(removed)
+        self._conn_caps.update(added)
+        self._conn_caps.difference_update(removed)
 
     @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='sa(sas)a(sas)')
     def ContactCapabilitiesChanged(self, contact, added, removed):
@@ -377,11 +383,63 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         added - an array of structs as returned by GetContactCapabilities
         removed - an array of structs as returned by GetContactCapabilities
         """
-        if not contact in self.contact_caps:
-            self.contact_caps[contact] = set()
+        if not contact in self._contact_caps:
+            self._contact_caps[contact] = set()
 
-        self.caps.update(added)
-        self.caps.difference_update(removed)
+        self._contact_caps[contact].update(added)
+        self._contact_caps[contact].difference_update(removed)
+
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='asas', out_signature='')
+    def AdvertiseCapabilities(self, add, remove):
+        """
+        Used by user interfaces to indicate which channel types they are able
+        to handle on this connection. Because these may be provided by
+        different client processes, this method accepts channel types to add
+        and remove from the set already advertised on this connection.
+
+        Upon a successful invocation of this method, the
+        AdvertisedCapabilitiesChanged signal will be emitted by the connection
+        manager to indicate the changes that have been made.  This signal
+        should also be monitored to ensure that the set is kept accurate - for
+        example, a client may remove capabilities when it exits which are still
+        provided by another client.
+
+        Parameters:
+        add - an array of D-Bus interface names of channel types to add
+        remove - an array of D-Bus interface names of channel types to remove
+
+        Potential Errors:
+        NetworkError, Disconnected
+        """
+        # no-op implementation
+        self.AdvertisedCapabilitiesChanged(add, remove)
+
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='', out_signature='as')
+    def GetAdvertisedCapabilities(self):
+        """
+        Returns a list of the channel types which client processes have committed to
+        handling on this connection
+
+        Returns:
+        an array of string D-Bus interface names representing channel types
+
+        PotentialErrors:
+        NetworkError, Disconnected
+        """
+        return self._own_caps
+
+    @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='asas')
+    def AdvertisedCapabilitiesChanged(self, added, removed):
+        """
+        This signal is emitted when the set of channel types which are to be
+        handled on this connection have been changed on the server.
+
+        Parameters:
+        added - an array of D-Bus interface names of channel types which were added
+        removed - an array of D-Bus interface names of channel types which were removed
+        """
+        self._own_caps.update(added)
+        self._own_caps.difference_update(removed)
 
 
 class ConnectionInterfaceContactInfo(dbus.service.Interface):
