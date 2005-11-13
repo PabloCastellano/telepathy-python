@@ -38,8 +38,8 @@ class Disconnected(dbus.DBusException):
     """
     _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.Disconnected'
 
-class UnknownContact(dbus.DBusException):
+class InvalidHandle(dbus.DBusException):
     """
     The contact name specified is unknown on this channel or connection.
     """
-    _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.UnknownContact'
+    _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.InvalidHandle'

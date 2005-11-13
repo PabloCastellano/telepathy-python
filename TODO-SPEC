@@ -2,14 +2,7 @@ Specification Todo
 ------------------
 
 clarify:
-why presence states have both strings and numbers
-behaviour of RemoveStatus
-definition of contact identifiers (getcontactcapabilities)
-when presence signals will be emitted vs when to use requestpresence
-listchannels is for existing channels, not types
-
 make enum strings into numbers where appropriate
-
 
 ponder:
 sending messages when adding people to your contact list?

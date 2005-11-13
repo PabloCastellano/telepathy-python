@@ -23,8 +23,8 @@ org.freedesktop.Telepathy.Channel.Interface.Subject
 org.freedesktop.Telepathy.Channel.Interface.Transfer
 org.freedesktop.Telepathy.Error.Disconnected
 org.freedesktop.Telepathy.Error.InvalidArgument
+org.freedesktop.Telepathy.Error.InvalidHandle
 org.freedesktop.Telepathy.Error.NetworkError
 org.freedesktop.Telepathy.Error.NotAvailable
 org.freedesktop.Telepathy.Error.NotImplemented
 org.freedesktop.Telepathy.Error.PermissionDenied
-org.freedesktop.Telepathy.Error.UnknownContact
