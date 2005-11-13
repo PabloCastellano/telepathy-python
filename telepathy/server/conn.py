@@ -826,7 +826,8 @@ class ConnectionInterfaceRenaming(dbus.service.Interface):
     """
     An interface on connections to support protocols where the unique
     identifiers of contacts can change. Because handles are immutable,
-    this is represented by a 
+    this is represented by a pair of handles, that representing the
+    old name, and that representing the new one.
     """
     def __init__(self):
         self._interfaces.add(CONN_INTERFACE_RENAMING)
