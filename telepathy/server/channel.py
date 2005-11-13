@@ -14,12 +14,12 @@ class Channel(dbus.service.Object):
     which textual messages are sent and received.
 
     Other optional interfaces can be implemented to indicate other available
-    functionality, such as Channel.Interface.Individual or
-    Channel.Interface.Group to manage the members of a channel,
-    Channel.Interface.Named for channels with names, and
-    Channel.Interface.Subject for channels with a subject or topic line. The
-    interfaces implemented may not vary after the channel's creation has been
-    signalled to the bus (with the connection's NewChannel signal).
+    functionality, such as Channel.Interface.Group if the members of a channel
+    can change after its creation, Channel.Interface.Named to associate a
+    channel with a given room or list handle, and Channel.Interface.Subject
+    for channels with a subject or topic line. The interfaces implemented
+    may not vary after the channel's creation has been signalled to the bus
+    (with the connection's NewChannel signal).
 
     Specific connection manager implementations may implement channel types and
     interfaces which are not contained within this specification in order to
@@ -45,6 +45,7 @@ class Channel(dbus.service.Object):
         self._type = type
         self._interfaces = set()
         self._members = set()
+        self._self_handle = 0
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
@@ -84,41 +85,53 @@ class Channel(dbus.service.Object):
         """
         return self._interfaces
 
-    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='as')
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='au')
     def GetMembers(self):
         """
-        Returns an array of identifiers for the members of this channel.
+        Returns an array of handles for the members of this channel.
 
         Possible Errors:
         Disconnected, NetworkError
         """
         return self._members
 
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='u')
+    def GetSelfHandle(self):
+        """
+        Return the handle for the user on this channel if they are a
+        member, and 0 if not.
+
+        Possible Errors:
+        Disconnected, NetworkError
+        """
+        return self._self_handle
+
 
 class ChannelTypeContactSearch(Channel):
     """
     A channel type for searching server-stored user directories. A new channel
     should be requested by a client for each search attempt, and it should be
-    closed when the search is completed or the required result has been found.
-    The search can be cancelled at any time by calling the channel Close
-    method, although depending upon the protocol the connection manager may not
-    be able to prevent the server from sending further results.
+    closed when the search is completed or the required result has been found
+    in order to free unused handles. The search can be cancelled at any time
+    by calling the channel Close method, although depending upon the protocol
+    the connection manager may not be able to prevent the server from sending
+    further results.
 
     Before searching, the GetSearchKeys method should be used to discover any
     instructions sent by the server, and the valid search keys which can be
     provided to the Search method. A search request is then started by
     providing some of these terms to the Search method, and the search status
-    will be set to 'during'. When results are returned by the server, the
-    SearchResultReceived signal is emitted for each contact found, and when the
-    search is complete, the search status will be set to 'after'.
+    will be set to CHANNEL_CONTACT_SEARCH_STATE_DURING. When results are
+    returned by the server, the SearchResultReceived signal is emitted for each
+    contact found, and when the search is complete, the search status will be
+    set to CHANNEL_SEARCH_STATE_AFTER.
     """
     def __init__(self, connection):
         """
         Initialise the contact search channel.
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_SEARCH)
-        self.search_state = 'before'
-        self.search_results = {}
+        self._search_state = CHANNEL_SEARCH_STATE_BEFORE
 
     @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='sa{s(bg)}')
     def GetSearchKeys(self):
@@ -148,7 +161,7 @@ class ChannelTypeContactSearch(Channel):
         """
         Send a request to start a search for contacts on this connection. A
         valid search request will cause the SearchStateChanged signal to be
-        emitted with the status 'during'.
+        emitted with the status CHANNEL_CONTACT_SEARCH_STATE_DURING.
 
         Parameters:
         a dictionary mapping search key names to the desired values
@@ -158,40 +171,44 @@ class ChannelTypeContactSearch(Channel):
         """
         pass
 
-    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='s')
+    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='u')
     def GetSearchState(self):
         """
-        Returns the current state of this search channel object. One of the following
-        values:
-         before - the search has not started
-         during - the search is in progress
-         after - the search has been completed
+        Returns the current state of this search channel object. One of the
+        following values:
+        0 - CHANNEL_CONTACT_SEARCH_STATE_BEFORE
+            the search has not started
+        1 - CHANNEL_CONTACT_SEARCH_STATE_DURING
+            the search is in progress
+        2 - CHANNEL_CONTACT_SEARCH_STATE_AFTER
+            the search has been completed
 
         Returns:
-        a string representing the search state
+        an integer representing the search state
         """
-        return self.search_state
+        return self._search_state
 
-    @dbus.service.signal(CHANNEL_TYPE_CONTACT_SEARCH, signature='s')
+    @dbus.service.signal(CHANNEL_TYPE_CONTACT_SEARCH, signature='u')
     def SearchStateChanged(self, state):
         """
-        Emitted when the search state (as returned by the GetSearchState method) changes.
+        Emitted when the search state (as returned by the GetSearchState
+        method) changes.
 
         Parameters:
-        state - a string representing the search state
+        state - an integer representing the new search state
         """
-        self.search_state = state
+        self._search_state = state
 
-    @dbus.service.signal(CHANNEL_TYPE_CONTACT_SEARCH, signature='sa{sv}')
+    @dbus.service.signal(CHANNEL_TYPE_CONTACT_SEARCH, signature='ua{sv}')
     def SearchResultReceived(self, contact, values):
         """
         Emitted when a search result is received from the server.
 
         Parameters:
-        a string contact identifier
+        an integer handle for the contact
         a dictionary mapping search key names to values for this contact
         """
-        self.search_results[contact] = values
+        pass
 
 
 class ChannelTypeContactList(Channel):
@@ -202,10 +219,11 @@ class ChannelTypeContactList(Channel):
     on the server. This channel type has no methods because all of the
     functionality it represents is available via the group interface.
 
-    The following named singleton instances (obtained by specifying as an
-    argument to Channel.Interface.Named) of this channel type should be
-    created by the connection manager at connection time if the list
-    exists on the server:
+    Singleton instances of this channel type should be created by the
+    connection manager at connection time if the list exists on the server, or
+    may be requested by using the appropriate handle.  These handles can be
+    obtained using RequestHandle with a handle type of
+    CONNECTION_HANDLE_TYPE_LIST and one of the following identifiers:
      subscribe - the group of contacts for whom you wish to receive presence
      publish - the group of contacts who may receive your presence
      hide - a group of contacts who are on the publish list but are temporarily disallowed from receiving your presence
@@ -250,7 +268,7 @@ class ChannelTypeStreamedMedia(Channel):
         Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA)
         self._media_parameters = {}
 
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='ss', out_signature='')
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='us', out_signature='')
     def SendMediaParameters(self, recipient, parameters):
         """
         Send an message to a member of this channel proposing a new
@@ -259,15 +277,15 @@ class ChannelTypeStreamedMedia(Channel):
         the Connection.Interface.StreamedMedia.
 
         Parameters:
-        recipient - a string the member to send the parameters to
+        recipient - an integer handle of the member to send the parameters to
         parameters - a string of SDP with the new media parameters to propose
 
         Possible Errors:
-        Disconnected, NetworkError, UnknownContact, InvalidArgument, PermissionDenied
+        Disconnected, NetworkError, InvalidHandle, InvalidArgument, PermissionDenied
         """
         pass
 
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='sss')
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uss')
     def ReceivedMediaParameters(self, member, local, remote):
         """
         Signals that an message has been received from a member of this
@@ -275,36 +293,36 @@ class ChannelTypeStreamedMedia(Channel):
         to use for the streams with this member.
 
         Parameters:
-        member - a string indicating the member the parameters were sent by
+        member - an integer handle indicating who the parameters were sent by
         local - a string of SDP describing the local media parameters
         remote - a string of SDP describing the remote media parameters
         """
         self._media_parameters[member] = (local, remote)
 
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='s', out_signature='s')
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='u', out_signature='s')
     def GetMediaParameters(self, member):
         """
         Retrieve the last received media parameters for a given member
         of this channel.
 
         Parameters:
-        contact - a channel member to retrieve the parameters for
+        contact - an integer handle of the channel member to retrieve the parameters for
 
         Returns:
         a string of SDP containing the local media parameters
         a string of SDP containing the remote media parameters
 
         Possible Errors:
-        Disconnected, UnknownContact, NotAvailable (if the contact has sent nothing to us on this channel)
+        Disconnected, InvalidHandle, NotAvailable (if the contact has sent nothing to us on this channel)
         """
         if CHANNEL_INTERFACE_GROUP in self._interfaces:
             if (contact not in self.local_pending and
                 contact not in self.remote_pending and
                 contact not in self._members):
-                raise telepathy.UnknownContact
+                raise telepathy.InvalidHandle
         else:
             if contact not in self._members:
-                raise telepathy.UnknownContact
+                raise telepathy.InvalidHandle
 
         if contact in self._media_parameters:
             return self._media_parameters[contact]
@@ -317,7 +335,9 @@ class ChannelTypeRoomList(Channel):
     A channel type for listing named channels available on the server. Once the
     ListRooms method is called, it emits signals for rooms present on the
     server, until you Close this channel. In some cases, it may not be possible
-    to stop the deluge of information from the server.
+    to stop the deluge of information from the server. This channel should be
+    closed when the room information is no longer being displayed, so that the
+    room handles can be freed.
 
     This channel type may be implemented as a singleton on some protocols, so
     clients should be prepared for the eventuality that they are given a
@@ -332,8 +352,8 @@ class ChannelTypeRoomList(Channel):
         connection - the parent Telepathy Connection object
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_ROOM_LIST)
-        self.listing_rooms = False
-        self.rooms = {}
+        self._listing_rooms = False
+        self._rooms = {}
 
     @dbus.service.method(CHANNEL_TYPE_ROOM_LIST, in_signature='', out_signature='')
     def ListRooms(self):
@@ -357,7 +377,7 @@ class ChannelTypeRoomList(Channel):
         Returns:
         a boolean indicating if room listing is in progress
         """
-        return self.listing_rooms
+        return self._listing_rooms
 
     @dbus.service.signal(CHANNEL_TYPE_ROOM_LIST, signature='b')
     def ListingRooms(self, listing):
@@ -368,9 +388,9 @@ class ChannelTypeRoomList(Channel):
         Parameters:
         listing - a boolean indicating if room listing is in progress
         """
-        self.listing_rooms = listing
+        self._listing_rooms = listing
 
-    @dbus.service.signal(CHANNEL_TYPE_ROOM_LIST, signature='a(ssa{sv})')
+    @dbus.service.signal(CHANNEL_TYPE_ROOM_LIST, signature='a(usa{sv})')
     def GotRooms(self, rooms):
         """
         Emitted when information about rooms on the server becomes available.
@@ -382,15 +402,15 @@ class ChannelTypeRoomList(Channel):
          s:subject - the subject of the room
          u:members - the number of members of the room
          b:password - true if the room requires a password to enter
+         b:invite-only - true if you cannot join the room, but must be invited
 
         Parameters:
         rooms - an array of structs containing:
-            a string room identifier
+            an integer room handle
             a string channel type
             an dictionary mapping string keys to variant boxed information
         """
-        for (room, type, details) in rooms:
-            self.rooms[room] = (type, details)
+        pass
 
 
 class ChannelTypeText(Channel):
@@ -407,10 +427,13 @@ class ChannelTypeText(Channel):
     over the lifetime of the channel.
 
     Each message has an associated 'type' value, which should be one of the
-    following well-known values where appropriate:
-     normal - a standard message
-     action - an action which might be presented to the user as * <sender> <action>
-     notice - an automated message not expecting a reply
+    following:
+    0 - CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
+        a standard message
+    1 - CHANNEL_TEXT_MESSAGE_TYPE_ACTION
+        an action which might be presented to the user as * <sender> <action>
+    2 - CHANNEL_TEXT_MESSAGE_TYPE_NOTICE
+        an automated message not expecting a reply
 
     Sending messages can be requested using the Send method, which will return
     and cause the Sent signal to be emitted when the message has been delivered
@@ -428,14 +451,14 @@ class ChannelTypeText(Channel):
 
         self._pending_messages = {}
 
-    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='ss', out_signature='')
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='us', out_signature='')
     def Send(self, type, text):
         """
         Request that a message be sent on this channel. The Sent signal will be
         emitted when the message has been sent, and this method will return.
 
         Parameters:
-        type - the type of the message (normal, action, notice, etc)
+        type - an integer indicating the type of the message
         text - the message to send
 
         Possible Errors:
@@ -460,7 +483,7 @@ class ChannelTypeText(Channel):
         else:
             raise telepathy.InvalidArgument("the given message ID was not found")
 
-    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='a(uusss)')
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='a(uuuus)')
     def ListPendingMessages(self):
         """
         List the messages currently in the pending queue.
@@ -469,8 +492,8 @@ class ChannelTypeText(Channel):
         an array of structs containing:
             a numeric identifier
             a unix timestamp indicating when the message was received
-            a string of the contact who sent the message
-            a string of the message type
+            an integer handle of the contact who sent the message
+            an integer of the message type
             a string of the text of the message
         """
         messages = []
@@ -481,19 +504,19 @@ class ChannelTypeText(Channel):
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
         return messages
 
-    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uss')
+    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uus')
     def Sent(self, timestamp, type, text):
         """
         Signals that a message has been sent on this channel.
 
         Parameters:
         timestamp - the unix timestamp indicating when the message was sent
-        type - the message type (normal, action, normal, etc)
+        type - the message type (normal, action, notice, etc)
         text - the text of the message
         """
         pass
 
-    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uusss')
+    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uuuus')
     def Received(self, id, timestamp, sender, type, text):
         """
         Signals that a message with the given id, timestamp, sender, type
@@ -505,7 +528,7 @@ class ChannelTypeText(Channel):
         Parameters:
         id - a numeric identifier for acknowledging the message
         timestamp - a unix timestamp indicating when the message was received
-        sender - the contact who sent the message
+        sender - the handle of the contact who sent the message
         type - the type of the message (normal, action, notice, etc)
         text - the text of the message
         """
@@ -549,10 +572,10 @@ class ChannelInterfaceDTMF(dbus.service.Interface):
 
 class ChannelInterfaceGroup(dbus.service.Interface):
     """
-    Interface for channels which have multiple members, and where your
-    presence in the channel cannot be presumed by the channel's existence (for
-    example, a channel you may request membership of but your request may
-    not be granted).
+    Interface for channels which have multiple members, and where the members
+    of the channel can change during its lifetime. Your presence in the channel
+    cannot be presumed by the channel's existence (for example, a channel you
+    may request membership of but your request may not be granted).
 
     As well as the basic Channel's member list, this interface implements a
     further two lists: local pending and remote pending members. Contacts on
@@ -568,9 +591,9 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     Addition of members to the channel may be requested by using AddMembers. If
     remote acknowledgement is required, use of the AddMembers method will cause
     users to appear on the remote pending list. If no acknowledgement is
-    required, AddMembers will add contacts to the member list directly.
-    If a contact is awaiting authorisation on the local pending list,
-    AddMembers will grant their membership request.
+    required, AddMembers will add contacts to the member list directly.  If a
+    contact is awaiting authorisation on the local pending list, AddMembers
+    will grant their membership request.
 
     Removal of contacts from the channel may be requested by using
     RemoveMembers.  If a contact is awaiting authorisation on the local pending
@@ -583,67 +606,66 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     member at all, unless they appear in the list. They may, for instance,
     be placed into the remote pending list until a connection has been
     established or the request acknowledged remotely.
-
-    This interface must never be implemented alongside Channel.Interface.Individual.
     """
- 
     def __init__(self, me):
-        assert(CHANNEL_INTERFACE_INDIVIDUAL not in self._interfaces)
         self._interfaces.add(CHANNEL_INTERFACE_GROUP)
-        self.group_flags = set()
-        self.local_pending = set()
-        self.remote_pending = set()
-        self.me = me
+        self._group_flags = 0
+        self._local_pending = set()
+        self._remote_pending = set()
 
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='as')
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='u')
     def GetGroupFlags(self):
         """
-        Returns a list of the flags relevant to this group channel. The user
-        interface can use this to present information about which operations
-        are currently valid.
+        Returns an integer representing the logical or of flags on this
+        channel. The user interface can use this to present information about
+        which operations are currently valid.
 
         These can be:
-         can-add - the AddMembers method can be used to add or invite members who are not already in the local pending list (which is always valid)
-         can-remove - the RemoveMembers method can be used to remove channel members (removing those on the pending local list is always valid)
-         can-rescind - the RemoveMembers method can be used on people on the remote pending list
+        1 - CHANNEL_GROUP_FLAG_CAN_ADD
+            the AddMembers method can be used to add or invite members who are not already in the local pending list (which is always valid)
+        2 - CHANNEL_GROUP_FLAG_CAN_REMOVE
+            the RemoveMembers method can be used to remove channel members (removing those on the pending local list is always valid)
+        4 - CHANNEL_GROUP_FLAG_CAN_RESCIND
+            the RemoveMembers method can be used on people on the remote pending list
 
         Returns:
+        an integer of flags or'd together
         an array of strings of flags
 
         Possible Errors:
         Disconnected, NetworkError
         """
-        return self.group_flags
+        return self._group_flags
 
-    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='asas')
+    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='uu')
     def GroupFlagsChanged(self, added, removed):
         """
         Emitted when the flags as returned by GetGroupFlags are changed.
         The user interface should be updated as appropriate.
 
         Parameters:
-        added - the flags which have been set
-        removed - the flags which are no longer set
+        added - a logical OR of the flags which have been set
+        removed - a logical OR of the flags which have been cleared
         """
-        self.group_flags.update(added)
-        self.group_flags.difference_update(removed)
+        self._group_flags |= added
+        self._group_flags &= ~removed
 
 
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='as', out_signature='')
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='au', out_signature='')
     def AddMembers(self, contacts):
         """
         Invite all the given contacts into the channel, or approve requests
         for channel membership for contacts on the pending local list.
 
         Parameters:
-        contacts - contact IDs to invite to the channel
+        contacts - an array of contact handles to invite to the channel
 
         Possible Errors:
-        Disconnected, NetworkError, NotAvailable, PermissionDenied, UnknownContact
+        Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidHandle
         """
         pass
 
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='as', out_signature='')
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='au', out_signature='')
     def RemoveMembers(self, contacts):
         """
         Requests the removal of contacts from a channel, refuse their request
@@ -651,44 +673,36 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         invitation on the pending remote list.
 
         Parameters:
-        contacts - contact IDs to remove from the channel
+        contacts - an array of contact handles to remove from the channel
 
         Possible Errors:
-        Disconnected, NetworkError, NotAvailable, PermissionDenied, UnknownContact
+        Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidHandle
         """
         pass
 
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='s')
-    def GetSelf(self):
-        """
-        Returns the identifier of the connection owner on this particular channel,
-        as some protocols allow individuals to set their identity per channel.
-        """
-        return self.me
-
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='as')
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='au')
     def GetLocalPendingMembers(self):
         """
-        Returns an array of identifiers for the contacts requesting
+        Returns an array of handles representing contacts requesting
         channel membership and awaiting local approval with AddMembers.
 
         Possible Errors:
         Disconnected, NetworkError
         """
-        return self.local_pending
+        return self._local_pending
 
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='as')
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='au')
     def GetRemotePendingMembers(self):
         """
-        Returns an array of identifiers for contacts who have been
+        Returns an array of handles representing contacts who have been
         invited to the channel and are awaiting remote approval.
 
         Possible Errors:
         Disconnected, NetworkError
         """
-        return self.remote_pending
+        return self._remote_pending
 
-    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sasasasas')
+    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sauauauau')
     def MembersChanged(self, message, added, removed, local_pending, remote_pending):
         """
         Emitted when contacts join any of the three lists (members, local
@@ -708,64 +722,33 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         self._members.update(added)
         self._members.difference_update(removed)
 
-        self.local_pending.update(local_pending)
-        self.local_pending.difference_update(added)
-        self.local_pending.difference_update(removed)
+        self._local_pending.update(local_pending)
+        self._local_pending.difference_update(added)
+        self._local_pending.difference_update(removed)
 
-        self.remote_pending.update(remote_pending)
-        self.remote_pending.difference_update(added)
-        self.remote_pending.difference_update(removed)
-
-
-class ChannelInterfaceIndividual(dbus.service.Interface):
-    """
-    An interface for channels which can only ever contain the owner of the
-    connection and a single other individual, and if either party leaves, the
-    channel closes. If there is the potential for other members to join, be
-    invited, or request to join, the group channel interface should be used.
-    When requesting channels, this interface accepts the parameter of a
-    contact to communicate with, with D-Bus type 's'.
-
-    This interface has no methods so that if an individual channel is
-    requested, and a group channel containing that individual is provided
-    instead, the client will still operate correctly even if it doesn't
-    implement the group channel interface.
-
-    This interface must never be implemented alongside Channel.Interface.Group.
-    """
-    _dbus_interfaces = [CHANNEL_INTERFACE_INDIVIDUAL]
-
-    def __init__(self, recipient):
-        """
-        Initialise the individual channel interface.
-
-        Parameters:
-        recipient - the identifier for the other member of the channel
-        """
-        assert(CHANNEL_INTERFACE_GROUP not in self._interfaces)
-        self._interfaces.add(CHANNEL_INTERFACE_INDIVIDUAL)
-        self._members.add(recipient)
+        self._remote_pending.update(remote_pending)
+        self._remote_pending.difference_update(added)
+        self._remote_pending.difference_update(removed)
 
 
 class ChannelInterfaceNamed(dbus.service.Interface):
     """
-    Interface for channels which have an immutable name. When requesting
-    channels, this interface accepts the parameter of a name to obtain,
-    with D-Bus type 's'.
+    Interface for channels which have an immutable name represented
+    by a handle.
     """
-    def __init__(self, name):
+    def __init__(self, handle):
         """ Initialise the interface.
 
         Parameters:
-        name - the immutable name of this channel
+        handle - the handle of this channel's immutable name
         """
         self._interfaces.add(CHANNEL_INTERFACE_NAMED)
-        self.name = name
+        self._handle = handle
 
-    @dbus.service.method(CHANNEL_INTERFACE_NAMED, in_signature='', out_signature='s')
-    def GetName(self):
-        """ Get the immutable name of this channel. """
-        return self.name
+    @dbus.service.method(CHANNEL_INTERFACE_NAMED, in_signature='', out_signature='u')
+    def GetHandle(self):
+        """ Get the handle representing the immutable name of this channel. """
+        return self._handle
 
 
 class ChannelInterfacePassword(dbus.service.Interface):
@@ -781,43 +764,46 @@ class ChannelInterfacePassword(dbus.service.Interface):
     """
     def __init__(self):
         self._interfaces.add(CHANNEL_INTERFACE_PASSWORD)
-        self.password_flags = set()
-        self.needs_password = False
-        self.password = ''
+        self._password_flags = 0
+        self._password = ''
 
-    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='', out_signature='as')
+    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='', out_signature='u')
     def GetPasswordFlags(self):
         """
-        Returns a list of the flags relevant to the password on this channel.
-        The user interface can use this to present information about which
-        operations are currently valid.
+        Returns the logical OR of the flags relevant to the password on this
+        channel.  The user interface can use this to present information about
+        which operations are currently valid.
 
         These can be:
-         modifiable - the SetPassword method can be used to change the password
-         required - the password is required for users to join this channel
-         provide - the ProvidePassword method must be called now for the user to join
-         visible - the GetPassword method can be used to retrieve the password
+        1 - CHANNEL_PASSWORD_FLAG_REQUIRED
+            the password is required for users to join this channel
+        2 - CHANNEL_PASSWORD_FLAG_VISIBLE
+            the GetPassword method can be used to retrieve the password
+        4 - CHANNEL_PASSWORD_FLAG_MODIFIABLE
+            the SetPassword method can be used to change the password
+        8 - CHANNEL_PASSWORD_FLAG_PROVIDE
+            the ProvidePassword method must be called now for the user to join the channel
 
         Returns:
-        an array of strings of flags
+        an integer with the logical OR of all the flags set
 
         Possible Errors:
         Disconnected, NetworkError
         """
-        return self.password_flags
+        return self._password_flags
 
-    @dbus.service.signal(CHANNEL_INTERFACE_PASSWORD, signature='asas')
+    @dbus.service.signal(CHANNEL_INTERFACE_PASSWORD, signature='uu')
     def PasswordFlagsChanged(self, added, removed):
         """
         Emitted when the flags as returned by GetPasswordFlags are changed.
         The user interface should be updated as appropriate.
 
         Parameters:
-        added - the flags which have been set
-        removed - the flags which are no longer set
+        added - a logical OR of the flags which have been set
+        removed - a logical OR the flags which have been cleared
         """
-        self.password_flags.update(added)
-        self.password_flags.difference_update(removed)
+        self._password_flags |= added
+        self._password_flags &= ~removed
 
     @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='s', out_signature='b')
     def ProvidePassword(self, password):
@@ -873,41 +859,43 @@ class ChannelInterfaceSubject(dbus.service.Interface):
     """
     def __init__(self):
         self._interfaces.add(CHANNEL_INTERFACE_SUBJECT)
-        self.subject = ''
-        self.subject_info = {}
-        self.subject_flags = set()
+        self._subject = ''
+        self._subject_info = {}
+        self._subject_flags = 0
 
-    @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='', out_signature='as')
+    @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='', out_signature='u')
     def GetSubjectFlags(self):
         """
-        Returns a list of the flags relevant to the subject of this channel.
-        The user interface can use this to present information about which
-        operations are currently valid.
+        Returns a logical OR of the flags relevant to the subject of this
+        channel.  The user interface can use this to present information about
+        which operations are currently valid.
 
         These can be:
-         modifiable - the SetSubject method can be used to change the subject
-         present - the subject is set and can be obtained with GetSubject
+        1 - CHANNEL_SUBJECT_FLAG_PRESENT
+            the subject is set and can be obtained with GetSubject
+        2 - CHANNEL_SUBJECT_FLAG_MODIFIABLE
+            the SetSubject method can be used to change the subject
 
         Returns:
-        an array of strings of flags
+        an integer with the logical OR of all the flags set
 
         Possible Errors:
         Disconnected, NetworkError
         """
         return self.subject_flags
 
-    @dbus.service.signal(CHANNEL_INTERFACE_SUBJECT, signature='asas')
+    @dbus.service.signal(CHANNEL_INTERFACE_SUBJECT, signature='uu')
     def SubjectFlagsChanged(self, added, removed):
         """
         Emitted when the flags as returned by GetSubjectFlags are changed.
         The user interface should be updated as appropriate.
 
         Parameters:
-        added - the flags which have been set
-        removed - the flags which are no longer set
+        added - a logical OR of the flags which have been set
+        removed - a logical OR of the flags which have been cleared
         """
-        self.subject_flags.update(added)
-        self.subject_flags.difference_update(removed)
+        self._subject_flags |= added
+        self._subject_flags &= ~removed
 
     @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='', out_signature='sa{sv}')
     def GetSubject(self):
@@ -929,7 +917,7 @@ class ChannelInterfaceSubject(dbus.service.Interface):
         Possible Errors:
         Disconnected, NetworkError, NotAvailable
         """
-        return self.subject, self.subject_info
+        return self._subject, self._subject_info
 
     @dbus.service.method(CHANNEL_INTERFACE_SUBJECT, in_signature='s', out_signature='')
     def SetSubject(self, subject):
@@ -955,8 +943,8 @@ class ChannelInterfaceSubject(dbus.service.Interface):
         subject - the new subject string
         info - a dictionary containing named information mapped to boxed values
         """
-        self.subject = subject
-        self.subject_info = info
+        self._subject = subject
+        self._subject_info = info
 
 
 class ChannelInterfaceTransfer(dbus.service.Interface):
@@ -967,17 +955,17 @@ class ChannelInterfaceTransfer(dbus.service.Interface):
     def __init__(self):
         self._interfaces.add(CHANNEL_INTERFACE_TRANSFER)
 
-    @dbus.service.method(CHANNEL_INTERFACE_TRANSFER, in_signature='ss', out_signature='')
+    @dbus.service.method(CHANNEL_INTERFACE_TRANSFER, in_signature='uu', out_signature='')
     def Transfer(self, member, destination):
         """
         Request that the given channel member instead connects to a different
         contact ID.
 
         Parameters:
-        member - the member to transfer
-        destination - the destination contact ID
+        member - the handle of the member to transfer
+        destination - the handle of the destination contact
 
         Possible Errors:
-        Disconnected, NetworkError, NotAvailable, UnknownContact, PermissionDenied
+        Disconnected, NetworkError, NotAvailable, InvalidHandle, PermissionDenied
         """
         pass

@@ -1,16 +1,10 @@
 Specification Todo
 ------------------
 
-clarify:
-make enum strings into numbers where appropriate
-
 ponder:
 sending messages when adding people to your contact list?
-handling conference server for jabber chats
-number of people in rooms when listing
+specifying the conference server for listing jabber chats
 destination for JUD searches
-handling moderated/invite only channels?
-how do you map people in chats to real identifiers if they're different?
 should privacy modes be discoverable/settable offline?
 how do you specify the server and your nickname when joining a chat?
 
