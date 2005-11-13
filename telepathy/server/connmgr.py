@@ -21,10 +21,10 @@ class ConnectionManager(dbus.service.Object):
 
     It is not required that a connection manager be able to support multiple
     protocols, or even multiple connections. When a connection is made, a
-    service name where the connection object can be found is returned. The
-    connection manager may then remove itself from its well-known bus name,
-    causing a new connection manager to be activated when somebody attempts to
-    make a new connection.
+    service name where the connection object can be found is returned. A
+    manager which can only make one connection may then remove itself from its
+    well-known bus name, causing a new connection manager to be activated when
+    somebody attempts to make a new connection.
     """
     def __init__(self, name):
         """
@@ -47,7 +47,7 @@ class ConnectionManager(dbus.service.Object):
         signal.
         """
         self._connections.add(conn)
-        self.NewConnection(conn._name.get_name(), conn._object_path, conn._proto, conn._account)
+        self.NewConnection(conn._name.get_name(), conn._object_path, conn._proto)
 
     def disconnected(self, conn):
         """
@@ -84,10 +84,10 @@ class ConnectionManager(dbus.service.Object):
         return self._protos.keys()
 
     @dbus.service.method(CONN_MGR_INTERFACE, in_signature='s', out_signature='a{ss}')
-    def GetProtocolParameters(self, proto):
+    def GetMandatoryParameters(self, proto):
         """
-        Get a list of the parameter names and types which are understood
-        by the connection manager for a given protocol.
+        Get a list of the parameter names and types which must be provided to
+        the Connect method when connecting to the given protocol.
 
         Parameters:
         proto - the protocol identifier
@@ -99,27 +99,96 @@ class ConnectionManager(dbus.service.Object):
         NotImplemented (the requested protocol is not supported by this manager)
         """
         if proto in self._protos:
-            if getattr(self._protos[proto], '_protocol_parameters', None):
-                return self._protos[proto]._protocol_parameters
+            if getattr(self._protos[proto], '_mandatory_parameters', None):
+                return self._protos[proto]._mandatory_parameters
             else:
                 return {}
         else:
             raise telepathy.NotImplemented('unknown protocol %s' % proto)
 
-    @dbus.service.method(CONN_MGR_INTERFACE, in_signature='ssa{sv}', out_signature='so')
-    def Connect(self, proto, account, parameters):
+    @dbus.service.method(CONN_MGR_INTERFACE, in_signature='s', out_signature='a{ss}')
+    def GetOptionalParameters(self, proto):
+        """
+        Get a list of the parameter names and types which may be provided to
+        the Connect method when connecting to the given protocol.
+
+        Parameters:
+        proto - the protocol identifier
+
+        Returns:
+        an dictionary mapping parameter identifiers to type signatures
+
+        Potential Errors:
+        NotImplemented (the requested protocol is not supported by this manager)
+        """
+        if proto in self._protos:
+            if getattr(self._protos[proto], '_optional_parameters', None):
+                return self._protos[proto]._optional_parameters
+            else:
+                return {}
+        else:
+            raise telepathy.NotImplemented('unknown protocol %s' % proto)
+
+    @dbus.service.method(CONN_MGR_INTERFACE, in_signature='s', out_signature='a{sv}')
+    def GetParameterDefaults(self, proto):
+        """
+        Discover the default values for the parameters returned by the
+        GetMandatoryParameters and GetOptionalParameters methods.  These
+        defaults should be presented to the user, but only stored and provided
+        to the Connect method if the user has modified them, so that the
+        default values may be changed in future.  This method returns the
+        default values for both mandatory and optional parameters.
+
+        Parameters:
+        proto - the protocol identifier
+
+        Returns:
+        an dictionary mapping parameter identifiers to variant boxed default values
+
+        Potential Errors:
+        NotImplemented (the requested protocol is not supported by this manager)
+        """
+        if proto in self._protos:
+            if getattr(self._protos[proto], '_parameter_defaults', None):
+                return self._protos[proto]._parameter_defaults
+            else:
+                return {}
+        else:
+            raise telepathy.NotImplemented('unknown protocol %s' % proto)
+
+     @dbus.service.method(CONN_MGR_INTERFACE, in_signature='ssa{sv}', out_signature='so')
+    def Connect(self, proto, parameters):
         """
         Connect to a given account on a given protocol with the given
-        parameters. The method returns the bus name and the object path
-        where the new Connection object can be found, which should
-        have the status of CONNECTION_STATUS_CONNECTING.
+        parameters. The method returns the bus name and the object path where
+        the new Connection object can be found, which should have the status of
+        CONNECTION_STATUS_CONNECTING.
 
-        The parameters accepted by a protocol are specified
-        in a file shipped by the connection manager, and can be retrieved
-        at run-time with the GetProtocolParameters method. The client
-        must have prior knowledge of the meaning of these parameters,
-        so the following well-known names and types should be used where
-        relevant:
+        In order to allow Connection objects to be discovered by new clients,
+        the bus name and object path must be of the form:
+         /org/freedesktop/Telepathy/Connection/manager/proto/account
+        And:
+         org.freedesktop.Telepathy.Connection.manager.proto.account
+        Where manager and proto are the identifiers for this manager and this
+        protocol, and account is a series of elements formed such that any
+        valid distinct connection instance on this protocol has a distinct
+        name. This might be formed by including the server name followed by the
+        user name, or on protocols where connecting multiple times is
+        permissable, a per-connection identifier is also necessary to ensure
+        uniqueness.
+
+        The parameters which must and may be provided in the parameters
+        dictionary can be discovered with the GetMandatoryParameters and
+        GetOptionalParameters methods respectively. These parameters, their
+        types, and their default values as returned by GetParameterDefaults may
+        be cached in in files so that all available connection managers do not
+        need to be started to discover which protocols are available.
+
+        To request values for these parameters from the user, a client must
+        have prior knowledge of the meaning of the parameter names, so the
+        following well-known names and types should be used where appropriate:
+
+        s:account - the identifier for the user's account on the server.
 
         s:server - a fully qualified domain name or numeric IPv4 or IPv6
         address. Using the fully-qualified domain name form is recommended
@@ -131,35 +200,34 @@ class ConnectionManager(dbus.service.Object):
         and the account for that protocol also specifies a port, this
         parameter should override that in the account.
 
-        s:password - A password associated with the account.
+        s:password - a password associated with the account.
 
-        s:proxy-server - A URI for a proxy server to use for this connection.
+        s:proxy-server - a URI for a proxy server to use for this connection.
 
-        b:require-encryption - Require encryption for this connection. A
+        b:require-encryption - require encryption for this connection. A
         connection should fail to connect if require-encryption is set
         and an encrypted connection is not possible.
 
-        b:register - This account should be created on the server if it
+        b:register - this account should be created on the server if it
         does not already exist.
 
-        s:ident - The local username to report to the server if
+        s:ident - the local username to report to the server if
         necessary, such as in IRC.
 
-        s:fullname - The user's full name if the service requires this
+        s:fullname - the user's full name if the service requires this
         when authenticating or registering.
 
-        s:authentication-realm - A string identifier for your authentication
+        s:authentication-realm - a string identifier for your authentication
         realm, if necessary.
 
-        s:authentication-username - A username to use for authentication, if 
+        s:authentication-username - a username to use for authentication, if 
         necessary.
 
-        s:authentication-type - A string representation of authentication type,
+        s:authentication-type - a string representation of authentication type,
         such as 'Digest'.
 
         Parameters:
         proto - the protocol identifier
-        account - the user's account on this protocol
         parameters - a dictionary mapping parameter name to the variant boxed value
 
         Returns:
@@ -170,14 +238,14 @@ class ConnectionManager(dbus.service.Object):
         NetworkError, NotImplemented (unknown protocol), InvalidArgument (unrecognised connection parameters)
         """
         if proto in self._protos:
-            conn = self._protos[proto](self, account, parameters)
+            conn = self._protos[proto](self, parameters)
             self.connected(conn)
             return (conn._name.get_name(), conn._object_path)
         else:
             raise telepathy.NotImplemented('unknown protocol %s' % proto)
 
     @dbus.service.signal(CONN_MGR_INTERFACE, signature='soss')
-    def NewConnection(self, bus_name, object_path, proto, account):
+    def NewConnection(self, bus_name, object_path, proto):
         """
         Emitted when a new Connection object is created.
 
@@ -185,6 +253,5 @@ class ConnectionManager(dbus.service.Object):
         bus_name - the D-Bus service where the connection object can be found
         object_path - the object path of the Connection object on this service
         proto - the identifier for the protocol this connection uses
-        account - the identifier for the user's account on this protocol
         """
         pass
