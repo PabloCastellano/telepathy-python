@@ -800,7 +800,7 @@ class ChannelInterfacePassword(dbus.service.Interface):
 
         Parameters:
         added - a logical OR of the flags which have been set
-        removed - a logical OR the flags which have been cleared
+        removed - a logical OR of the flags which have been cleared
         """
         self._password_flags |= added
         self._password_flags &= ~removed
