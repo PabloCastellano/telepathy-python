@@ -164,7 +164,7 @@ if __name__ == '__main__':
         if name in cmdline_params:
             params[name] = dbus.Variant(cmdline_params[name],type)    
         elif name == 'password':
-            params[name] == dbus.Variant(getpass.getpass(),type)
+            params[name] = dbus.Variant(getpass.getpass(),type)
         else:
             params[name] = dbus.Variant(raw_input(name+': '),type)
             
