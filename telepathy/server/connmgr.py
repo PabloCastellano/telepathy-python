@@ -156,7 +156,7 @@ class ConnectionManager(dbus.service.Object):
         else:
             raise telepathy.NotImplemented('unknown protocol %s' % proto)
 
-     @dbus.service.method(CONN_MGR_INTERFACE, in_signature='ssa{sv}', out_signature='so')
+    @dbus.service.method(CONN_MGR_INTERFACE, in_signature='sa{sv}', out_signature='so')
     def Connect(self, proto, parameters):
         """
         Connect to a given account on a given protocol with the given
@@ -244,7 +244,7 @@ class ConnectionManager(dbus.service.Object):
         else:
             raise telepathy.NotImplemented('unknown protocol %s' % proto)
 
-    @dbus.service.signal(CONN_MGR_INTERFACE, signature='soss')
+    @dbus.service.signal(CONN_MGR_INTERFACE, signature='sos')
     def NewConnection(self, bus_name, object_path, proto):
         """
         Emitted when a new Connection object is created.
