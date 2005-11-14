@@ -240,7 +240,7 @@ class Connection(dbus.service.Object):
         Get the current status as defined in the StatusChanged signal.
 
         Returns:
-        a string representing the current status
+        an integer representing the current status
         """
         return self._status
 
@@ -251,8 +251,8 @@ class Connection(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(CONN_INTERFACE, signature='soub')
-    def NewChannel(self, type, object_path, handle, supress_handler):
+    @dbus.service.signal(CONN_INTERFACE, signature='osub')
+    def NewChannel(self, object_path, type, handle, supress_handler):
         """
         Emitted when a new Channel object is created, either through user
         request or incoming information from the service. The supress_handler
@@ -260,27 +260,27 @@ class Connection(dbus.service.Object):
         or is an incoming communication and needs to have a handler launched.
 
         Parameters:
-        type - a D-Bus interface name representing the channel type
         object_path - a D-Bus object path for the channel object on this service
+        type - a D-Bus interface name representing the channel type
         handle - a handle indicating the contact, room or list this channel communicates with, or zero
         supress_handler - a boolean indicating that the channel was requested by a client that intends to display it to the user, so no handler needs to be launched
         """
         pass
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='a(so)')
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='a(osu)')
     def ListChannels(self):
         """
         List all the channels which currently exist on this connection.
 
         Returns:
         an array of structs containing:
-            a D-Bus interface name representing the channel type
             a D-Bus object path for the channel object on this service
+            a D-Bus interface name representing the channel type
             an integer handle representing the contact, room or list this channel communicates with, or zero
         """
         ret = []
         for channel in self._channels:
-            chan = (channel._type, channel._object_path, channel._handle)
+            chan = (channel._object_path, channel._type, channel._handle)
             ret.append(chan)
         return ret
 
