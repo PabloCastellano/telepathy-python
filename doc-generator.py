@@ -90,7 +90,10 @@ else:
 #    print '</div>'
 
     (major, minor, patch) = doc['version']
-    print '<h3>Version %d.%d</h3>' % (major,minor)
+    if patch:
+        print '<h3>Version %d.%d.%d</h3>' % (major,minor,patch)
+    else:
+        print '<h3>Version %d.%d</h3>' % (major,minor)
 
     print '<pre>%s</pre>' % doc['top']
 
