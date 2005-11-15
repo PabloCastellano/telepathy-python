@@ -1,0 +1,9 @@
+[ConnectionManager]
+Name = swiss
+BusName = org.freedesktop.Telepathy.ConnectionManager.swiss
+ObjectPath = /org/freedesktop/Telepathy/ConnectionManager/swiss
+
+[Proto jabber]
+MandatoryParams = s:account, s:password
+OptionalParams  = s:server, q:port
+default-port = 5222

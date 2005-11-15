@@ -307,7 +307,7 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
 
 class JabberConnectionManager(telepathy.server.ConnectionManager):
     def __init__(self):
-        telepathy.server.ConnectionManager.__init__(self, 'brie')
+        telepathy.server.ConnectionManager.__init__(self, 'swiss')
         self._protos['jabber'] = JabberConnection
 
     def quit(self):
