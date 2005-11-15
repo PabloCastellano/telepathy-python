@@ -300,16 +300,17 @@ class ChannelTypeStreamedMedia(Channel):
         local - a string of SDP describing the local media parameters
         remote - a string of SDP describing the remote media parameters
         """
-        self._media_parameters[member] = (local, remote)
+        handle = self._conn._handles[member]
+        self._media_parameters[handle] = (local, remote)
 
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='u', out_signature='s')
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='u', out_signature='ss')
     def GetMediaParameters(self, member):
         """
         Retrieve the last received media parameters for a given member
         of this channel.
 
         Parameters:
-        contact - an integer handle of the channel member to retrieve the parameters for
+        member - an integer handle of the channel member to retrieve the parameters for
 
         Returns:
         a string of SDP containing the local media parameters
@@ -318,17 +319,20 @@ class ChannelTypeStreamedMedia(Channel):
         Possible Errors:
         Disconnected, InvalidHandle, NotAvailable (if the contact has sent nothing to us on this channel)
         """
+        self._conn.check_handle(member)
+        handle = self._conn._handles[member]
+
         if CHANNEL_INTERFACE_GROUP in self._interfaces:
-            if (contact not in self.local_pending and
-                contact not in self.remote_pending and
-                contact not in self._members):
+            if (handle not in self._local_pending and
+                handle not in self._remote_pending and
+                handle not in self._members):
                 raise telepathy.InvalidHandle
         else:
-            if contact not in self._members:
+            if handle not in self._members:
                 raise telepathy.InvalidHandle
 
-        if contact in self._media_parameters:
-            return self._media_parameters[contact]
+        if handle in self._media_parameters:
+            return self._media_parameters[handle]
         else:
             raise telepathy.NotAvailable
 
