@@ -11,15 +11,15 @@ import signal
 import sys
 
 from telepathy import *
+
 import telepathy.client
 
 class Channel(object):
     def __init__(self, conn, obj_path):
-        self.bus = conn.bus
         self.conn = conn
-        self.mainloop = conn.mainloop
 
-        self.chan_obj = self.bus.get_object(self.conn.serv_name, obj_path)
+        bus = dbus.Bus()
+        self.chan_obj = bus.get_object(self.conn._service_name, obj_path)
         self.chan = dbus.Interface(self.chan_obj, CHANNEL_INTERFACE)
 
 class ListChannel(Channel):
@@ -57,9 +57,32 @@ class TextChannel(Channel):
             print "Acknowledging...", id
             self.text.AcknowledgePendingMessage(id)
 
-class Connection:
-    def channel_callback(self, obj_path, type, handle, supress_handler):
-        if self.channels.has_key(obj_path):
+class TestConnection(telepathy.client.Connection):
+    def __init__(self, service_name, object_path, mainloop):
+        telepathy.client.Connection.__init__(self, service_name, object_path)
+
+        self._mainloop = mainloop
+        self._service_name = service_name
+
+        self._status = CONNECTION_STATUS_CONNECTING
+        self._channels = {}
+
+        self[CONN_INTERFACE].connect_to_signal('StatusChanged', self.status_changed_signal_cb)
+        self[CONN_INTERFACE].connect_to_signal('NewChannel', self.new_channel_signal_cb)
+
+        # handle race condition when connecting completes
+        # before the signal handlers are registered
+        self[CONN_INTERFACE].GetStatus(reply_handler=self.get_status_reply_cb, error_handler=self.error_cb)
+
+    def error_cb(self, exception):
+        print "Exception received from asynchronous method call:"
+        print exception
+
+    def get_status_reply_cb(self, status):
+        self.status_changed_signal_cb(status, CONNECTION_STATUS_REASON_NONE_SPECIFIED)
+
+    def new_channel_signal_cb(self, obj_path, type, handle, supress_handler):
+        if obj_path in self._channels:
             return
 
         print 'NewChannel', obj_path, type, handle, supress_handler
@@ -72,55 +95,32 @@ class Connection:
             channel = ListChannel(self, obj_path)
 
         if channel != None:
-            self.channels[obj_path] = channel
+            self._channels[obj_path] = channel
         else:
             print 'Unknown channel type', type
 
-    def connected_callback(self):
-        handle = self.conn.RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
-        self.conn.RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
+    def connected_cb(self):
+        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
+        self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
+        print self[CONN_INTERFACE_PRESENCE].GetStatuses()
         return False
 
-    def status_callback(self, status, reason):
-        if self.status == status:
+    def get_interfaces_reply_cb(self, interfaces):
+        self.get_valid_interfaces().update(interfaces)
+        gobject.idle_add(self.connected_cb)
+
+    def status_changed_signal_cb(self, status, reason):
+        if self._status == status:
             return
         else:
-            self.status = status
+            self._status = status
 
         print 'StatusChanged', status, reason
 
         if status == CONNECTION_STATUS_CONNECTED:
-            gobject.idle_add(self.connected_callback)
+            self[CONN_INTERFACE].GetInterfaces(reply_handler=self.get_interfaces_reply_cb, error_handler=self.error_cb)
         if status == CONNECTION_STATUS_DISCONNECTED:
             self.mainloop.quit()
-
-    def __init__(self, mainloop, mgr_bus_name, mgr_object_path, proto, conn_opts):
-        self.bus = dbus.SessionBus()
-        self.mainloop = mainloop
-
-        mgr_obj = self.bus.get_object(mgr_bus_name, mgr_object_path)
-        mgr = dbus.Interface(mgr_obj, CONN_MGR_INTERFACE)
-        self.serv_name, obj_path = mgr.Connect(proto, conn_opts)
-
-        self.conn_obj = self.bus.get_object(self.serv_name, obj_path)
-        self.conn = dbus.Interface(self.conn_obj, CONN_INTERFACE)
-
-        self.status = CONNECTION_STATUS_CONNECTING
-        self.conn.connect_to_signal('StatusChanged', self.status_callback)
-
-        # handle race condition when connecting completes before the
-        # status changed signal handler is registered
-        self.status_callback(self.conn.GetStatus(), CONNECTION_STATUS_REASON_NONE_SPECIFIED)
-
-        self.channels = {}
-        self.conn.connect_to_signal('NewChannel', self.channel_callback)
-
-        # handle race condition when a channel arrives before the new
-        # channel signature 
-        channels = self.conn.ListChannels()
-        for channel in channels:
-            (type, obj_path) = channel
-            self.channel_callback(type, obj_path, True)
 
 if __name__ == '__main__':
     reg = telepathy.client.ManagerRegistry()
@@ -166,8 +166,11 @@ if __name__ == '__main__':
         else:
             params[name] = dbus.Variant(raw_input(name+': '),type)
 
+    mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
+    bus_name, object_path = mgr[CONN_MGR_INTERFACE].Connect(protocol, params)
+
     mainloop = gobject.MainLoop()
-    connection = Connection(mainloop, mgr_bus_name, mgr_object_path, protocol, params)
+    connection = TestConnection(bus_name, object_path, mainloop)
 
     def quit_cb():
         connection.conn.Disconnect()
