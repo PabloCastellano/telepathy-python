@@ -1,20 +1,34 @@
-You need the latest D-Bus python bindings from:
- http://projects.collabora.co.uk/darcs/telepathy/dbus
-These include a large number of new features and bug fixes which will be
-heading in to CVS HEAD soon.
+D-Bus Version
+-------------
+Currently you need D-Bus from CVS HEAD, for new features and bug fixes to the
+Python bindings. These patches should be included in version 0.51, and
+snapshots and .debs for Ubuntu Breezy are available here:
+ http://telepathy.freedesktop.org/dbus
 
-server/connmgr.py implements base classes for all of the d-bus interfaces in
-Telepathy. Most methods abstract and they are intended to be used as mixins for
-the concrete implementations, but some perform housekeeping for you and
-maintain structures with some of the state necessary to answer Get* calls.
+Specification
+-------------
+Type 'make' in the doc/ directory to generate a spec.html with the latest
+version of the D-Bus interface specification, from the base classes in
+telepathy/.
 
-cheddar.py is the embryonic XMPP connection manager implementation, which
-should soon implement a fair amount of the spec, but is currently broken.
+Server Base Classes
+-------------------
+telepathy/server/ implements base classes and mixins for implementing all of
+the D-Bus interfaces in Telepathy. Many methods are abstract and they are
+intended to be overridden in mixins for the concrete implementations, but some
+perform housekeeping for you and maintain structures with some of the state
+necessary to answer Get* calls. The API for implementing managers needs some
+fixing really.
 
-The client lib in client/ isn't factored into a library yet, and needs to
-access files such as cheddar.manager which must be in /usr/share/telepathy or
-~/.telepathy in order to discover the connection managers which will be
-activated with D-Bus service activation.
+Swiss
+-----
+swiss.py is the pyxmpp-based connection manager. Currently, you should copy
+swiss.manager into ~/.telepathy/ so the client can discover it, but it needs to
+be executed manually.
 
-To generate documentation for D-Bus interfaces, run:
- ./doc-generator.py telepathy.server order > spec.html
+Client Library
+--------------
+The client lib in telepathy/client/ isn't quite factored into a library yet,
+but test-client.py can read .manager files in ~/.telepathy/ and prompt you
+for the parameters for connecting. Beyond that, the code needs to be
+manually fiddled depending on what you're trying to do.

@@ -10,9 +10,8 @@ import gobject
 import signal
 import sys
 
-from managerregistry import *
-
 from telepathy import *
+import telepathy.client
 
 class Channel(object):
     def __init__(self, conn, obj_path):
@@ -124,7 +123,7 @@ class Connection:
             self.channel_callback(type, obj_path, True)
 
 if __name__ == '__main__':
-    reg = ManagerRegistry()
+    reg = telepathy.client.ManagerRegistry()
     reg.LoadManagers()
 
     protocol=''
