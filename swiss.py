@@ -34,7 +34,6 @@ class JabberIMChannel(telepathy.server.ChannelTypeText):
         telepathy.server.ChannelTypeText.__init__(self, conn)
 
         self._jid = recipient.get_jid()
-        self._self_handle = conn._self_handle
         self._members.add(conn._self_handle)
         self._members.add(recipient)
         self._recv_id = 0

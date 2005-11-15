@@ -45,7 +45,6 @@ class Channel(dbus.service.Object):
         self._type = type
         self._interfaces = set()
         self._members = set()
-        self._self_handle = 0
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
@@ -104,7 +103,11 @@ class Channel(dbus.service.Object):
         Possible Errors:
         Disconnected, NetworkError
         """
-        return self._self_handle
+        self_handle = self._conn.GetSelfHandle()
+        if self_handle in self._members:
+            return self_handle
+        else:
+            return 0
 
 
 class ChannelTypeContactSearch(Channel):
