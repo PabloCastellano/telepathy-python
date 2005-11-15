@@ -742,6 +742,9 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         emitted. As with ClearStatus, removing a status may actually result in
         it being replaced by a default available status.
 
+        Parameters:
+        status - the string identifier of the status not to publish anymore for the user
+
         Possible Errors:
         Disconnected, NetworkError, PermissionDenied
         """

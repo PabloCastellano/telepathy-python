@@ -98,7 +98,7 @@ class Channel(dbus.service.Object):
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='u')
     def GetSelfHandle(self):
         """
-        Return the handle for the user on this channel if they are a
+        Returns the handle for the user on this channel if they are a
         member, and 0 if not.
 
         Possible Errors:
@@ -288,7 +288,7 @@ class ChannelTypeStreamedMedia(Channel):
     @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uss')
     def ReceivedMediaParameters(self, member, local, remote):
         """
-        Signals that an message has been received from a member of this
+        Signals that a message has been received from a member of this
         channel containing the negotiated local and remote media parameters
         to use for the streams with this member.
 
@@ -630,7 +630,6 @@ class ChannelInterfaceGroup(dbus.service.Interface):
 
         Returns:
         an integer of flags or'd together
-        an array of strings of flags
 
         Possible Errors:
         Disconnected, NetworkError
@@ -747,7 +746,12 @@ class ChannelInterfaceNamed(dbus.service.Interface):
 
     @dbus.service.method(CHANNEL_INTERFACE_NAMED, in_signature='', out_signature='u')
     def GetHandle(self):
-        """ Get the handle representing the immutable name of this channel. """
+        """
+        Get the handle representing the immutable name of this channel.
+
+        Returns:
+        an integer representing the name of this channel
+        """
         return self._handle
 
 
