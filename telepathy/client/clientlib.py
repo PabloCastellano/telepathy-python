@@ -53,17 +53,17 @@ class TextChannel(Channel):
                 return
 
         print "Received", id, timestamp, sender, type, message
-        self.text.Send('normal', 'got message ' + str(id) + '(' + message + ')')
+        self.text.Send(CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, 'got message ' + str(id) + '(' + message + ')')
         if self.doack:
             print "Acknowledging...", id
             self.text.AcknowledgePendingMessage(id)
 
 class Connection:
-    def channel_callback(self, type, obj_path, requested):
+    def channel_callback(self, obj_path, type, handle, supress_handler):
         if self.channels.has_key(obj_path):
             return
 
-        print 'NewChannel', type, obj_path, requested
+        print 'NewChannel', obj_path, type, handle, supress_handler
 
         channel = None
 
@@ -77,36 +77,41 @@ class Connection:
         else:
             print 'Unknown channel type', type
 
+    def connected_callback(self):
+        handle = self.conn.RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
+        self.conn.RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
+        return False
+
     def status_callback(self, status, reason):
         if self.status == status:
             return
         else:
             self.status = status
 
-        #if status == 'connected':
-            #obj_path = self.conn.RequestChannel(CHANNEL_TYPE_TEXT, {'recipient':'test2@localhost'})
-        if status == 'disconnected':
+        print 'StatusChanged', status, reason
+
+        if status == CONNECTION_STATUS_CONNECTED:
+            gobject.idle_add(self.connected_callback)
+        if status == CONNECTION_STATUS_DISCONNECTED:
             self.mainloop.quit()
 
-        print 'StatusChanged', status
-
-    def __init__(self, mainloop, mgr_bus_name, mgr_object_path, proto, account, conn_opts):
+    def __init__(self, mainloop, mgr_bus_name, mgr_object_path, proto, conn_opts):
         self.bus = dbus.SessionBus()
         self.mainloop = mainloop
 
         mgr_obj = self.bus.get_object(mgr_bus_name, mgr_object_path)
         mgr = dbus.Interface(mgr_obj, CONN_MGR_INTERFACE)
-        self.serv_name, obj_path = mgr.Connect(proto, account, conn_opts)
+        self.serv_name, obj_path = mgr.Connect(proto, conn_opts)
 
         self.conn_obj = self.bus.get_object(self.serv_name, obj_path)
         self.conn = dbus.Interface(self.conn_obj, CONN_INTERFACE)
 
-        self.status = 'connecting'
+        self.status = CONNECTION_STATUS_CONNECTING
         self.conn.connect_to_signal('StatusChanged', self.status_callback)
 
         # handle race condition when connecting completes before the
         # status changed signal handler is registered
-        self.status_callback(self.conn.GetStatus(), 'request')
+        self.status_callback(self.conn.GetStatus(), CONNECTION_STATUS_REASON_NONE_SPECIFIED)
 
         self.channels = {}
         self.conn.connect_to_signal('NewChannel', self.channel_callback)
@@ -151,25 +156,19 @@ if __name__ == '__main__':
     mgr_bus_name = reg.GetBusName(manager)
     mgr_object_path = reg.GetObjectPath(manager)
 
-     
-    if len(sys.argv) > 3:
-        account = sys.argv[3]
-    else:
-        account = raw_input('Account: ')
-
-    cmdline_params = dict((p.split('=') for p in sys.argv[4:]))
+    cmdline_params = dict((p.split('=') for p in sys.argv[3:]))
     params={}
 
     for (name, (type, default)) in reg.GetParams(manager, protocol)[0].iteritems():
         if name in cmdline_params:
-            params[name] = dbus.Variant(cmdline_params[name],type)    
+            params[name] = dbus.Variant(cmdline_params[name],type)
         elif name == 'password':
             params[name] = dbus.Variant(getpass.getpass(),type)
         else:
             params[name] = dbus.Variant(raw_input(name+': '),type)
-            
+
     mainloop = gobject.MainLoop()
-    connection = Connection(mainloop, mgr_bus_name, mgr_object_path, protocol, account, params)
+    connection = Connection(mainloop, mgr_bus_name, mgr_object_path, protocol, params)
 
     def quit_cb():
         connection.conn.Disconnect()
