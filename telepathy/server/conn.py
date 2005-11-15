@@ -704,7 +704,7 @@ class ConnectionInterfacePresence(dbus.service.Interface):
     As well as these well-known status identifiers, every status also has a
     numerical type value which can be used by the client to classify even
     unknown statuses into different fundamental types:
-    1 - CONNECTION_PRESENCE_TYPE_ONLINE
+    1 - CONNECTION_PRESENCE_TYPE_OFFLINE
     2 - CONNECTION_PRESENCE_TYPE_AVAILABLE
     3 - CONNECTION_PRESENCE_TYPE_AWAY
     4 - CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY
