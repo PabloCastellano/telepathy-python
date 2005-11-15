@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import dbus.service
+import weakref
 
 from telepathy import *
+from handle import Handle
 
 class Connection(dbus.service.Object):
     """
@@ -37,7 +39,7 @@ class Connection(dbus.service.Object):
     with HoldHandle, and notify that they are no longer storing a handle with
     ReleaseHandle.
     """
-    def __init__(self, proto, account, name_parts):
+    def __init__(self, proto, name_parts):
         """
         Parameters:
         proto - the name of the protcol this conection should be handling.
@@ -49,24 +51,97 @@ class Connection(dbus.service.Object):
         object_path = '/org/freedesktop/Telepathy/Connection/' + '/'.join(name_parts)
         dbus.service.Object.__init__(self, bus_name, object_path)
 
+        # monitor clients dying so we can release handles
+        self._bus.add_signal_receiver(self.name_owner_changed_callback,
+                                      'NameOwnerChanged',
+                                      'org.freedesktop.DBus',
+                                      'org.freedesktop.DBus',
+                                      '/org/freedesktop/DBus')
+
         self._proto = proto
-        self._account = account
 
         self._status = CONNECTION_STATUS_CONNECTING
         self._interfaces = set()
+
+        self._handles = weakref.WeakValueDictionary()
+        self._next_handle_id = 1
+        self._client_handles = {}
+
         self._channels = set()
-        self._handles = {}
         self._next_channel_id = 0
+
+    def check_parameters(self, parameters):
+        """
+        Uses the values of self._mandatory_parameters and
+        self._optional_parameters to validate and type check all of the
+        provided parameters, and check all mandatory parameters are present.
+        """
+        for (parm, value) in parameters.iteritems():
+            if parm in self._mandatory_parameters.keys():
+                sig = self._mandatory_parameters[parm]
+            elif parm in self._optional_parameters.keys():
+                sig = self._optional_parameters[parm]
+            else:
+                raise InvalidArgument('unknown parameter name %s' % parm)
+
+            if sig == 's':
+                if not isinstance(value, unicode):
+                    raise InvalidArgument('incorrect type to %s parameter, got %s, expected a string' % (parm, type(value)))
+            elif sig == 'q':
+                if not isinstance(value, int):
+                    raise InvalidArgument('incorrect type to %s parameter, got %s, expected an int' % (parm, type(value)))
+            else:
+                raise TypeError('unknown type signature %s in protocol parameters' % type)
+
+        missing = set(self._mandatory_parameters.keys()).difference(parameters.keys())
+        if missing:
+            raise InvalidArgument('required parameters %s not given' % missing)
+
+    def check_connected(self):
+        if self._status != CONNECTION_STATUS_CONNECTED:
+            raise Disconnected('method cannot be called unless status is CONNECTION_STATUS_CONNECTED')
+
+    def check_handle(self, handle):
+        if handle not in self._handles:
+            raise InvalidHandle('handle number %s not valid' % handle)
+
+    def check_handle_type(self, type):
+        if (type < CONNECTION_HANDLE_TYPE_CONTACT or
+            type > CONNECTION_HANDLE_TYPE_LIST):
+            raise NotAvailable('handle type %s not known' % type)
+
+    def get_handle_id(self):
+        id = self._next_handle_id
+        self._next_handle_id += 1
+        return id
+
+    def add_handle(self, id, handle, sender):
+        self._handles[id] = handle
+
+        if sender in self._client_handles:
+            self._client_handles[sender].add(handle)
+        else:
+            self._client_handles[sender] = set([handle])
+
+    def name_owner_changed_callback(self, name, old_owner, new_owner):
+        # when name and old_owner are the same, and new_owner is
+        # blank, it is the client itself releasing its name... aka exiting
+        if (name == old_owner and new_owner == "" and name in self._client_handles):
+            print "deleting handles for", name
+            del self._client_handles[name]
+
+    def set_self_handle(self, handle):
+        self._self_handle = handle
 
     def get_channel_path(self):
         ret = '%s/channel%d' % (self._object_path, self._next_channel_id)
         self._next_channel_id += 1
         return ret
 
-    def add_channel(self, channel, requested):
+    def add_channel(self, channel, handle, supress_handler):
         """ add a new channel and signal its creation""" 
         self._channels.add(channel)
-        self.NewChannel(channel._type, channel._object_path, requested)
+        self.NewChannel(channel._object_path, channel._type, handle.get_id(), supress_handler)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
@@ -81,6 +156,7 @@ class Connection(dbus.service.Object):
         Potential Errors:
         Disconnected
         """
+        self.check_connected()
         return self._interfaces
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
@@ -93,8 +169,31 @@ class Connection(dbus.service.Object):
         """
         return self._proto
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='us', out_signature='u')
-    def RequestHandle(self, type, name):
+    @dbus.service.method(CONN_INTERFACE, in_signature='u', out_signature='us')
+    def InspectHandle(self, handle):
+        """
+        For a given handle representing a contact, room or list entity on
+        this connection, return the type and a string representation of
+        the entity name.
+
+        Parameters:
+        handle - an integer handle number
+
+        Returns:
+        an integer handle type (see RequestHandle)
+        a string entity name
+
+        Potential Errors:
+        Disconnected, InvalidHandle (the given handle is not valid on this
+        connection)
+        """
+        self.check_connected()
+        self.check_handle(handle)
+        hand = self._handles[handle]
+        return (hand.get_type(), hand.get_name())
+
+    @dbus.service.method(CONN_INTERFACE, in_signature='us', out_signature='u', sender_keyword='sender')
+    def RequestHandle(self, handle_type, name, sender):
         """
         Request a handle from the connection manager which represents a
         contact, room or server-stored list on the service. The connection
@@ -120,30 +219,17 @@ class Connection(dbus.service.Object):
         Potential Errors:
         Disconnected, NotAvailable (the given type is not valid), InvalidArgument (the given name is not a valid entity of the given type)
         """
-        pass
+        self.check_connected()
+        self.check_handle_type(handle_type)
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='u', out_signature='us')
-    def InspectHandle(self, handle):
-        """
-        For a given handle representing a contact, room or list entity on
-        this connection, return the type and a string representation of
-        the entity name.
+        id = self.get_handle_id()
+        handle = Handle(id, handle_type, name)
+        self.add_handle(id, handle, sender)
 
-        Parameters:
-        handle - an integer handle number
+        return id
 
-        Returns:
-        an integer handle type (see RequestHandle)
-        a string entity name
-
-        Potential Errors:
-        Disconnected, InvalidArgument (the given handle is not valid on this
-        connection)
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE, in_signature='u', out_signature='')
-    def HoldHandle(self, handle):
+    @dbus.service.method(CONN_INTERFACE, in_signature='u', out_signature='', sender_keyword='sender')
+    def HoldHandle(self, handle, sender):
         """
         Notify the connection manger that your client is holding a copy
         of a handle which may not be in use in any existing channel or
@@ -160,7 +246,11 @@ class Connection(dbus.service.Object):
         Potential Errors:
         Disconnected, InvalidArgument (the given handle is not valid)
         """
-        pass
+        self.check_connected()
+        self.check_handle(handle)
+
+        hand = self._handles[handle]
+        self.add_handle(handle, hand, sender)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='u', out_signature='')
     def ReleaseHandle(self, handle):
@@ -174,9 +264,19 @@ class Connection(dbus.service.Object):
         handle - an integer handle to hold
 
         Potential Errors:
-        Disconnected, InvalidArgument (the given handle is not valid)
-         """
-        pass
+        Disconnected, InvalidHandle (the given handle is not valid), InvalidArgument (the given handle is not held by this client)
+        """
+        self.check_connected()
+        self.check_handle(handle)
+
+        hand = self._handles[handle]
+        if sender in self._client_handles:
+            if hand in self._client_handles[sender]:
+                self._client_handles[sender].remove(hand)
+            else:
+                raise InvalidArgument('client is not holding handle %s' % handle)
+        else:
+            raise InvalidArgument('client does not hold any handles')
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='u')
     def GetSelfHandle(self):
@@ -188,7 +288,8 @@ class Connection(dbus.service.Object):
         Returns:
         an integer handle representing the user
         """
-        return self._self_handle
+        self.check_connected()
+        return self._self_handle.get_id()
 
     @dbus.service.signal(CONN_INTERFACE, signature='uu')
     def StatusChanged(self, status, reason):
@@ -249,7 +350,7 @@ class Connection(dbus.service.Object):
         """
         Request that the connection be closed.
         """
-        pass
+        self.check_connected()
 
     @dbus.service.signal(CONN_INTERFACE, signature='osub')
     def NewChannel(self, object_path, type, handle, supress_handler):
