@@ -407,7 +407,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
 
         Returns:
         an array of structs containing:
-            a string of channel type
+            a D-Bus interface name representing the channel type
             an integer indicating the capability type
 
         Possible Errors:
