@@ -34,6 +34,9 @@ for (cname,val) in inspectmod.__dict__.items():
                 sigin=tuple(dbus.Signature(mval.__dict__["_dbus_in_signature"]))
                 argspec=inspect.getargspec(mval)
                 args=argspec[0][1:] # chop off self
+                # ignore the argument if the function has requested the sender
+                if mval._dbus_sender_keyword:
+                    args.remove(mval._dbus_sender_keyword)
                 if len(args) != len(sigin):
                     raise Exception('number of arguments in signature %s differs from number of arguments to method %s in interface %s' % (mval.__dict__["_dbus_in_signature"], mname, iname))
                 decorated_args=', '.join(map(lambda tup: str(tup[0])+": "+tup[1], zip(sigin,args)))
