@@ -244,7 +244,7 @@ class Connection(dbus.service.Object):
         handle - an integer handle to hold
 
         Potential Errors:
-        Disconnected, InvalidArgument (the given handle is not valid)
+        Disconnected, InvalidHandle (the given handle is not valid)
         """
         self.check_connected()
         self.check_handle(handle)
@@ -287,6 +287,9 @@ class Connection(dbus.service.Object):
 
         Returns:
         an integer handle representing the user
+
+        Potential Errors:
+        Disconnected
         """
         self.check_connected()
         return self._self_handle.get_id()
@@ -294,40 +297,39 @@ class Connection(dbus.service.Object):
     @dbus.service.signal(CONN_INTERFACE, signature='uu')
     def StatusChanged(self, status, reason):
         """
-        Emitted when the status of the connection changes. 
-        All states and reasons have numerical values, as defined here
-        The currently defined states are:
+        Emitted when the status of the connection changes.  All states and
+        reasons have numerical values, as defined here:
 
         0 - CONNECTION_STATUS_CONNECTED
-          - The connection is alive and all methods are available.
+            The connection is alive and all methods are available.
 
         1 - CONNECTION_STATUS_CONNECTING
-          - The connection has not yet been established, or has been
+            The connection has not yet been established, or has been
             severed and reconnection is being attempted. Some methods may fail
             until the connection has been established.
 
         2 - CONNECTION_STATUS_DISCONNECTED
-          - The connection has been severed and no method calls are
+            The connection has been severed and no method calls are
             valid. The object may be removed from the bus at any time.
 
         The reason should be one of the following:
 
         0 - CONNECTION_STATUS_REASON_NONE_SPECIFIED
-          - There is no reason set for this state
+            There is no reason set for this state change.
 
         1 - CONNECTION_STATUS_REASON_REQUESTED
-          - The change is in response to a user request.
+            The change is in response to a user request.
 
         2 - CONNECTION_STATUS_REASON_NETWORK_ERROR
-          - There was an error sending or receiving on the network socket.
+            There was an error sending or receiving on the network socket.
 
         3 - CONNECTION_STATUS_REASON_AUTHENTICATION_FAILED
-          - The username or password was invalid.
+            The username or password was invalid.
 
         4 - CONNECTION_STATUS_REASON_ENCRYPTION_ERROR
-          - There was an error negotiating SSL on this
-            connection, or encryption was unavailable and require-encryption 
-            was set when the connection was created.
+            There was an error negotiating SSL on this connection, or
+            encryption was unavailable and require-encryption was set when the
+            connection was created.
 
         Parameters:
         status - an integer indicating the new status
@@ -349,6 +351,9 @@ class Connection(dbus.service.Object):
     def Disconnect(self):
         """
         Request that the connection be closed.
+
+        Potential Errors:
+        Disconnected
         """
         self.check_connected()
 
@@ -378,6 +383,9 @@ class Connection(dbus.service.Object):
             a D-Bus object path for the channel object on this service
             a D-Bus interface name representing the channel type
             an integer handle representing the contact, room or list this channel communicates with, or zero
+
+        Potential Errors:
+        Disconnected
         """
         ret = []
         for channel in self._channels:
