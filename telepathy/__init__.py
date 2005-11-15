@@ -1,4 +1,4 @@
-version = (0, 10, 1)
+version = (0, 10, 2)
 
 from constants import *
 from errors import *
