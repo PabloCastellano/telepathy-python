@@ -387,6 +387,7 @@ class Connection(dbus.service.Object):
         Potential Errors:
         Disconnected
         """
+        self.check_connected()
         ret = []
         for channel in self._channels:
             chan = (channel._object_path, channel._type, channel._handle)
@@ -414,7 +415,8 @@ class Connection(dbus.service.Object):
         Possible Errors:
         Disconnected, NetworkError, NotImplemented (unknown channel type), InvalidHandle (the given handle does not exist), NotAvailable (the requested channel type cannot be created with the given handle)
         """
-        raise telepathy.NotImplemented('unknown channel type %s' % type)
+        self.check_connected()
+        raise NotImplemented('unknown channel type %s' % type)
 
 
 class ConnectionInterfaceAliasing(dbus.service.Interface):
