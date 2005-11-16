@@ -20,7 +20,6 @@ from telepathy import *
 class JabberJidHandle(telepathy.server.Handle):
     def __init__(self, id, type, jid):
         self._jid = jid
-        print "new handle", id, unicode(jid)
         telepathy.server.Handle.__init__(self, id, type, None)
 
     def get_name(self):
@@ -28,6 +27,69 @@ class JabberJidHandle(telepathy.server.Handle):
 
     def get_jid(self):
         return self._jid
+
+class JabberSubscribeListChannel(telepathy.server.ChannelTypeContactList, telepathy.server.ChannelInterfaceGroup, telepathy.server.ChannelInterfaceNamed):
+    def __init__(self, conn, handle):
+        telepathy.server.ChannelTypeContactList.__init__(self, conn)
+        telepathy.server.ChannelInterfaceNamed.__init__(self, handle)
+        telepathy.server.ChannelInterfaceGroup.__init__(self)
+
+    def roster_updated(self, item=None):
+        if item:
+            items = [item]
+        else:
+            items = self._conn.roster.get_items()
+
+        added = set()
+        removed = set()
+
+        for item in items:
+            handle = self._conn.get_handle_for_jid(item.jid)
+            if item.subscription == 'to' or item.subscription == 'both':
+                print "Subscribed to", unicode(item.jid)
+                added.add(handle)
+            elif item.subscription == 'none' or item.subscription == 'to':
+                if (handle in self._members or
+                    handle in self._remote_pending):
+                    print "No longer subscribed to", unicode(item.jid)
+                    removed.add(handle)
+                else:
+                    print "Unexpected roster subscription=none/to from", unicode(item.jid)
+
+        if added or removed:
+            self.MembersChanged('', added, removed, [], [])
+
+class JabberPublishListChannel(telepathy.server.ChannelTypeContactList, telepathy.server.ChannelInterfaceGroup, telepathy.server.ChannelInterfaceNamed):
+    def __init__(self, conn, handle):
+        telepathy.server.ChannelTypeContactList.__init__(self, conn)
+        telepathy.server.ChannelInterfaceNamed.__init__(self, handle)
+        telepathy.server.ChannelInterfaceGroup.__init__(self)
+
+    def roster_updated(self, item=None):
+        if item:
+            items = [item]
+        else:
+            items = self._conn.roster.get_items()
+
+        added = set()
+        removed = set()
+
+        for item in items:
+            handle = self._conn.get_handle_for_jid(item.jid)
+            if item.subscription == 'from' or item.subscription == 'both':
+                print "Publishing to", unicode(item.jid)
+                added.add(handle)
+            elif item.subscription == 'none' or item.subscription == 'to':
+                if (handle in self._members or
+                    handle in self._local_pending):
+                    print "No longer publishing to", unicode(item.jid)
+                    removed.add(handle)
+                else:
+                    print "Unexpected roster publishing=none/to from", unicode(item.jid)
+
+        if added or removed:
+            self.MembersChanged('', added, removed, [], [])
+
 
 class JabberIMChannel(telepathy.server.ChannelTypeText):
     def __init__(self, conn, recipient):
@@ -64,10 +126,6 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
     _parameter_defaults = {'port':5222}
 
     def __init__(self, manager, parameters):
-        self._die = False
-        self._manager = manager
-        self._jid_handles = weakref.WeakValueDictionary()
-
         # throw InvalidArgument if parameters are wrong type or
         # mandatory arguments are missing
         self.check_parameters(parameters)
@@ -84,7 +142,14 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
 
         del parts
 
-        handle = self.get_handle_from_jid(jid)
+        self._die = False
+        self._manager = manager
+        self._jid_handles = weakref.WeakValueDictionary()
+        self._list_handles = weakref.WeakValueDictionary()
+        self._im_channels = weakref.WeakValueDictionary()
+        self._list_channels = weakref.WeakValueDictionary()
+
+        handle = self.get_handle_for_jid(jid)
         self.set_self_handle(handle)
 
         # this passes in jid, password, server and port for us. yay. :)
@@ -97,7 +162,7 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
         gobject.idle_add(self.connect_cb)
         gobject.timeout_add(5000, self.idle_cb)
 
-    def get_handle_from_jid(self, jid):
+    def get_handle_for_jid(self, jid):
         barejid = jid.bare()
 
         if barejid in self._jid_handles:
@@ -105,6 +170,19 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
         else:
             handle = JabberJidHandle(self.get_handle_id(), CONNECTION_HANDLE_TYPE_CONTACT, barejid)
             self._jid_handles[barejid] = handle
+            self._handles[handle.get_id()] = handle
+            print "new JID handle", handle.get_id(), unicode(handle.get_jid())
+
+        return handle
+
+    def get_handle_for_list(self, list):
+        if list in self._list_handles:
+            handle = self._list_handles[list]
+        else:
+            handle = telepathy.server.Handle(self.get_handle_id(), CONNECTION_HANDLE_TYPE_LIST, list)
+            self._list_handles[list] = handle
+            self._handles[handle.get_id()] = handle
+            print "new list handle", handle.get_id(), unicode(handle.get_name())
 
         return handle
 
@@ -149,6 +227,16 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
 
         self.StatusChanged(CONNECTION_STATUS_CONNECTED, CONNECTION_STATUS_REASON_REQUESTED)
 
+        subscribe_handle = self.get_handle_for_list('subscribe')
+        subscribe_channel = JabberSubscribeListChannel(self, subscribe_handle)
+        self._list_channels[subscribe_handle] = subscribe_channel
+        self.add_channel(subscribe_channel, subscribe_handle, supress_handler=False)
+
+        publish_handle = self.get_handle_for_list('publish')
+        publish_channel = JabberPublishListChannel(self, publish_handle)
+        self._list_channels[publish_handle] = publish_channel
+        self.add_channel(publish_channel, publish_handle, supress_handler=False)
+
     def stream_io_cb(self, fd, condition):
         print "stream io cb, condition", condition
 
@@ -178,6 +266,10 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
         if self.roster:
             for i in self.roster.get_items():
                 print "roster item:", i
+
+        for chan in self._list_channels.values():
+            if getattr(chan, 'roster_updated', None):
+                chan.roster_updated(item)
 
     def presence_handler(self, stanza):
         """Handle 'available' (without 'type') and 'unavailable' <presence/>."""
@@ -232,9 +324,9 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
             print u'Type: "normal".' % (t,)
 
         handled = False
-        sender = self.get_handle_from_jid(stanza.get_from())
+        sender = self.get_handle_for_jid(stanza.get_from())
 
-        for chan in self._channels:
+        for chan in self._im_channels.values():
             if getattr(chan, 'message_handler', None):
                 handled = chan.message_handler(sender, stanza)
                 if handled:
@@ -266,12 +358,14 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
 
         if handle_type == CONNECTION_HANDLE_TYPE_CONTACT:
             jid = pyxmpp.jid.JID(name)
-            handle = self.get_handle_from_jid(jid)
-            id = handle.get_id()
-            self.add_handle(id, handle, sender)
-            return id
+            handle = self.get_handle_for_jid(jid)
+        elif handle_type == CONNECTION_HANDLE_TYPE_LIST:
+            handle = self.get_handle_for_list(name)
         else:
-            raise NotAvailable('only contact handles have been implemented')
+            raise NotAvailable('only contact and list handles have been implemented')
+
+        self.add_client_handle(handle, sender)
+        return handle.get_id()
 
     def RequestChannel(self, type, handle_id, supress_handler):
         self.check_connected()
@@ -284,17 +378,26 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
             handle = self._handles[handle_id]
 
             if handle.get_type() != CONNECTION_HANDLE_TYPE_CONTACT:
-                raise InvalidHandle('only contact handles are valid for text channels at the moments')
+                raise InvalidHandle('only contact handles are valid for text channels at the moment')
 
-            for c in self._channels:
-                if isinstance(c, JabberIMChannel):
-                    if handle in c._members:
-                        chan = c
-                        break
+            if handle in self._im_channels:
+                chan = self._im_channels[handle]
 
             chan = JabberIMChannel(self, handle)
+        elif type == CHANNEL_TYPE_CONTACT_LIST:
+            self.check_handle(handle_id)
+
+            handle = self.handles[handle_id]
+
+            if handle.get_type() != CONNECTION_HANDLE_TYPE_LIST:
+                raise InvalidHandle('only list handles are valid for contact list channel')
+
+            if handle in self._list_channels:
+                chan = self._list_channels[handle]
+            else:
+                raise telepathy.NotAvailable('list channel %s not available' % handle.get_name())
         else:
-            raise telepathy.NotImplemented('unknown channel type %s', type)
+            raise telepathy.NotImplemented('unknown channel type %s' % type)
 
         assert(chan)
 

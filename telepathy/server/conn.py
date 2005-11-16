@@ -115,9 +115,7 @@ class Connection(dbus.service.Object):
         self._next_handle_id += 1
         return id
 
-    def add_handle(self, id, handle, sender):
-        self._handles[id] = handle
-
+    def add_client_handle(self, handle, sender):
         if sender in self._client_handles:
             self._client_handles[sender].add(handle)
         else:
@@ -224,7 +222,8 @@ class Connection(dbus.service.Object):
 
         id = self.get_handle_id()
         handle = Handle(id, handle_type, name)
-        self.add_handle(id, handle, sender)
+        self._handles[id] = handle
+        self.add_client_handle(handle, sender)
 
         return id
 
@@ -250,7 +249,7 @@ class Connection(dbus.service.Object):
         self.check_handle(handle)
 
         hand = self._handles[handle]
-        self.add_handle(handle, hand, sender)
+        self.add_client_handle(hand, sender)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='u', out_signature='')
     def ReleaseHandle(self, handle):

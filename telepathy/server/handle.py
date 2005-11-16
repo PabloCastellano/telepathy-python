@@ -6,6 +6,7 @@ class Handle(object):
 
     def get_id(self):
         return self._id
+    __int__ = get_id
 
     def get_type(self):
         return self._type

@@ -235,7 +235,7 @@ class ChannelTypeContactList(Channel):
     """
     _dbus_interfaces = [CHANNEL_TYPE_CONTACT_LIST]
 
-    def __init__(self):
+    def __init__(self, connection):
         """
         Initialise the channel.
 
