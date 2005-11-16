@@ -17,6 +17,13 @@ import weakref
 
 from telepathy import *
 
+JABBER_PRESENCE_AVAILABLE = 'available'
+JABBER_PRESENCE_AWAY = 'away'
+JABBER_PRESENCE_CHAT = 'chat'
+JABBER_PRESENCE_DND = 'dnd'
+JABBER_PRESENCE_XA = 'xa'
+JABBER_PRESENCE_OFFLINE = 'offline'
+
 class JabberJidHandle(telepathy.server.Handle):
     def __init__(self, id, type, jid):
         self._jid = jid
@@ -120,7 +127,7 @@ class JabberIMChannel(telepathy.server.ChannelTypeText):
         msg = pyxmpp.message.Message(to_jid=self._jid, body=text, stanza_type=type)
         self._conn.get_stream().send(msg)
 
-class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberClient):
+class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Connection, telepathy.server.ConnectionInterfacePresence):
     _mandatory_parameters = {'account':'s', 'password':'s'}
     _optional_parameters = {'server':'s', 'port':'q'}
     _parameter_defaults = {'port':5222}
@@ -139,6 +146,7 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
             parts += j.split('.')[::-1]
 
         telepathy.server.Connection.__init__(self, 'jabber', parts)
+        telepathy.server.ConnectionInterfacePresence.__init__(self)
 
         del parts
 
@@ -303,10 +311,26 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
         elif t=="unsubscribed":
             msg+=u" has cancelled our subscription of his presence."
 
-        print msg
-        p=stanza.make_accept_response()
-        self.stream.send(p)
-        return True
+        type = stanza.get_type()
+        if type == "available":
+            show = stanza.get_show()
+            if show and show in set([JABBER_STATUS_AWAY, JABBER_STATUS_CHAT, JABBER_STATUS_DND, JABBER_STATUS_XA]):
+                status = show
+            else:
+                status = JABBER_STATUS_AVAILABLE
+        elif type == "unavailable":
+            status = JABBER_STATUS_OFFLINE
+        else:
+            print "NO NO NO", stanza.serialize()
+
+        arguments = {}
+        message = stanza.get_status()
+        if message:
+            arguments['message'] = message
+
+        presence = {handle:(0, {status:arguments})}
+        print "Sending presence: ", presence
+        self.PresenceUpdate(presence)
 
     def message_handler(self, stanza):
         subject=stanza.get_subject()
@@ -406,6 +430,47 @@ class JabberConnection(telepathy.server.Connection, pyxmpp.jabber.client.JabberC
 
         return chan._object_path
 
+    def GetStatuses(self):
+        # the arguments are in common to all on-line presences
+        arguments = {
+            'message':'s'
+        }
+
+        # you get one of these for each status
+        # {name:(type, self, exclusive, {argument:types}}
+        statuses = {
+            JABBER_PRESENCE_AVAILABLE:(
+                CONNECTION_PRESENCE_TYPE_AVAILABLE,
+                True, True, arguments
+            ),
+            JABBER_PRESENCE_CHAT:(
+                CONNECTION_PRESENCE_TYPE_AVAILABLE,
+                True, True, arguments
+            ),
+            JABBER_PRESENCE_DND:(
+                CONNECTION_PRESENCE_TYPE_AWAY,
+                True, True, arguments
+            ),
+            JABBER_PRESENCE_AWAY:(
+                CONNECTION_PRESENCE_TYPE_AWAY,
+                True, True, arguments
+            ),
+            JABBER_PRESENCE_XA:(
+                CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY,
+                True, True, arguments
+            ),
+            JABBER_PRESENCE_OFFLINE:(
+                CONNECTION_PRESENCE_TYPE_OFFLINE,
+                True, True, {}
+            )
+        }
+
+        return statuses
+
+    def RequestPresence(self, contacts):
+        for handle_id in contacts:
+            self.check_handle(handle_id)
+            handle = self._handles
 
 class JabberConnectionManager(telepathy.server.ConnectionManager):
     def __init__(self):
