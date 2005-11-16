@@ -20,33 +20,68 @@ class ContactListChannel(telepathy.client.Channel):
         self.get_valid_interfaces().add(CHANNEL_TYPE_CONTACT_LIST)
         self._conn = conn
         self._handle = handle
+        self._name = handle
 
     def got_interfaces(self):
+        self._conn[CONN_INTERFACE].InspectHandle(self._handle, reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers(reply_handler=self.get_remote_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_signal_cb)
 
+    def inspect_handle_reply_cb(self, type, name):
+        print "CLC", self._name, "is", name
+        self._name = name
+        if name == 'subscribe':
+            gobject.idle_add(self.subscribe_list_idle_cb)
+        elif name == 'publish':
+            gobject.idle_add(self.publish_list_idle_cb)
+
+    def subscribe_list_idle_cb(self):
+#        handle = self._conn[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
+#        self[CHANNEL_INTERFACE_GROUP].AddMembers([handle])
+        return False
+
+    def publish_list_idle_cb(self):
+        return False
+
     def members_changed_signal_cb(self, message, added, removed, local_p, remote_p):
-        print "MembersChanged on ContactListChannel ", self._handle
+        print "MembersChanged on CLC", self._name
         print "Message: ", message
         print "Added: ", added
         print "Removed: ", removed
         print "Local Pending: ", local_p
         print "Remote Pending: ", remote_p
+#        if added and self._name == 'subscribe':
+#            self[CHANNEL_INTERFACE_GROUP].RemoveMembers(added)
+#        if removed and self._name == 'subscribe':
+#            self[CHANNEL_INTERFACE_GROUP].AddMembers(added)
+        
+#        if added:
+#            self[CHANNEL_INTERFACE_GROUP].RemoveMembers(added)
+#        if local_p:
+#            self[CHANNEL_INTERFACE_GROUP].AddMembers(local_p)
 
     def get_members_reply_cb(self, members):
-        print "got members on CLC %s: %s" % (self._handle, members)
+        print "got members on CLC %s: %s" % (self._name, members)
+#        if members and self._name == 'subscribe':
+#            self[CHANNEL_INTERFACE_GROUP].RemoveMembers(members)
+#        if members:
+#            self[CHANNEL_INTERFACE_GROUP].RemoveMembers(members)
 
     def get_local_pending_members_reply_cb(self, members):
-        print "got local pending members on CLC %s: %s" % (self._handle, members)
+        print "got local pending members on CLC %s: %s" % (self._name, members)
+#        if members:
+#            self[CHANNEL_INTERFACE_GROUP].AddMembers(members)
+#            print "sending addmembers"
+
 
     def get_remote_pending_members_reply_cb(self, members):
-        print "got remote pending members on CLC %s: %s" % (self._handle, members)
+        print "got remote pending members on CLC %s: %s" % (self._name, members)
 
 class TextChannel(telepathy.client.Channel):
-    def __init__(self, service_name, object_path, handle):
-        telepathy.client.Channel.__init__(self, service_name, object_path)
+    def __init__(self, conn, object_path, handle):
+        telepathy.client.Channel.__init__(self, conn._service_name, object_path)
         self.get_valid_interfaces().add(CHANNEL_TYPE_TEXT)
         self[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.received_callback)
         self.doack = True
@@ -108,9 +143,9 @@ class TestConnection(telepathy.client.Connection):
         channel = None
 
         if type == CHANNEL_TYPE_TEXT:
-            channel = TextChannel(self._service_name, obj_path, handle)
+            channel = TextChannel(self, obj_path, handle)
         elif type == CHANNEL_TYPE_CONTACT_LIST:
-            channel = ContactListChannel(self._service_name, obj_path, handle)
+            channel = ContactListChannel(self, obj_path, handle)
 
         if channel != None:
             self._channels[obj_path] = channel
@@ -123,8 +158,12 @@ class TestConnection(telepathy.client.Connection):
 #        print self[CONN_INTERFACE_PRESENCE].GetStatuses()
         return False
 
+    def presence_update_signal_cb(self, presence):
+        print "got presence update:", presence
+
     def get_interfaces_reply_cb(self, interfaces):
         self.get_valid_interfaces().update(interfaces)
+        self[CONNECTION_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
         gobject.idle_add(self.connected_cb)
 
     def status_changed_signal_cb(self, status, reason):
