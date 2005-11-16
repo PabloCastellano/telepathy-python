@@ -15,9 +15,10 @@ from telepathy import *
 import telepathy.client
 
 class ContactListChannel(telepathy.client.Channel):
-    def __init__(self, service_name, object_path, handle):
-        telepathy.client.Channel.__init__(self, service_name, object_path)
+    def __init__(self, conn, object_path, handle):
+        telepathy.client.Channel.__init__(self, conn._service_name, object_path)
         self.get_valid_interfaces().add(CHANNEL_TYPE_CONTACT_LIST)
+        self._conn = conn
         self._handle = handle
 
     def got_interfaces(self):

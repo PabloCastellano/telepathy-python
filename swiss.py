@@ -40,63 +40,192 @@ class JabberSubscribeListChannel(telepathy.server.ChannelTypeContactList, telepa
         telepathy.server.ChannelTypeContactList.__init__(self, conn)
         telepathy.server.ChannelInterfaceNamed.__init__(self, handle)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
+        self.GroupFlagsChanged(CHANNEL_GROUP_FLAG_CAN_ADD ^ CHANNEL_GROUP_FLAG_CAN_REMOVE ^ CHANNEL_GROUP_FLAG_CAN_RESCIND, 0)
 
-    def roster_updated(self, item=None):
-        if item:
-            items = [item]
-        else:
-            items = self._conn.roster.get_items()
-
+    def roster_updated(self, items):
         added = set()
         removed = set()
+        pending = set()
 
-        for item in items:
-            handle = self._conn.get_handle_for_jid(item.jid)
+        for (handle, item) in items:
             if item.subscription == 'to' or item.subscription == 'both':
-                print "Subscribed to", unicode(item.jid)
-                added.add(handle)
-            elif item.subscription == 'none' or item.subscription == 'to':
-                if (handle in self._members or
-                    handle in self._remote_pending):
-                    print "No longer subscribed to", unicode(item.jid)
-                    removed.add(handle)
+                if handle not in self._members:
+                    print "Subscribed to", unicode(item.jid)
+                    added.add(handle)
+            elif item.subscription == 'none' or item.subscription == 'from':
+                if item.ask == 'subscribe':
+                    if handle in self._members:
+                        print "I'm very confused, %s is a member but we just got ask=subscribe!"
+                    elif handle not in self._remote_pending:
+                        print "Trying to subscribe to", unicode(item.jid)
+                        pending.add(handle)
                 else:
-                    print "Unexpected roster subscription=none/to from", unicode(item.jid)
+                    if handle in self._members or handle in self._remote_pending:
+                        print "No longer subscribed to", unicode(item.jid)
+                        removed.add(handle)
 
-        if added or removed:
-            self.MembersChanged('', added, removed, [], [])
+        if added or removed or pending:
+            self.MembersChanged('', added, removed, [], pending)
+
+    def subscribed_handler(self, stanza):
+        """Handle subscription control <presence type="subscribed" /> stanzas."""
+        print unicode(stanza.get_from()), " has accepted our presence subscription request."
+
+        sender = self._conn.get_handle_for_jid(stanza.get_from())
+
+        # add to subscription list
+        self.MembersChanged('', [sender], [], [], [])
+
+        # we must acknowledge
+        p = stanza.make_accept_response()
+        self._conn.safe_send(p)
+
+        return True
+
+    def unsubscribed_handler(self, stanza):
+        """Handle subscription control <presence type="unsubscribed" /> stanzas."""
+        print unicode(stanza.get_from()), " has cancelled our subscription of his presence."
+
+        sender = self._conn.get_handle_for_jid(stanza.get_from())
+
+        # remove from subscription list
+        self.MembersChanged('', [], [sender], [], [])
+
+        # we must acknowledge
+        p = stanza.make_accept_response()
+        self._conn.safe_send(p)
+
+        return True
+
+    def AddMembers(self, members):
+        self._conn.check_connected()
+
+        handles = []
+        for id in members:
+            self._conn.check_handle(id)
+            handles.append(self._conn._handles[id])
+
+        for handle in handles:
+            if handle in self._remote_pending:
+                raise PermissionDenied('you may not approve remote pending members')
+            elif handle in self._members:
+                pass
+            else:
+                jid = handle.get_jid()
+                request = pyxmpp.presence.Presence(to_jid=jid, stanza_type='subscribe')
+                self._conn.safe_send(request)
+
+    def RemoveMembers(self, members):
+        self._conn.check_connected()
+
+        handles = []
+        for id in members:
+            self._conn.check_handle(id)
+            handles.append(self._conn._handles[id])
+
+        for handle in handles:
+            if handle in self._members or handle in self._remote_pending:
+                jid = handle.get_jid()
+                request = pyxmpp.presence.Presence(to_jid=jid, stanza_type='unsubscribe')
+                self._conn.safe_send(request)
+            else:
+                pass
 
 class JabberPublishListChannel(telepathy.server.ChannelTypeContactList, telepathy.server.ChannelInterfaceGroup, telepathy.server.ChannelInterfaceNamed):
     def __init__(self, conn, handle):
         telepathy.server.ChannelTypeContactList.__init__(self, conn)
         telepathy.server.ChannelInterfaceNamed.__init__(self, handle)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
+        self.GroupFlagsChanged(CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
+        self._pending_subscribe_requests = weakref.WeakKeyDictionary()
 
-    def roster_updated(self, item=None):
-        if item:
-            items = [item]
-        else:
-            items = self._conn.roster.get_items()
-
+    def roster_updated(self, items):
         added = set()
         removed = set()
 
-        for item in items:
-            handle = self._conn.get_handle_for_jid(item.jid)
+        for (handle, item) in items:
             if item.subscription == 'from' or item.subscription == 'both':
-                print "Publishing to", unicode(item.jid)
-                added.add(handle)
+                if handle in self._pending_subscribe_requests:
+                    del self._pending_subscribe_requests[handle]
+
+                if handle not in self._members:
+                    print "Publishing to", unicode(item.jid)
+                    added.add(handle)
+                else:
+                    print "Unexpected roster publishing=from/both from", unicode(item.jid)
             elif item.subscription == 'none' or item.subscription == 'to':
                 if (handle in self._members or
                     handle in self._local_pending):
-                    print "No longer publishing to", unicode(item.jid)
+                    print "Not longer publishing to", unicode(item.jid)
                     removed.add(handle)
-                else:
-                    print "Unexpected roster publishing=none/to from", unicode(item.jid)
 
         if added or removed:
             self.MembersChanged('', added, removed, [], [])
 
+    def subscribe_handler(self, stanza):
+        """Handle publish control <presence type="subscribe" /> stanzas."""
+        print unicode(stanza.get_from()), " has requested subscription to our presence."
+
+        sender = self._conn.get_handle_for_jid(stanza.get_from())
+
+        # add to local_pending list
+        self.MembersChanged('', [], [], [sender], [])
+
+        # store request for the user response
+        self._pending_subscribe_requests[sender] = stanza
+
+        return True
+
+    def unsubscribe_handler(self, stanza):
+        """Handle publish control <presence type="unsubscribe" /> stanzas."""
+        print unicode(stanza.get_from()), " has cancelled subscription to our presence."
+
+        sender = self._conn.get_handle_for_jid(stanza.get_from())
+
+        # remove from publish list
+        self.MembersChanged('', [], [sender], [], [])
+
+        # we must send an ack
+        p = stanza.make_accept_response()
+        self._conn.safe_send(p)
+
+        return True
+
+    def AddMembers(self, members):
+        self._conn.check_connected()
+
+        handles = []
+        for id in members:
+            self._conn.check_handle(id)
+            handles.append(self._conn._handles[id])
+
+        for handle in handles:
+            if handle in self._local_pending:
+                jid = handle.get_jid()
+                request = pyxmpp.presence.Presence(to_jid=jid, stanza_type='subscribed')
+                self._conn.safe_send(request)
+            elif handle in self._members:
+                pass
+            else:
+                raise NotAvailable('cannot publish presence to people who have not requested it')
+
+    def RemoveMembers(self, members):
+        self._conn.check_connected()
+
+        handles = []
+        for id in members:
+            self._conn.check_handle(id)
+            handles.append(self._conn._handles[id])
+
+        for handle in handles:
+            if handle in self._local_pending or handle in self._members:
+                jid = handle.get_jid()
+                request = pyxmpp.presence.Presence(to_jid=jid, stanza_type='unsubscribed')
+                print request.serialize()
+                self._conn.safe_send(request)
+                self.MembersChanged('', [], [handle], [], [])
+            else:
+                pass
 
 class JabberIMChannel(telepathy.server.ChannelTypeText):
     def __init__(self, conn, recipient):
@@ -125,7 +254,7 @@ class JabberIMChannel(telepathy.server.ChannelTypeText):
         if type != CHANNEL_TEXT_MESSAGE_TYPE_NORMAL:
             raise telepathy.NotImplemented('only the normal message type is currently supported')
         msg = pyxmpp.message.Message(to_jid=self._jid, body=text, stanza_type=type)
-        self._conn.get_stream().send(msg)
+        self._conn.safe_send(msg)
 
 class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Connection, telepathy.server.ConnectionInterfacePresence):
     _mandatory_parameters = {'account':'s', 'password':'s'}
@@ -194,6 +323,12 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
 
         return handle
 
+    def safe_send(self, data):
+        try:
+            self.stream.send(data)
+        except e:
+            raise NetworkError, str(e)
+
     def connect_cb(self):
         print "connect cb"
         self.connect()
@@ -220,30 +355,34 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         print "session started"
         pyxmpp.jabber.client.JabberClient.session_started(self)
 
-        # set up handlers for <presence/> stanzas
-        self.stream.set_presence_handler("available",self.presence_handler)
-        self.stream.set_presence_handler("unavailable",self.presence_handler)
-
-        # set up handlers for <presence/> stanzas which deal with subscriptions
-        self.stream.set_presence_handler("subscribe",self.subscription_handler)
-        self.stream.set_presence_handler("subscribed",self.subscription_handler)
-        self.stream.set_presence_handler("unsubscribe",self.subscription_handler)
-        self.stream.set_presence_handler("unsubscribed",self.subscription_handler)
+        self.StatusChanged(CONNECTION_STATUS_CONNECTED, CONNECTION_STATUS_REASON_REQUESTED)
 
         # set up handler for <message/> stanzas
         self.stream.set_message_handler('normal', self.message_handler)
 
-        self.StatusChanged(CONNECTION_STATUS_CONNECTED, CONNECTION_STATUS_REASON_REQUESTED)
+        # set up handlers for <presence/> stanzas
+        self.stream.set_presence_handler("available",self.presence_handler)
+        self.stream.set_presence_handler("unavailable",self.presence_handler)
 
+        # create channel for handling subscriptions
         subscribe_handle = self.get_handle_for_list('subscribe')
         subscribe_channel = JabberSubscribeListChannel(self, subscribe_handle)
         self._list_channels[subscribe_handle] = subscribe_channel
         self.add_channel(subscribe_channel, subscribe_handle, supress_handler=False)
 
+        # set up handlers for <presence/> stanzas which deal with subscriptions
+        self.stream.set_presence_handler("subscribed",subscribe_channel.subscribed_handler)
+        self.stream.set_presence_handler("unsubscribed",subscribe_channel.unsubscribed_handler)
+
+        # create channel for handling publishing
         publish_handle = self.get_handle_for_list('publish')
         publish_channel = JabberPublishListChannel(self, publish_handle)
         self._list_channels[publish_handle] = publish_channel
         self.add_channel(publish_channel, publish_handle, supress_handler=False)
+
+        # set up handlers for <presence/> stanzas which deal with publishing
+        self.stream.set_presence_handler("subscribe",publish_channel.subscribe_handler)
+        self.stream.set_presence_handler("unsubscribe",publish_channel.unsubscribe_handler)
 
     def stream_io_cb(self, fd, condition):
         print "stream io cb, condition", condition
@@ -275,9 +414,18 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
             for i in self.roster.get_items():
                 print "roster item:", i
 
+        if item:
+            handle = self.get_handle_for_jid(item.jid)
+            items = [(handle,item)]
+        else:
+            items = []
+            for item in self.roster.get_items():
+                handle = self.get_handle_for_jid(item.jid)
+                items.append((handle, item))
+
         for chan in self._list_channels.values():
             if getattr(chan, 'roster_updated', None):
-                chan.roster_updated(item)
+                chan.roster_updated(items)
 
     def presence_handler(self, stanza):
         """Handle 'available' (without 'type') and 'unavailable' <presence/>."""
@@ -297,19 +445,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
             msg+=u": "+status
         print msg
 
-    def subscription_handler(self, stanza):
-        """Handle subscription control <presence/> stanzas -- acknowledge
-        them."""
-        msg=unicode(stanza.get_from())
-        t=stanza.get_type()
-        if t=="subscribe":
-            msg+=u" has requested subscription to our presence."
-        elif t=="subscribed":
-            msg+=u" has accepted our presence subscription request."
-        elif t=="unsubscribe":
-            msg+=u" has cancelled subscription to our presence."
-        elif t=="unsubscribed":
-            msg+=u" has cancelled our subscription of his presence."
+        handle = self.get_handle_for_jid(stanza.get_from())
 
         type = stanza.get_type()
         if type == "available":
