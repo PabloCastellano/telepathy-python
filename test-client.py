@@ -163,7 +163,7 @@ class TestConnection(telepathy.client.Connection):
 
     def get_interfaces_reply_cb(self, interfaces):
         self.get_valid_interfaces().update(interfaces)
-        self[CONNECTION_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
+        self[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
         gobject.idle_add(self.connected_cb)
 
     def status_changed_signal_cb(self, status, reason):

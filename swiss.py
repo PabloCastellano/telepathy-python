@@ -448,16 +448,14 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         handle = self.get_handle_for_jid(stanza.get_from())
 
         type = stanza.get_type()
-        if type == "available":
+        if type == "unavailable":
+            status = JABBER_PRESENCE_OFFLINE
+        else:
             show = stanza.get_show()
-            if show and show in set([JABBER_STATUS_AWAY, JABBER_STATUS_CHAT, JABBER_STATUS_DND, JABBER_STATUS_XA]):
+            if show and show in set([JABBER_PRESENCE_AWAY, JABBER_PRESENCE_CHAT, JABBER_PRESENCE_DND, JABBER_PRESENCE_XA]):
                 status = show
             else:
-                status = JABBER_STATUS_AVAILABLE
-        elif type == "unavailable":
-            status = JABBER_STATUS_OFFLINE
-        else:
-            print "NO NO NO", stanza.serialize()
+                status = JABBER_PRESENCE_AVAILABLE
 
         arguments = {}
         message = stanza.get_status()
@@ -465,7 +463,8 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
             arguments['message'] = message
 
         presence = {handle:(0, {status:arguments})}
-        print "Sending presence: ", presence
+        print "Sending presence:", presence
+        print "Packet was:", stanza.serialize()
         self.PresenceUpdate(presence)
 
     def message_handler(self, stanza):
