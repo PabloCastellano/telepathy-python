@@ -52,10 +52,11 @@ class Channel(dbus.service.Object):
         Request that the channel be closed. This is not the case until
         the Closed signal has been emitted, and depending on the connection
         manager this may simply remove you from the channel on the server,
-        rather than causing it to stop existing entirely.
+        rather than causing it to stop existing entirely. Some channels
+        such as contact list channels may not be closed.
 
         Possible Errors:
-        Disconnected, NetworkError
+        Disconnected, NetworkError, NotImplemented
         """
         pass
 
@@ -614,7 +615,7 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     be placed into the remote pending list until a connection has been
     established or the request acknowledged remotely.
     """
-    def __init__(self, me):
+    def __init__(self):
         self._interfaces.add(CHANNEL_INTERFACE_GROUP)
         self._group_flags = 0
         self._local_pending = set()
@@ -759,7 +760,7 @@ class ChannelInterfaceNamed(dbus.service.Interface):
         Returns:
         an integer representing the name of this channel
         """
-        return self._handle
+        return self._handle.get_id()
 
 
 class ChannelInterfacePassword(dbus.service.Interface):
