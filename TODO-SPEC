@@ -2,7 +2,7 @@ Specification Todo
 ------------------
 
 ponder:
-sending messages when adding people to your contact list?
+sending messages when adding/removing people from a group channel
 specifying the conference server for listing jabber chats
 destination for JUD searches
 should privacy modes be discoverable/settable offline?
@@ -16,3 +16,4 @@ typing notification
 submitting vcards
 sketching/drawing
 buddy icons
+mail notification
