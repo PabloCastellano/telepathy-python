@@ -190,7 +190,7 @@ if __name__ == '__main__':
     connection = TestConnection(bus_name, object_path, mainloop)
 
     def quit_cb():
-        connection.conn.Disconnect()
+        connection[CONN_INTERFACE].Disconnect()
         mainloop.quit()
 
     def sigterm_cb():
