@@ -14,23 +14,40 @@ from telepathy import *
 
 import telepathy.client
 
-class Channel(object):
-    def __init__(self, conn, obj_path):
-        self.conn = conn
+class ContactListChannel(telepathy.client.Channel):
+    def __init__(self, service_name, object_path, handle):
+        telepathy.client.Channel.__init__(self, service_name, object_path)
+        self.get_valid_interfaces().add(CHANNEL_TYPE_CONTACT_LIST)
+        self._handle = handle
 
-        bus = dbus.Bus()
-        self.chan_obj = bus.get_object(self.conn._service_name, obj_path)
-        self.chan = dbus.Interface(self.chan_obj, CHANNEL_INTERFACE)
+    def got_interfaces(self):
+        self[CHANNEL_INTERFACE].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers(reply_handler=self.get_remote_pending_members_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_signal_cb)
 
-class ListChannel(Channel):
-    def __init__(self, conn, obj_path):
-        Channel.__init__(self, conn, obj_path)
+    def members_changed_signal_cb(self, message, added, removed, local_p, remote_p):
+        print "MembersChanged on ContactListChannel ", self._handle
+        print "Message: ", message
+        print "Added: ", added
+        print "Removed: ", removed
+        print "Local Pending: ", local_p
+        print "Remote Pending: ", remote_p
 
-class TextChannel(Channel):
-    def __init__(self, conn, obj_path):
-        Channel.__init__(self, conn, obj_path)
-        self.text = dbus.Interface(self.chan_obj, CHANNEL_TYPE_TEXT)
-        self.text.connect_to_signal('Received', self.received_callback)
+    def get_members_reply_cb(self, members):
+        print "got members on CLC %s: %s" % (self._handle, members)
+
+    def get_local_pending_members_reply_cb(self, members):
+        print "got local pending members on CLC %s: %s" % (self._handle, members)
+
+    def get_remote_pending_members_reply_cb(self, members):
+        print "got remote pending members on CLC %s: %s" % (self._handle, members)
+
+class TextChannel(telepathy.client.Channel):
+    def __init__(self, service_name, object_path, handle):
+        telepathy.client.Channel.__init__(self, service_name, object_path)
+        self.get_valid_interfaces().add(CHANNEL_TYPE_TEXT)
+        self[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.received_callback)
         self.doack = True
 
         self._handled_pending_message = None
@@ -90,9 +107,9 @@ class TestConnection(telepathy.client.Connection):
         channel = None
 
         if type == CHANNEL_TYPE_TEXT:
-            channel = TextChannel(self, obj_path)
+            channel = TextChannel(self._service_name, obj_path, handle)
         elif type == CHANNEL_TYPE_CONTACT_LIST:
-            channel = ListChannel(self, obj_path)
+            channel = ContactListChannel(self._service_name, obj_path, handle)
 
         if channel != None:
             self._channels[obj_path] = channel
@@ -100,9 +117,9 @@ class TestConnection(telepathy.client.Connection):
             print 'Unknown channel type', type
 
     def connected_cb(self):
-        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
-        self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
-        print self[CONN_INTERFACE_PRESENCE].GetStatuses()
+#        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
+#        self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
+#        print self[CONN_INTERFACE_PRESENCE].GetStatuses()
         return False
 
     def get_interfaces_reply_cb(self, interfaces):
