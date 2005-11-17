@@ -140,12 +140,16 @@ class TestConnection(telepathy.client.Connection):
         self._status = CONNECTION_STATUS_CONNECTING
         self._channels = {}
 
-        self[CONN_INTERFACE].connect_to_signal('StatusChanged', self.status_changed_signal_cb)
-        self[CONN_INTERFACE].connect_to_signal('NewChannel', self.new_channel_signal_cb)
-
+        print "calling GetStatus async"
         # handle race condition when connecting completes
         # before the signal handlers are registered
         self[CONN_INTERFACE].GetStatus(reply_handler=self.get_status_reply_cb, error_handler=self.error_cb)
+        print "called GetStatus"
+
+        print 'connecting to StatusChanged'
+        self[CONN_INTERFACE].connect_to_signal('StatusChanged', self.status_changed_signal_cb)
+        print 'connecting to NewChannel'
+        self[CONN_INTERFACE].connect_to_signal('NewChannel', self.new_channel_signal_cb)
 
     def error_cb(self, exception):
         print "Exception received from asynchronous method call:"
