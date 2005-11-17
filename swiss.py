@@ -245,7 +245,7 @@ class JabberIMChannel(telepathy.server.ChannelTypeText):
         type = CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
         text = unicode(stanza.get_body())
 
-        self.Received(id, timestamp, sender.get_id(), type, text)
+        self.Received(id, timestamp, sender, type, text)
         self._recv_id += 1
 
         return True
@@ -255,6 +255,7 @@ class JabberIMChannel(telepathy.server.ChannelTypeText):
             raise telepathy.NotImplemented('only the normal message type is currently supported')
         msg = pyxmpp.message.Message(to_jid=self._jid, body=text, stanza_type=type)
         self._conn.safe_send(msg)
+        self.Sent(int(time.time()), type, text)
 
 class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Connection, telepathy.server.ConnectionInterfacePresence):
     _mandatory_parameters = {'account':'s', 'password':'s'}
@@ -493,6 +494,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
 
         if not handled:
             chan = JabberIMChannel(self, sender)
+            self._im_channels[sender] = chan
             self.add_channel(chan, sender, supress_handler=False)
             handled = chan.message_handler(sender, stanza)
 
