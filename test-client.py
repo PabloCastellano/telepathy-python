@@ -156,6 +156,7 @@ class TestConnection(telepathy.client.Connection):
         print exception
 
     def get_status_reply_cb(self, status):
+        print "get_status_reply_cb", status
         self.status_changed_signal_cb(status, CONNECTION_STATUS_REASON_NONE_SPECIFIED)
 
     def new_channel_signal_cb(self, obj_path, type, handle, supress_handler):
@@ -205,6 +206,7 @@ class TestConnection(telepathy.client.Connection):
         print 'StatusChanged', status, reason
 
         if status == CONNECTION_STATUS_CONNECTED:
+            print "connection connected"
             self[CONN_INTERFACE].GetInterfaces(reply_handler=self.get_interfaces_reply_cb, error_handler=self.error_cb)
         if status == CONNECTION_STATUS_DISCONNECTED:
             print "connection terminated"
@@ -245,6 +247,7 @@ if __name__ == '__main__':
     mgr_object_path = reg.GetObjectPath(manager)
 
     cmdline_params = dict((p.split('=') for p in sys.argv[3:]))
+    print "got commandline params: ",cmdline_params
     params={}
 
     for (name, (type, default)) in reg.GetParams(manager, protocol)[0].iteritems():
@@ -256,11 +259,12 @@ if __name__ == '__main__':
             params[name] = dbus.Variant(raw_input(name+': '),type)
 
     mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
+    print "using params:",params
     bus_name, object_path = mgr[CONN_MGR_INTERFACE].Connect(protocol, params)
-
+    print "done connect"
     mainloop = gobject.MainLoop()
     connection = TestConnection(bus_name, object_path, mainloop)
-
+    print "created connection"
     def quit_cb():
         connection[CONN_INTERFACE].Disconnect()
         mainloop.quit()
