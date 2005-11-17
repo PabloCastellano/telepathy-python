@@ -136,12 +136,12 @@ class TextChannel(telepathy.client.Channel):
 
         self._window.show_all()
 
-        self._conn.call_with_handle(handle, self.set_window_title_cb)
-
-        # XXX: set up a callback
+        # asynchronously retrieve messages that have not been
         self._handled_pending_message = None
-        pending_messages = self[CHANNEL_TYPE_TEXT].ListPendingMessages()
-        print pending_messages
+        self[CHANNEL_TYPE_TEXT].ListPendingMessages(reply_handler=self.list_pending_messages_reply_cb, error_handler=self.error_cb)
+
+    def list_pending_messages_reply_cb(self, pending_messages):
+        print "got pending messages", pending_messages
         for msg in pending_messages:
             (id, timestamp, sender, type, message) = msg
             print "Handling pending message", id
