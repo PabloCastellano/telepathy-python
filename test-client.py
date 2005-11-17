@@ -104,6 +104,8 @@ class StreamedMediaChannel(telepathy.client.Channel):
 
 class TextChannel(telepathy.client.Channel):
     def __init__(self, conn, object_path, handle):
+        # FIXME: this is racy and buggy and smells, and is deprecated in
+        # favour of the stuff in sdp-client.py
         telepathy.client.Channel.__init__(self, conn._service_name, object_path)
         self.get_valid_interfaces().add(CHANNEL_TYPE_TEXT)
         self[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.received_callback)
