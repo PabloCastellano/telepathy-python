@@ -80,8 +80,8 @@ class ContactListChannel(telepathy.client.Channel):
         print "got remote pending members on CLC %s: %s" % (self._name, members)
 
 class StreamedMediaChannel(telepathy.client.Channel):
-    def __init__(self, service_name, object_path, handle):
-        telepathy.client.Channel.__init__(self, service_name, object_path)
+    def __init__(self, conn, object_path, handle):
+        telepathy.client.Channel.__init__(self, conn._service_name, object_path)
         self.get_valid_interfaces().add(CHANNEL_TYPE_STREAMED_MEDIA)
         self[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal('ReceivedMediaParameters', self.received_media_params_cb)
         self[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
@@ -170,7 +170,10 @@ class TestConnection(telepathy.client.Connection):
         if type == CHANNEL_TYPE_TEXT:
             channel = TextChannel(self, obj_path, handle)
         elif type == CHANNEL_TYPE_CONTACT_LIST:
-            channel = ContactListChannel(self._service_name, obj_path, handle)
+            channel = ContactListChannel(self, obj_path, handle)
+        elif type == CHANNEL_TYPE_STREAMED_MEDIA:
+            print "got new streamed media channel"
+            channel = StreamedMediaChannel(self, obj_path, handle)
 
         if channel != None:
             self._channels[obj_path] = channel
