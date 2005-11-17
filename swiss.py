@@ -227,13 +227,14 @@ class JabberPublishListChannel(telepathy.server.ChannelTypeContactList, telepath
             else:
                 pass
 
-class JabberIMChannel(telepathy.server.ChannelTypeText):
-    def __init__(self, conn, recipient):
+class JabberIMChannel(telepathy.server.ChannelTypeText, telepathy.server.ChannelInterfaceNamed):
+    def __init__(self, conn, handle):
         telepathy.server.ChannelTypeText.__init__(self, conn)
+        telepathy.server.ChannelInterfaceNamed.__init__(self, handle)
 
-        self._jid = recipient.get_jid()
+        self._jid = handle.get_jid()
         self._members.add(conn._self_handle)
-        self._members.add(recipient)
+        self._members.add(handle)
         self._recv_id = 0
 
     def message_handler(self, sender, stanza):
@@ -256,6 +257,12 @@ class JabberIMChannel(telepathy.server.ChannelTypeText):
         msg = pyxmpp.message.Message(to_jid=self._jid, body=text, stanza_type=type)
         self._conn.safe_send(msg)
         self.Sent(int(time.time()), type, text)
+
+    def Close(self):
+        # FIXME: DBUS SUCKS. I SHOULD NOT HAVE TO OVERRIDE THIS METHOD
+        # AND REMOVE AN OBJECT FROM A WEAK VALUE DICTIONARY
+        telepathy.server.ChannelTypeText.Close(self)
+        del self._conn._im_channels[self._handle]
 
 class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Connection, telepathy.server.ConnectionInterfacePresence):
     _mandatory_parameters = {'account':'s', 'password':'s'}
