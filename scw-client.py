@@ -92,6 +92,7 @@ class TextChannel(telepathy.client.Channel):
         self[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.received_signal_cb)
         self[CHANNEL_TYPE_TEXT].connect_to_signal('Sent', self.sent_signal_cb)
         self._conn = conn
+        self._object_path = object_path
 
         self._window = gtk.Window()
         self._window.connect("delete-event", self.gtk_delete_event_cb)
@@ -143,7 +144,8 @@ class TextChannel(telepathy.client.Channel):
             self._handled_pending_message = id
 
     def gtk_delete_event_cb(self, window, event):
-        pass
+        self[CHANNEL_INTERFACE].Close(reply_callback=(lambda: None), error_callback=self.error_cb)
+        del self._conn._channels[self._object_path]
 
     def gtk_entry_activate_cb(self, entry):
         self[CHANNEL_TYPE_TEXT].Send(CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, entry.get_text())
