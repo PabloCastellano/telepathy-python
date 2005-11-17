@@ -58,7 +58,8 @@ class Channel(dbus.service.Object):
         Possible Errors:
         Disconnected, NetworkError, NotImplemented
         """
-        pass
+        self.Closed()
+        self._conn.remove_channel(self)
 
     @dbus.service.signal(CHANNEL_INTERFACE, signature='')
     def Closed(self):

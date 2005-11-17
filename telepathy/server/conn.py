@@ -141,6 +141,9 @@ class Connection(dbus.service.Object):
         self._channels.add(channel)
         self.NewChannel(channel._object_path, channel._type, handle.get_id(), supress_handler)
 
+    def remove_channel(self, channel):
+        self._channels.remove(channel)
+
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
         """
