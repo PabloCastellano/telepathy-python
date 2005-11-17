@@ -96,11 +96,11 @@ class StreamedMediaChannel(telepathy.client.Channel):
   
     def closed_cb(self):
         print "Channel closed"
-    def members_changed_cb(self, reason, added, removed, local_pending, local_received):
+
+    def members_changed_cb(self, reason, added, removed, local_pending, remote_pending):
         print "Members Changed"
         print "  added ",added," removed", removed
-        print "  local pending",local_pending," local remote", local_remote
-
+        print "  local pending",local_pending," remote pending ", remote_pending
 
 class TextChannel(telepathy.client.Channel):
     def __init__(self, conn, object_path, handle):
