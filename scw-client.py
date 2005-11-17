@@ -129,6 +129,11 @@ class TextChannel(telepathy.client.Channel):
         self._entry.set_property("history-size", 100)
         self._box.pack_end(self._entry, False, True, 0)
 
+        # set the window title according to who you're talking to
+        self._window.set_title("Conversation")
+        if handle:
+            self._conn.call_with_handle(handle, self.set_window_title_cb)
+
         self._window.show_all()
 
         self._conn.call_with_handle(handle, self.set_window_title_cb)
@@ -163,11 +168,11 @@ class TextChannel(telepathy.client.Channel):
 
     def set_window_title_cb(self, type, name):
         if type == CONNECTION_HANDLE_TYPE_CONTACT:
-            title = "Chatting with %s" % name
+            title = "Conversation with %s" % name
         elif type == CONNECTION_HANDLE_TYPE_ROOM:
-            title = "Chatting in %s" % name
+            title = "Conversation in %s" % name
         else:
-            title = "Chatting with a list? What's going on?"
+            title = "Conversation with a list? What's going on?"
         self._window.set_title(title)
 
     def show_received_cb(self, id, timestamp, type, message, handle_type, sender):
