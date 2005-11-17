@@ -1,8 +1,13 @@
 Specification Todo
 ------------------
 
-ponder:
+add:
 sending messages when adding/removing people from a group channel
+flag to say that aliases are user settable
+named channel contains people handles on 1-1 channels
+
+ponder:
+member changed reason? requested, remote, disconnect?
 specifying the conference server for listing jabber chats
 destination for JUD searches
 should privacy modes be discoverable/settable offline?
