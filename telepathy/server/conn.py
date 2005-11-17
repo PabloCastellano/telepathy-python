@@ -682,9 +682,10 @@ class ConnectionInterfacePresence(dbus.service.Interface):
     (see http://www.galago-project.org/).
 
     Presence on an individual (yourself or one of your contacts) is modelled as
-    an idle time along with a set of zero or more statuses, each of which may
-    have arbitrary key/value parameters. Valid statuses are defined per
-    connection, and a list of them can be obtained with the GetStatuses method.
+    an last activity time along with a set of zero or more statuses, each of
+    which may have arbitrary key/value parameters. Valid statuses are defined
+    per connection, and a list of them can be obtained with the GetStatuses
+    method.
 
     Each status has an arbitrary string identifier which should have an agreed
     meaning between the connection manager and any client which is expected to
@@ -779,7 +780,7 @@ class ConnectionInterfacePresence(dbus.service.Interface):
 
         Parameters:
         a dictionary of contact handles mapped to a struct containing:
-        - the idle time of the contact in seconds
+        - a UNIX timestamp of the last activity time (in UTC)
         - a dictionary mapping the contact's current status identifiers to:
           a dictionary of optional parameter names mapped to their 
           variant-boxed values
@@ -787,12 +788,13 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         pass
 
     @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='u', out_signature='')
-    def SetIdle(self, time):
+    def SetLastActivityTime(self, time):
         """
-        Request that the user's idle time be updated.
+        Request that the recorded last activity time for the user be updated on
+        the server.
 
         Parameters:
-        time - the idle time of the user in seconds
+        time - a UNIX timestamp of the user's last activity time (in UTC)
 
         Possible Errors:
         Disconnected, NetworkError, NotImplemented (this protocol has no concept of idle time)
