@@ -85,8 +85,11 @@ class StreamedMediaChannel(telepathy.client.Channel):
         self.get_valid_interfaces().add(CHANNEL_TYPE_STREAMED_MEDIA)
         self[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal('ReceivedMediaParameters', self.received_media_params_cb)
         self[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
+ 
+    def got_interfaces(self):
+        print "SMC got interfaces"
         self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_cb)
-        self.doack = True
+        print "done"
 
     def received_media_params_cb(self, id, local, remote):
         print "Received media params for %s.\n   local SDP = %s\n  remote SDP = %s" % (id, local, remote) 
@@ -268,6 +271,8 @@ if __name__ == '__main__':
     mainloop = gobject.MainLoop()
     connection = TestConnection(bus_name, object_path, mainloop)
     print "created connection"
+
+
     def quit_cb():
         connection[CONN_INTERFACE].Disconnect()
         mainloop.quit()
