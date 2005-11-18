@@ -303,7 +303,7 @@ class Connection(dbus.service.Object):
         Disconnected
         """
         self.check_connected()
-        return self._self_handle.get_id()
+        return self._self_handle
 
     @dbus.service.signal(CONN_INTERFACE, signature='uu')
     def StatusChanged(self, status, reason):
