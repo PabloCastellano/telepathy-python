@@ -138,7 +138,7 @@ class TextChannel(telepathy.client.Channel):
         self.doack = True
 
         self._handled_pending_message = None
-        pending_messages = self.text.ListPendingMessages()
+        pending_messages = self[CHANNEL_TYPE_TEXT].ListPendingMessages()
         print pending_messages
         for msg in pending_messages:
             (id, timestamp, sender, type, message) = msg
@@ -156,10 +156,10 @@ class TextChannel(telepathy.client.Channel):
                 return
 
         print "Received", id, timestamp, sender, type, message
-        self.text.Send(CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, 'got message ' + str(id) + '(' + message + ')')
+        self[CHANNEL_TYPE_TEXT].Send(CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, 'got message ' + str(id) + '(' + message + ')')
         if self.doack:
             print "Acknowledging...", id
-            self.text.AcknowledgePendingMessage(id)
+            self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessage(id)
 
 class TestConnection(telepathy.client.Connection):
     def __init__(self, service_name, object_path, mainloop):
@@ -213,7 +213,8 @@ class TestConnection(telepathy.client.Connection):
             print 'Unknown channel type', type
 
     def connected_cb(self):
-        self[CONN_INTERFACE_STREAMED_MEDIA].SetMediaParameters(
+        if CONN_INTERFACE_STREAMED_MEDIA in self.get_valid_interfaces():
+            self[CONN_INTERFACE_STREAMED_MEDIA].SetMediaParameters(
 "v=0\r\nm=audio 0 RTP/AVP 3 0 8\r\na=rtpmap:3 GSM/8000\r\na=rtpmap  PCMU/8000\r\na=rtpmap:8 PCMA/8000\r\n")
 
 #        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'sip:test2@192.168.1.101')
@@ -284,7 +285,6 @@ if __name__ == '__main__':
     mgr_object_path = reg.GetObjectPath(manager)
 
     cmdline_params = dict((p.split('=') for p in sys.argv[3:]))
-    print "got commandline params: ",cmdline_params
     params={}
 
     for (name, (type, default)) in reg.GetParams(manager, protocol)[0].iteritems():
