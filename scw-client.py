@@ -117,6 +117,7 @@ class TextChannel(telepathy.client.Channel):
         self._view = scw.View()
         self._view.connect("activate", self.gtk_view_activate_cb)
         self._view.connect("context-request", self.gtk_view_context_request_cb)
+        self._view.connect("key-press-event", self.gtk_view_key_press_event_cb)
         self._view.set_property("model", self._model)
         self._view.set_property("align-presences", True)
         self._view.set_property("presence-alignment", pango.ALIGN_CENTER)
@@ -160,10 +161,15 @@ class TextChannel(telepathy.client.Channel):
         self[CHANNEL_TYPE_TEXT].Send(CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, entry.get_text())
         entry.set_text("")
 
-    def gtk_view_activate_cb(self, view, action_id, action_data, model):
+    def gtk_view_activate_cb(self, view, action_id, action_data):
         print "Activated id %s which has data %s" % (action_id, action_data)
 
-    def gtk_view_context_request_cb(self, view, action_id, action_data, x, y, model):
+    def gtk_view_key_press_event_cb(self, view, event):
+        # TODO: cunningness to find out whether we should focus
+        # the input window
+        pass
+
+    def gtk_view_context_request_cb(self, view, action_id, action_data, x, y):
         if action_id is not None:
             print "Context request at (%i,%i) for id %s which has data %s" % \
             (x, y, action_id, action_data)
