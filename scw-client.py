@@ -103,12 +103,10 @@ class ContactWindow:
             self._conn.call_with_handle(member, (lambda type, name: self.add_buddy(member, type, name)))
 
     def set_subscribe_list(self, subscribe):
-        print "set subscribe list called"
         self._subscribe = subscribe
         self._subscribe[CHANNEL_INTERFACE].GetMembers(reply_handler=self.subscribe_get_members_reply_cb, error_handler=self.error_cb)
 
     def set_publish_list(self, publish):
-        print "set publish list called"
         self._publish = publish
 
     def error_cb(self, error):
@@ -318,20 +316,15 @@ class TextChannel(telepathy.client.Channel):
                         2, message)
 
     def get_self_handle_reply_cb(self, handle):
-        print "self handle", handle
         self._self_handle = handle
         for func in self._self_handle_cb:
-            print "invoking cb", funcfdsa
             self._conn.call_with_handle(handle, func)
 
     def sent_signal_cb(self, timestamp, type, message):
         func = (lambda handle_type, sender: self.show_sent_cb(timestamp, type, message, 0, sender))
-        print "defining sender func", func
         if self._self_handle:
-            print "invoking directly"
             self._conn.call_with_handle(self._self_handle, func)
         else:
-            print "storing cb"
             self._self_handle_cb.append(func)
 
 class TestConnection(telepathy.client.Connection):
@@ -369,7 +362,6 @@ class TestConnection(telepathy.client.Connection):
             self.new_channel_signal_cb(obj_path, type, handle, False)
 
     def give_list_to_contact_window(self, channel, name):
-        print "give list to contact", name
         if self._contact_window:
             if name == 'subscribe':
                 self._contact_window.set_subscribe_list(channel)
