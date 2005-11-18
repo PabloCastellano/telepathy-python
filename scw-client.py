@@ -28,10 +28,13 @@ class ContactWindow:
 
         if CONN_INTERFACE_PRESENCE in self._conn.get_valid_interfaces():
             self._conn[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
-
+            self._conn[CONN_INTERFACE_PRESENCE].GetStatuses(reply_handler=self.get_statuses_reply_cb,
+                                                            error_handler=self.error_cb)
 
         self._subscribe = None
         self._publish = None
+
+        self._statuses = None
 
         self._window = gtk.Window()
         self._window.connect("delete-event", self.gtk_delete_event_cb)
@@ -68,11 +71,17 @@ class ContactWindow:
     def get_self_handle_reply_cb(self, handle):
         self._conn.call_with_handle(handle, self.set_window_title_cb)
 
-    def presence_update_signal_cb(self, presence):
-        pass
+    def get_statuses_reply_cb(self, statuses):
+        self._statuses = statuses
 
-    def update_buddy(self, handle, presences):
-        pass
+    def presence_update_signal_cb(self, presences):
+        for (handle, presence) in presences.itervalues():
+            self.update_buddy(handle, presence)
+
+    def update_buddy(self, handle, presence):
+        for (idle, statuses) in presence:
+            for (name, params) in statuses:
+                print "presence", handle, name, params
 
     def add_buddy(self, handle, type, name):
         iter = self._model.append()
