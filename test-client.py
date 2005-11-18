@@ -28,6 +28,7 @@ import getpass
 import gobject
 import signal
 import sys
+import os
 
 from telepathy import *
 
@@ -137,12 +138,14 @@ class StreamedMediaChannel(telepathy.client.Channel):
         print "Channel has local pending members", members
         print self[CHANNEL_INTERFACE].GetInterfaces()
         if members:
- #           print "getting handle for test2"
- #           handle = self._conn[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'sip:test2@192.168.1.101')
- #           print "got handle %d for %s" % (handle, 'sip:test2@192.168.1.101')
- #           self[CHANNEL_INTERFACE_TRANSFER].Transfer(members[0],handle)
-
-             self[CHANNEL_INTERFACE_GROUP].AddMembers(members)
+           if "SIPDEBUG" in os.environ and os.environ["SIPDEBUG"] == "transfer":
+               print "getting handle for test2"
+               handle = self._conn[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'sip:test2@192.168.1.101')
+               print "got handle %d for %s" % (handle, 'sip:test2@192.168.1.101')
+               self[CHANNEL_INTERFACE_TRANSFER].Transfer(members[0],handle)
+           else:
+              print "adding member"
+              self[CHANNEL_INTERFACE_GROUP].AddMembers(members)
 
     def get_remote_pending_members_reply_cb(self, members):
         print "Channel has remote pending members", members
@@ -235,14 +238,17 @@ class TestConnection(telepathy.client.Connection):
         if CONN_INTERFACE_STREAMED_MEDIA in self.get_valid_interfaces():
             self[CONN_INTERFACE_STREAMED_MEDIA].SetMediaParameters(
 "v=0\r\nm=audio 0 RTP/AVP 3 0 8\r\na=rtpmap:3 GSM/8000\r\na=rtpmap  PCMU/8000\r\na=rtpmap:8 PCMA/8000\r\n")
-
-#        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'sip:test2@192.168.1.101')
-#        print "got handle %d for %s" % (handle, 'sip:test2@192.168.1.101')
-#        print "calling RequestChannel"
-#        obj = self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_STREAMED_MEDIA, handle, True)
-#        print "called RequestChannel, got ", obj
-        #print self[CONN_INTERFACE_PRESENCE].GetStatuses()
-#        self[CONN_INTERFACE_FORWARDING].SetForwardingHandle(handle)
+        if "SIPDEBUG" in os.environ and os.environ["SIPDEBUG"][:5] == "call:":
+            handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, os.environ["SIPDEBUG"][5:])
+            print "got handle %d for %s" % (handle, os.environ["SIPDEBUG"][5:])
+            print "calling RequestChannel"
+            obj = self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_STREAMED_MEDIA, handle, True)
+            print "called RequestChannel, got ", obj
+        elif "SIPDEBUG" in os.environ and os.environ["SIPDEBUG"][:8] == "forward:":
+            handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, os.environ["SIPDEBUG"][8:])
+            print "got handle %d for %s" % (handle, os.environ["SIPDEBUG"][8:])
+            #print self[CONN_INTERFACE_PRESENCE].GetStatuses()
+            self[CONN_INTERFACE_FORWARDING].SetForwardingHandle(handle)
         return False
 
     def presence_update_signal_cb(self, presence):
