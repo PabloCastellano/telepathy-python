@@ -253,7 +253,6 @@ if __name__ == '__main__':
     reg = telepathy.client.ManagerRegistry()
     reg.LoadManagers()
 
-    protocol=''
     protos=reg.GetProtos()
 
     if len(protos) == 0:
@@ -263,21 +262,23 @@ if __name__ == '__main__':
     if len(sys.argv) > 2:
         protocol = sys.argv[2]
     else:
-        while (protocol not in protos):
-            protocol = raw_input('Protocol (one of: %s) [%s]: ' % (' '.join(protos),protos[0]))
-            if protocol == '':
-                protocol = protos[0]
+        protocol=''
 
-    manager=''
-    managers=reg.GetManagers(protocol)
+    while (protocol not in protos):
+        protocol = raw_input('Protocol (one of: %s) [%s]: ' % (' '.join(protos),protos[0]))
+        if protocol == '':
+            protocol = protos[0]
+
+    if len(sys.argv) > 1:
+        manager = sys.argv[1]
+    else:
+        manager = ''
+    managers = reg.GetManagers(protocol)
 
     while (manager not in managers):
-        if len(sys.argv) > 1:
-            manager = sys.argv[1]
-        else:
-            manager = raw_input('Manager (one of: %s) [%s]: ' % (' '.join(managers),managers[0]))
-            if manager == '':
-                manager = managers[0]
+        manager = raw_input('Manager (one of: %s) [%s]: ' % (' '.join(managers),managers[0]))
+        if manager == '':
+            manager = managers[0]
 
     mgr_bus_name = reg.GetBusName(manager)
     mgr_object_path = reg.GetObjectPath(manager)
