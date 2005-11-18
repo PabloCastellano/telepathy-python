@@ -94,6 +94,9 @@ class TextChannel(telepathy.client.Channel):
         self._conn = conn
         self._object_path = object_path
 
+        self._self_handle = None
+        self._self_handle_cb = []
+
         self._window = gtk.Window()
         self._window.connect("delete-event", self.gtk_delete_event_cb)
         self._window.set_size_request(400, 300)
@@ -139,6 +142,7 @@ class TextChannel(telepathy.client.Channel):
         # asynchronously retrieve messages that have not been
         self._handled_pending_message = None
         self[CHANNEL_TYPE_TEXT].ListPendingMessages(reply_handler=self.list_pending_messages_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE].GetSelfHandle(reply_handler=self.get_self_handle_reply_cb, error_handler=self.error_cb)
 
     def list_pending_messages_reply_cb(self, pending_messages):
         print "got pending messages", pending_messages
@@ -179,7 +183,7 @@ class TextChannel(telepathy.client.Channel):
         iter = self._model.append()
         self._model.set(iter,
                         0, timestamp,
-                        1, sender,
+                        1, "<b>%s</b>" % sender,
                         2, message)
         self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessage(id, reply_handler=(lambda: None), error_handler=self.error_cb)
 
@@ -194,13 +198,29 @@ class TextChannel(telepathy.client.Channel):
 
         self._conn.call_with_handle(sender, (lambda handle_type, sender: self.show_received_cb(id, timestamp, type, message, handle_type, sender)))
 
-    def sent_signal_cb(self, timestamp, type, message):
-        # XXX: get self handle
+    def show_sent_cb(self, timestamp, type, message, handle_type, sender):
         iter = self._model.append()
         self._model.set(iter,
                         0, timestamp,
-                        1, "me",
+                        1, "<i>%s</i>" % sender,
                         2, message)
+
+    def get_self_handle_reply_cb(self, handle):
+        print "self handle", handle
+        self._self_handle = handle
+        for func in self._self_handle_cb:
+            print "invoking cb", funcfdsa
+            self._conn.call_with_handle(handle, func)
+
+    def sent_signal_cb(self, timestamp, type, message):
+        func = (lambda handle_type, sender: self.show_sent_cb(timestamp, type, message, 0, sender))
+        print "defining sender func", func
+        if self._self_handle:
+            print "invoking directly"
+            self._conn.call_with_handle(self._self_handle, func)
+        else:
+            print "storing cb"
+            self._self_handle_cb.append(func)
 
 class TestConnection(telepathy.client.Connection):
     def __init__(self, service_name, object_path, mainloop):
