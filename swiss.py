@@ -266,8 +266,8 @@ class JabberIMChannel(telepathy.server.ChannelTypeText, telepathy.server.Channel
 
 class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Connection, telepathy.server.ConnectionInterfacePresence):
     _mandatory_parameters = {'account':'s', 'password':'s'}
-    _optional_parameters = {'server':'s', 'port':'q'}
-    _parameter_defaults = {'port':5222}
+    _optional_parameters = {'server':'s', 'port':'q', 'require-encryption':'b'}
+    _parameter_defaults = {'port':5222, 'require-encryption':False}
 
     def __init__(self, manager, parameters):
         # throw InvalidArgument if parameters are wrong type or
@@ -302,6 +302,16 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         parameters = dict((str(k), v) for (k, v) in parameters.iteritems())
         parameters['jid'] = jid
         del parameters['account']
+
+        require_encryption = False
+        if 'require-encryption' in parameters:
+            if parameters['require-encryption']:
+                parameters['auth_methods'] = ['sasl:DIGEST-MD5', 'sasl:PLAIN', 'digest', 'plain']
+                require_encryption = True
+            del parameters['require-encryption']
+
+        # FIXME: should we verify the peer certificate...?! add an option?
+        parameters['tls_settings'] = pyxmpp.streamtls.TLSSettings(verify_peer=False, require=require_encryption)
         pyxmpp.jabber.client.JabberClient.__init__(self, **parameters)
 
         gobject.idle_add(self.connect_cb)
@@ -616,10 +626,17 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
             self.check_handle(handle_id)
             handle = self._handles
 
+class GoogleTalkConnection(JabberConnection):
+    _parameter_defaults = {'server':'talk.google.com', 'port':5222, 'require-encryption':True}
+
+    def __init__(self, manager, parameters):
+        JabberConnection.__init__(self, manager, parameters)
+
 class JabberConnectionManager(telepathy.server.ConnectionManager):
     def __init__(self):
         telepathy.server.ConnectionManager.__init__(self, 'swiss')
         self._protos['jabber'] = JabberConnection
+        self._protos['google-talk'] = GoogleTalkConnection
 
     def quit(self):
         for c in self._connections:
