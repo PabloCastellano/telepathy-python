@@ -20,6 +20,103 @@ from telepathy import *
 
 import telepathy.client
 
+class ContactWindow:
+    def __init__(self, conn):
+        self._conn = conn
+        self._conn[CONN_INTERFACE].GetSelfHandle(reply_handler=self.get_self_handle_reply_cb,
+                                                 error_handler=self.error_cb)
+
+        if CONN_INTERFACE_PRESENCE in self._conn.get_valid_interfaces():
+            self._conn[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
+
+
+        self._subscribe = None
+        self._publish = None
+
+        self._window = gtk.Window()
+        self._window.connect("delete-event", self.gtk_delete_event_cb)
+        self._window.set_size_request(400, 300)
+
+        self._box = gtk.VBox(False, 6)
+        self._window.add(self._box)
+
+        self._swin = gtk.ScrolledWindow(None, None)
+        self._swin.set_policy (gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        self._box.add(self._swin)
+
+        self._model = gtk.ListStore(gtk.gdk.Pixbuf,
+                                    scw.TYPE_PRESENCE,
+                                    gobject.TYPE_STRING)
+
+        self._view = scw.View()
+        self._view.connect("activate", self.gtk_view_activate_cb)
+        self._view.set_property("model", self._model)
+        self._view.set_column_foldable(2)
+        self._swin.add(self._view)
+
+        self._toolbar = gtk.Toolbar()
+        self._box.pack_end(self._toolbar, False, True, 0)
+
+        self._window.set_title("Contacts")
+        self._window.show_all()
+
+        self._icon = gtk.gdk.pixbuf_new_from_file_at_size("scw.png", 24, 24)
+
+    def set_window_title_cb(self, type, name):
+        self._window.set_title("Contacts for %s" % name)
+
+    def get_self_handle_reply_cb(self, handle):
+        self._conn.call_with_handle(handle, self.set_window_title_cb)
+
+    def presence_update_signal_cb(self, presence):
+        pass
+
+    def update_buddy(self, handle, presences):
+        pass
+
+    def add_buddy(self, handle, type, name):
+        iter = self._model.append()
+        self._model.set(iter,
+                        0, self._icon,
+                        1, "<b><action id='click%s'>%s</action></b>" % (handle, name),
+                        2, "")
+        if CONN_INTERFACE_PRESENCE in self._conn.get_valid_interfaces():
+            self._conn[CONN_INTERFACE_PRESENCE].RequestPresence([handle],
+                                                                reply_handler=(lambda: None),
+                                                                error_handler=self.error_cb)
+
+    def subscribe_get_members_reply_cb(self, members):
+        for member in members:
+            self._conn.call_with_handle(member, (lambda type, name: self.add_buddy(member, type, name)))
+
+    def subscribe_members_changed_signal_cb(self, reason, added, removed, local_pending, remote_pending):
+        for member in added:
+            self._conn.call_with_handle(member, (lambda type, name: self.add_buddy(member, type, name)))
+
+    def set_subscribe_list(self, subscribe):
+        print "set subscribe list called"
+        self._subscribe = subscribe
+        self._subscribe[CHANNEL_INTERFACE].GetMembers(reply_handler=self.subscribe_get_members_reply_cb, error_handler=self.error_cb)
+
+    def set_publish_list(self, publish):
+        print "set publish list called"
+        self._publish = publish
+
+    def error_cb(self, error):
+        print "Exception received from asynchronous method call:"
+        print error
+
+    def gtk_delete_event_cb(self, window, event):
+        self._conn[CONN_INTERFACE].Disconnect(reply_handler=(lambda: None),
+                                              error_handler=self.error_cb)
+
+    def gtk_view_activate_cb(self, view, action_id, action_data):
+        if action_id[:5] == 'click':
+            handle = int(action_id[5:])
+            self._conn[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, False,
+                                                      reply_handler=(lambda chan: None),
+                                                      error_handler=self.error_cb)
+
 class ContactListChannel(telepathy.client.Channel):
     def __init__(self, conn, object_path, handle):
         telepathy.client.Channel.__init__(self, conn._service_name, object_path)
@@ -241,6 +338,9 @@ class TestConnection(telepathy.client.Connection):
         self._handle_cache = {}
         self._handle_callbacks = {}
 
+        self._contact_window = None
+        self._lists = {}
+
         self[CONN_INTERFACE].connect_to_signal('StatusChanged', self.status_changed_signal_cb)
         self[CONN_INTERFACE].connect_to_signal('NewChannel', self.new_channel_signal_cb)
 
@@ -255,6 +355,20 @@ class TestConnection(telepathy.client.Connection):
     def get_status_reply_cb(self, status):
         self.status_changed_signal_cb(status, CONNECTION_STATUS_REASON_NONE_SPECIFIED)
 
+    def list_channels_reply_cb(self, channels):
+        for (obj_path, type, handle) in channels:
+            self.new_channel_signal_cb(obj_path, type, handle, False)
+
+    def give_list_to_contact_window(self, channel, name):
+        print "give list to contact", name
+        if self._contact_window:
+            if name == 'subscribe':
+                self._contact_window.set_subscribe_list(channel)
+            elif name == 'publish':
+                self._contact_window.set_publish_list(channel)
+        else:
+            self._lists[name] = channel
+
     def new_channel_signal_cb(self, obj_path, type, handle, supress_handler):
         if obj_path in self._channels:
             return
@@ -267,6 +381,7 @@ class TestConnection(telepathy.client.Connection):
             channel = TextChannel(self, obj_path, handle)
         elif type == CHANNEL_TYPE_CONTACT_LIST:
             channel = ContactListChannel(self, obj_path, handle)
+            self.call_with_handle(handle, (lambda type, name: self.give_list_to_contact_window(channel, name)))
 
         if channel != None:
             self._channels[obj_path] = channel
@@ -277,6 +392,13 @@ class TestConnection(telepathy.client.Connection):
 #        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
 #        self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
 #        print self[CONN_INTERFACE_PRESENCE].GetStatuses()
+        self._contact_window = ContactWindow(self)
+        if 'subscribe' in self._lists:
+            self._contact_window.set_subscribe_list(self._lists['subscribe'])
+            del self._lists['subscribe']
+        if 'publish' in self._lists:
+            self._contact_window.set_publish_list(self._lists['publish'])
+            del self._lists['publish']
         return False
 
     def presence_update_signal_cb(self, presence):
@@ -284,7 +406,7 @@ class TestConnection(telepathy.client.Connection):
 
     def get_interfaces_reply_cb(self, interfaces):
         self.get_valid_interfaces().update(interfaces)
-        self[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
+        self[CONN_INTERFACE].ListChannels(reply_handler=self.list_channels_reply_cb, error_handler=self.error_cb)
         gobject.idle_add(self.connected_cb)
 
     def status_changed_signal_cb(self, status, reason):
