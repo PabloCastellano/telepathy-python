@@ -1,5 +1,6 @@
 """
 telepathy-python - Base classes defining the interfaces of the Telepathy framework
+
 Copyright (C) 2005 Collabora Limited
 Copyright (C) 2005 Nokia Corporation
 
