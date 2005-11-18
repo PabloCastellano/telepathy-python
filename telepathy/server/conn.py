@@ -75,6 +75,8 @@ class Connection(dbus.service.Object):
         Uses the values of self._mandatory_parameters and
         self._optional_parameters to validate and type check all of the
         provided parameters, and check all mandatory parameters are present.
+        Sets defaults according to the defaults if the client has not
+        provided any.
         """
         for (parm, value) in parameters.iteritems():
             if parm in self._mandatory_parameters.keys():
@@ -90,8 +92,15 @@ class Connection(dbus.service.Object):
             elif sig == 'q':
                 if not isinstance(value, int):
                     raise InvalidArgument('incorrect type to %s parameter, got %s, expected an int' % (parm, type(value)))
+            elif sig == 'b':
+                if not isinstance(value, bool):
+                    raise InvalidArgument('incorrect type to %s parameter, got %s, expected an boolean' % (parm, type(value)))
             else:
                 raise TypeError('unknown type signature %s in protocol parameters' % type)
+
+        for (parm, value) in self._parameter_defaults.iteritems():
+            if parm not in parameters:
+                parameters[parm] = value
 
         missing = set(self._mandatory_parameters.keys()).difference(parameters.keys())
         if missing:
