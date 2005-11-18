@@ -420,7 +420,7 @@ class TestConnection(telepathy.client.Connection):
         if status == CONNECTION_STATUS_CONNECTED:
             self[CONN_INTERFACE].GetInterfaces(reply_handler=self.get_interfaces_reply_cb, error_handler=self.error_cb)
         if status == CONNECTION_STATUS_DISCONNECTED:
-            self.mainloop.quit()
+            self._mainloop.quit()
 
     def inspect_handle_reply_cb(self, id, type, name):
         self._handle_cache[id] = (type, name)
