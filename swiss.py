@@ -17,6 +17,10 @@ import weakref
 
 from telepathy import *
 
+#import logging
+
+#logging.basicConfig(level=logging.DEBUG)
+
 JABBER_PRESENCE_AVAILABLE = 'available'
 JABBER_PRESENCE_AWAY = 'away'
 JABBER_PRESENCE_CHAT = 'chat'
