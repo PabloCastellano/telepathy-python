@@ -28,7 +28,8 @@ be executed manually.
 
 Client Library
 --------------
-The client lib in telepathy/client/ isn't quite factored into a library yet,
-but test-client.py can read .manager files in ~/.telepathy/ and prompt you
-for the parameters for connecting. Beyond that, the code needs to be
-manually fiddled depending on what you're trying to do.
+The client lib in telepathy/client/ has some base classes to help with
+implementing a client in python. For examples, see ./test-client.py and
+./scw-client.py, both of which will read .manager files from ~/.telepathy/ and
+start a connection for you. The latter, scw-client, has a simple UI to show
+your subscribe list and allow text messages to your contacts.
