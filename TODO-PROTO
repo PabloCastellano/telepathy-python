@@ -1,9 +1,16 @@
 Prototype Todo
 --------------
 
-XMPP Connection Manager (brie):
-hook roster up to list channels
-presence signals
+XMPP Connection Manager (swiss):
+test roster hook up
+add presence setting
+jabber:x:delay (idle times)
+capabilities?
+aliasing?
+
+UI:
+contact list
+self handle discovery
 
 Other Stuff:
 proof of concept logger
