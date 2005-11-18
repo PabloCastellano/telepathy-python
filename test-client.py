@@ -82,14 +82,17 @@ class ContactListChannel(telepathy.client.Channel):
 class StreamedMediaChannel(telepathy.client.Channel):
     def __init__(self, conn, object_path, handle):
         telepathy.client.Channel.__init__(self, conn._service_name, object_path)
+        self._conn = conn
         self.get_valid_interfaces().add(CHANNEL_TYPE_STREAMED_MEDIA)
         self[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal('ReceivedMediaParameters', self.received_media_params_cb)
         self[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
  
     def got_interfaces(self):
         print "SMC got interfaces"
-        self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_cb)
-        print "done"
+        self[CHANNEL_INTERFACE].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers(reply_handler=self.get_remote_pending_members_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_signal_cb)
 
     def received_media_params_cb(self, id, local, remote):
         print "Received media params for %s.\n   local SDP = %s\n  remote SDP = %s" % (id, local, remote) 
@@ -97,10 +100,33 @@ class StreamedMediaChannel(telepathy.client.Channel):
     def closed_cb(self):
         print "Channel closed"
 
-    def members_changed_cb(self, reason, added, removed, local_pending, remote_pending):
+    def members_changed_signal_cb(self, reason, added, removed, local_pending, remote_pending):
         print "Members Changed"
         print "  added ",added," removed", removed
         print "  local pending",local_pending," remote pending ", remote_pending
+
+        self[CHANNEL_INTERFACE_DTMF].SendDTMF(1, 160)
+
+    def error_cb(self, exception):
+        print "Exception received from asynchronous method call:"
+        print exception
+  
+    def get_members_reply_cb(self, members):
+        print "Channel has members", members
+
+    def get_local_pending_members_reply_cb(self, members):
+        print "Channel has local pending members", members
+        print self[CHANNEL_INTERFACE].GetInterfaces()
+        if members:
+ #           print "getting handle for test2"
+ #           handle = self._conn[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'sip:test2@192.168.1.101')
+ #           print "got handle %d for %s" % (handle, 'sip:test2@192.168.1.101')
+ #           self[CHANNEL_INTERFACE_TRANSFER].Transfer(members[0],handle)
+
+             self[CHANNEL_INTERFACE_GROUP].AddMembers(members)
+
+    def get_remote_pending_members_reply_cb(self, members):
+        print "Channel has remote pending members", members
 
 class TextChannel(telepathy.client.Channel):
     def __init__(self, conn, object_path, handle):
@@ -171,7 +197,8 @@ class TestConnection(telepathy.client.Connection):
         print 'NewChannel', obj_path, type, handle, supress_handler
 
         channel = None
-
+        
+        print "channel type ", type
         if type == CHANNEL_TYPE_TEXT:
             channel = TextChannel(self, obj_path, handle)
         elif type == CHANNEL_TYPE_CONTACT_LIST:
@@ -179,7 +206,7 @@ class TestConnection(telepathy.client.Connection):
         elif type == CHANNEL_TYPE_STREAMED_MEDIA:
             print "got new streamed media channel"
             channel = StreamedMediaChannel(self, obj_path, handle)
-
+        
         if channel != None:
             self._channels[obj_path] = channel
         else:
@@ -189,12 +216,13 @@ class TestConnection(telepathy.client.Connection):
         self[CONN_INTERFACE_STREAMED_MEDIA].SetMediaParameters(
 "v=0\r\nm=audio 0 RTP/AVP 3 0 8\r\na=rtpmap:3 GSM/8000\r\na=rtpmap  PCMU/8000\r\na=rtpmap:8 PCMA/8000\r\n")
 
-        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'sip:test2@192.168.1.101')
-        print "got handle %d for %s" % (handle, 'sip:test2@192.168.1.101')
-        print "calling RequestChannel"
-        obj = self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_STREAMED_MEDIA, handle, True)
-        print "called RequestChannel, got ", obj
+#        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'sip:test2@192.168.1.101')
+#        print "got handle %d for %s" % (handle, 'sip:test2@192.168.1.101')
+#        print "calling RequestChannel"
+#        obj = self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_STREAMED_MEDIA, handle, True)
+#        print "called RequestChannel, got ", obj
         #print self[CONN_INTERFACE_PRESENCE].GetStatuses()
+#        self[CONN_INTERFACE_FORWARDING].SetForwardingHandle(handle)
         return False
 
     def presence_update_signal_cb(self, presence):
