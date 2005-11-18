@@ -105,6 +105,7 @@ class ContactWindow:
     def set_subscribe_list(self, subscribe):
         self._subscribe = subscribe
         self._subscribe[CHANNEL_INTERFACE].GetMembers(reply_handler=self.subscribe_get_members_reply_cb, error_handler=self.error_cb)
+        self._subscribe[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.subscribe_members_changed_signal_cb)
 
     def set_publish_list(self, publish):
         self._publish = publish
@@ -390,6 +391,8 @@ class TestConnection(telepathy.client.Connection):
             print 'Unknown channel type', type
 
     def connected_cb(self):
+        print "connected"
+        self[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
 #        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
 #        self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
 #        print self[CONN_INTERFACE_PRESENCE].GetStatuses()
