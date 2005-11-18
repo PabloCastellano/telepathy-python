@@ -564,8 +564,9 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
 
             if handle in self._im_channels:
                 chan = self._im_channels[handle]
-
-            chan = JabberIMChannel(self, handle)
+            else:
+                chan = JabberIMChannel(self, handle)
+                self._im_channels[handle] = chan
         elif type == CHANNEL_TYPE_CONTACT_LIST:
             self.check_handle(handle_id)
 
