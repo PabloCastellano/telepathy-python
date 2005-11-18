@@ -85,7 +85,7 @@ class ContactWindow:
 
         self._icon = gtk.gdk.pixbuf_new_from_file_at_size("face-surprise.png", 22, 22)
 
-    def set_window_title_cb(self, type, name):
+    def set_window_title_cb(self, handle, handle_type, name):
         self._window.set_title("Contacts for %s" % name)
 
     def get_self_handle_reply_cb(self, handle):
@@ -96,21 +96,18 @@ class ContactWindow:
 
     def presence_update_signal_cb(self, presences):
         for (handle, presence) in presences.iteritems():
-            self.update_buddy(handle, presence)
+            self.update_contact(handle, presence)
 
-    def update_buddy(self, handle, presence):
-        print "update buddy: presence", presence
+    def update_contact(self, handle, presence):
         idle, statuses = presence
-        print "idle", idle, "statuses", statuses
         for (name, params) in statuses.iteritems():
-            print "name", name, "params", params
-            print "presence", handle, name, params
+             print "update contact with presence", handle, name, params
 #            row = self._model_rows[handle]
 #            path = row.get_path()
 #            iter = self._model.get_iter()
 #            self._model.set_value(iter, 2, name)
 
-    def add_buddy(self, handle, type, name):
+    def add_contact(self, handle, handle_type, name):
         iter = self._model.append()
         self._model.set(iter,
                         0, self._icon,
@@ -126,11 +123,13 @@ class ContactWindow:
 
     def subscribe_get_members_reply_cb(self, members):
         for member in members:
-            self._conn.call_with_handle(member, (lambda type, name: self.add_buddy(member, type, name)))
+            print "subscribe_get_members_reply_cb", member
+            self._conn.call_with_handle(member, self.add_contact)
 
     def subscribe_members_changed_signal_cb(self, reason, added, removed, local_pending, remote_pending):
         for member in added:
-            self._conn.call_with_handle(member, (lambda type, name: self.add_buddy(member, type, name)))
+            print "subscribe_members_changed_signal_cb", member
+            self._conn.call_with_handle(member, self.add_contact)
 
     def set_subscribe_list(self, subscribe):
         self._subscribe = subscribe
@@ -171,7 +170,7 @@ class ContactListChannel(telepathy.client.Channel):
         self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers(reply_handler=self.get_remote_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_signal_cb)
 
-    def inspect_handle_reply_cb(self, type, name):
+    def inspect_handle_reply_cb(self, handle_type, name):
         print "CLC", self._name, "is", name
         self._name = name
         if name == 'subscribe':
@@ -284,9 +283,9 @@ class TextChannel(telepathy.client.Channel):
     def list_pending_messages_reply_cb(self, pending_messages):
         print "got pending messages", pending_messages
         for msg in pending_messages:
-            (id, timestamp, sender, type, message) = msg
+            (id, timestamp, sender, message_type, message) = msg
             print "Handling pending message", id
-            self.received_signal_cb(id, timestamp, sender, type, message)
+            self.received_signal_cb(id, timestamp, sender, message_type, message)
             self._handled_pending_message = id
 
     def gtk_delete_event_cb(self, window, event):
@@ -312,16 +311,16 @@ class TextChannel(telepathy.client.Channel):
         else:
             print "Context request at (%i,%i) for global context menu" % (x,y)
 
-    def set_window_title_cb(self, type, name):
-        if type == CONNECTION_HANDLE_TYPE_CONTACT:
+    def set_window_title_cb(self, handle, handle_type, name):
+        if handle_type == CONNECTION_HANDLE_TYPE_CONTACT:
             title = "Conversation with %s" % name
-        elif type == CONNECTION_HANDLE_TYPE_ROOM:
+        elif handle_type == CONNECTION_HANDLE_TYPE_ROOM:
             title = "Conversation in %s" % name
         else:
             title = "Conversation with a list? What's going on?"
         self._window.set_title(title)
 
-    def show_received_cb(self, id, timestamp, type, message, handle_type, sender):
+    def show_received_cb(self, id, timestamp, message_type, message, sender):
         iter = self._model.append()
         self._model.set(iter,
                         0, timestamp,
@@ -329,7 +328,7 @@ class TextChannel(telepathy.client.Channel):
                         2, message)
         self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessage(id, reply_handler=(lambda: None), error_handler=self.error_cb)
 
-    def received_signal_cb(self, id, timestamp, sender, type, message):
+    def received_signal_cb(self, id, timestamp, sender, message_type, message):
         if self._handled_pending_message != None:
             if id > self._handled_pending_message:
                 print "Now handling messages directly"
@@ -338,9 +337,9 @@ class TextChannel(telepathy.client.Channel):
                 print "Skipping already handled message", id
                 return
 
-        self._conn.call_with_handle(sender, (lambda handle_type, sender: self.show_received_cb(id, timestamp, type, message, handle_type, sender)))
+        self._conn.call_with_handle(sender, (lambda handle, handle_type, sender: self.show_received_cb(id, timestamp, message_type, message, sender)))
 
-    def show_sent_cb(self, timestamp, type, message, handle_type, sender):
+    def show_sent_cb(self, timestamp, message_type, message, sender):
         iter = self._model.append()
         self._model.set(iter,
                         0, timestamp,
@@ -352,8 +351,8 @@ class TextChannel(telepathy.client.Channel):
         for func in self._self_handle_cb:
             self._conn.call_with_handle(handle, func)
 
-    def sent_signal_cb(self, timestamp, type, message):
-        func = (lambda handle_type, sender: self.show_sent_cb(timestamp, type, message, 0, sender))
+    def sent_signal_cb(self, timestamp, message_type, message):
+        func = (lambda handle, handle_type, sender: self.show_sent_cb(timestamp, message_type, message, sender))
         if self._self_handle:
             self._conn.call_with_handle(self._self_handle, func)
         else:
@@ -390,8 +389,8 @@ class TestConnection(telepathy.client.Connection):
         self.status_changed_signal_cb(status, CONNECTION_STATUS_REASON_NONE_SPECIFIED)
 
     def list_channels_reply_cb(self, channels):
-        for (obj_path, type, handle) in channels:
-            self.new_channel_signal_cb(obj_path, type, handle, False)
+        for (obj_path, channel_type, handle) in channels:
+            self.new_channel_signal_cb(obj_path, channel_type, handle, False)
 
     def give_list_to_contact_window(self, channel, name):
         if self._contact_window:
@@ -402,24 +401,24 @@ class TestConnection(telepathy.client.Connection):
         else:
             self._lists[name] = channel
 
-    def new_channel_signal_cb(self, obj_path, type, handle, supress_handler):
+    def new_channel_signal_cb(self, obj_path, channel_type, handle, supress_handler):
         if obj_path in self._channels:
             return
 
-        print 'NewChannel', obj_path, type, handle, supress_handler
+        print 'NewChannel', obj_path, channel_type, handle, supress_handler
 
         channel = None
 
-        if type == CHANNEL_TYPE_TEXT:
+        if channel_type == CHANNEL_TYPE_TEXT:
             channel = TextChannel(self, obj_path, handle)
-        elif type == CHANNEL_TYPE_CONTACT_LIST:
+        elif channel_type == CHANNEL_TYPE_CONTACT_LIST:
             channel = ContactListChannel(self, obj_path, handle)
-            self.call_with_handle(handle, (lambda type, name: self.give_list_to_contact_window(channel, name)))
+            self.call_with_handle(handle, (lambda id, channel_type, name: self.give_list_to_contact_window(channel, name)))
 
         if channel != None:
             self._channels[obj_path] = channel
         else:
-            print 'Unknown channel type', type
+            print 'Unknown channel type', channel_type
 
     def connected_cb(self):
         print "connected"
@@ -457,17 +456,17 @@ class TestConnection(telepathy.client.Connection):
         if status == CONNECTION_STATUS_DISCONNECTED:
             self._mainloop.quit()
 
-    def inspect_handle_reply_cb(self, id, type, name):
-        self._handle_cache[id] = (type, name)
+    def inspect_handle_reply_cb(self, id, handle_type, name):
+        self._handle_cache[id] = (handle_type, name)
 
         for func in self._handle_callbacks[id]:
-            func(type, name)
+            func(id, handle_type, name)
 
         del self._handle_callbacks[id]
 
     def call_with_handle(self, handle_id, func):
         if handle_id in self._handle_cache:
-            func(*self._handle_cache[handle_id])
+            func(handle_id, *self._handle_cache[handle_id])
         else:
             if handle_id not in self._handle_callbacks:
                 self[CONN_INTERFACE].InspectHandle(handle_id, reply_handler=(lambda *args: self.inspect_handle_reply_cb(handle_id, *args)), error_handler=self.error_cb)
@@ -512,13 +511,13 @@ if __name__ == '__main__':
     cmdline_params = dict((p.split('=') for p in sys.argv[3:]))
     params={}
 
-    for (name, (type, default)) in reg.GetParams(manager, protocol)[0].iteritems():
+    for (name, (dbus_type, default)) in reg.GetParams(manager, protocol)[0].iteritems():
         if name in cmdline_params:
-            params[name] = dbus.Variant(cmdline_params[name],type)
+            params[name] = dbus.Variant(cmdline_params[name],dbus_type)
         elif name == 'password':
-            params[name] = dbus.Variant(getpass.getpass(),type)
+            params[name] = dbus.Variant(getpass.getpass(),dbus_type)
         else:
-            params[name] = dbus.Variant(raw_input(name+': '),type)
+            params[name] = dbus.Variant(raw_input(name+': '),dbus_type)
 
     mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
     bus_name, object_path = mgr[CONN_MGR_INTERFACE].Connect(protocol, params)
