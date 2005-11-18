@@ -69,6 +69,7 @@ class ContactWindow:
         self._model = gtk.ListStore(gtk.gdk.Pixbuf,
                                     scw.TYPE_PRESENCE,
                                     gobject.TYPE_STRING)
+        self._model_rows = {}
 
         self._view = scw.View()
         self._view.connect("activate", self.gtk_view_activate_cb)
@@ -94,13 +95,20 @@ class ContactWindow:
         self._statuses = statuses
 
     def presence_update_signal_cb(self, presences):
-        for (handle, presence) in presences.itervalues():
+        for (handle, presence) in presences.iteritems():
             self.update_buddy(handle, presence)
 
     def update_buddy(self, handle, presence):
-        for (idle, statuses) in presence:
-            for (name, params) in statuses:
-                print "presence", handle, name, params
+        print "update buddy: presence", presence
+        idle, statuses = presence
+        print "idle", idle, "statuses", statuses
+        for (name, params) in statuses.iteritems():
+            print "name", name, "params", params
+            print "presence", handle, name, params
+#            row = self._model_rows[handle]
+#            path = row.get_path()
+#            iter = self._model.get_iter()
+#            self._model.set_value(iter, 2, name)
 
     def add_buddy(self, handle, type, name):
         iter = self._model.append()
@@ -108,6 +116,9 @@ class ContactWindow:
                         0, self._icon,
                         1, "<b><action id='click%s'>%s</action></b>" % (handle, name),
                         2, "")
+#        path = self._model.get_path(iter)
+#        row = gtk.TreeRowReference(self._model, path)
+#        self._model_rows[handle] = row
         if CONN_INTERFACE_PRESENCE in self._conn.get_valid_interfaces():
             self._conn[CONN_INTERFACE_PRESENCE].RequestPresence([handle],
                                                                 reply_handler=(lambda: None),
@@ -140,6 +151,7 @@ class ContactWindow:
     def gtk_view_activate_cb(self, view, action_id, action_data):
         if action_id[:5] == 'click':
             handle = int(action_id[5:])
+            print "requesting channel to", handle
             self._conn[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, False,
                                                       reply_handler=(lambda chan: None),
                                                       error_handler=self.error_cb)
