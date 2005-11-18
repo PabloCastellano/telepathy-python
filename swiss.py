@@ -523,6 +523,10 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         else:
             print u'Type: "normal".' % (t,)
 
+        # skip typing notification for the time being (jabber:x:event)
+        if body == None:
+            return False
+
         handled = False
         sender = self.get_handle_for_jid(stanza.get_from())
 
