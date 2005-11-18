@@ -75,10 +75,10 @@ class ManagerRegistry:
             if "name" not in connection_manager.keys():
                 raise ConfigParser.NoOptionError("name","ConnectionManager")
             self.services[connection_manager["name"]]=connection_manager
+            self.services[connection_manager["name"]]["protos"] = {}
             for section in set(config.sections()) - set(["ConnectionManager"]):
                 if section[:6]=="Proto ":
-                    self.services[connection_manager["name"]]["protos"]={section[6:]:dict(config.items(section))}
-                    print  self.services[connection_manager["name"]]["protos"]
+                    self.services[connection_manager["name"]]["protos"][section[6:]] = dict(config.items(section))
             del config
 
     def GetProtos(self):
