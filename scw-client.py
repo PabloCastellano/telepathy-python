@@ -60,7 +60,7 @@ class ContactWindow:
         self._window.set_title("Contacts")
         self._window.show_all()
 
-        self._icon = gtk.gdk.pixbuf_new_from_file_at_size("scw.png", 24, 24)
+        self._icon = gtk.gdk.pixbuf_new_from_file_at_size("face-surprise.png", 22, 22)
 
     def set_window_title_cb(self, type, name):
         self._window.set_title("Contacts for %s" % name)
