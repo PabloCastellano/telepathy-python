@@ -18,6 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import dbus.service
+import re
 import weakref
 
 from telepathy import *
@@ -56,16 +57,16 @@ class Connection(dbus.service.Object):
     with HoldHandle, and notify that they are no longer storing a handle with
     ReleaseHandle.
     """
-    def __init__(self, proto, name_parts):
+    def __init__(self, proto, account):
         """
         Parameters:
         proto - the name of the protcol this conection should be handling.
         account - a protocol-specific account name
-        name_parts - a list of strings with which to form the service and
-        object names
+        account - a unique identifier for this account which is used to identify this connection
         """
-        bus_name = dbus.service.BusName('org.freedesktop.Telepathy.Connection.' + '.'.join(name_parts))
-        object_path = '/org/freedesktop/Telepathy/Connection/' + '/'.join(name_parts)
+        clean_account = re.sub('[^a-zA-Z0-9_]', '_', account)
+        bus_name = dbus.service.BusName('org.freedesktop.Telepathy.Connection.' + clean_account)
+        object_path = '/org/freedesktop/Telepathy/Connection/' + clean_account
         dbus.service.Object.__init__(self, bus_name, object_path)
 
         # monitor clients dying so we can release handles

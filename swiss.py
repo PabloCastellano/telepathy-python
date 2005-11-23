@@ -301,14 +301,8 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         if not jid.resource:
             jid = pyxmpp.jid.JID(jid.node, jid.domain, 'Telepathy')
 
-        parts = []
-        for j in ['jabber', jid.domain, jid.node, jid.resource]:
-            parts += j.split('.')[::-1]
-
-        telepathy.server.Connection.__init__(self, 'jabber', parts)
+        telepathy.server.Connection.__init__(self, 'jabber', unicode(jid))
         telepathy.server.ConnectionInterfacePresence.__init__(self)
-
-        del parts
 
         self._die = False
         self._manager = manager
