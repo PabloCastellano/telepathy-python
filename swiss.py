@@ -310,6 +310,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         self._list_handles = weakref.WeakValueDictionary()
         self._im_channels = weakref.WeakValueDictionary()
         self._list_channels = weakref.WeakValueDictionary()
+        self._presence_cache = {}
 
         handle = self.get_handle_for_jid(jid)
         self.set_self_handle(handle)
@@ -498,6 +499,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
             arguments['message'] = message
 
         presence = {handle:(0, {status:arguments})}
+        self._presence_cache[handle] = presence[handle]
         print "Sending presence:", presence
         print "Packet was:", stanza.serialize()
         self.PresenceUpdate(presence)
@@ -644,9 +646,16 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         return statuses
 
     def RequestPresence(self, contacts):
+        print "got presence request for", contacts
+        print list(self._presence_cache.iteritems())
         for handle_id in contacts:
             self.check_handle(handle_id)
-            handle = self._handles
+            handle = self._handles[handle_id]
+
+            # FIXME: this is crap, this cache doesn't expire entries
+            # and there's no provision for probing presence or anything
+            if handle in self._presence_cache:
+                self.PresenceUpdate({handle:self._presence_cache[handle]})
 
 class GoogleTalkConnection(JabberConnection):
     _parameter_defaults = {'server':'talk.google.com', 'port':5222, 'require-encryption':True}
