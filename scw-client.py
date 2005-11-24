@@ -68,13 +68,15 @@ class ContactWindow:
 
         self._model = gtk.ListStore(gtk.gdk.Pixbuf,
                                     scw.TYPE_PRESENCE,
-                                    gobject.TYPE_STRING)
+                                    gobject.TYPE_STRING,
+                                    int)
         self._model_rows = {}
 
         self._view = scw.View()
         self._view.connect("activate", self.gtk_view_activate_cb)
         self._view.set_property("model", self._model)
         self._view.set_column_foldable(2)
+        self._view.set_column_visible(3, False)
         self._swin.add(self._view)
 
         self._toolbar = gtk.Toolbar()
@@ -98,21 +100,61 @@ class ContactWindow:
         for (handle, presence) in presences.iteritems():
             self.update_contact(handle, presence)
 
+    def get_status_message(self, name, parameters):
+        if name == 'available':
+            msg = 'Available'
+        elif name == 'away':
+            msg = 'Away'
+        elif name == 'brb':
+            msg = 'Be Right Back'
+        elif name == 'busy':
+            msg = 'Busy'
+        elif name == 'dnd':
+            msg = 'Do Not Disturb'
+        elif name == 'xa':
+            msg = 'Extended Away'
+        elif name == 'hidden':
+            msg = 'Hidden'
+        elif name == 'offline':
+            msg = 'Offline'
+        else:
+            msg = 'Unknown'
+
+        if 'message' in parameters:
+            msg = "%s: %s", msg, parameters['message']
+
+        return msg
+
     def update_contact(self, handle, presence):
         idle, statuses = presence
+
+        # FIXME: horrible inefficiency
+        iter = self._model.get_iter_first()
+        while iter:
+            cur = self._model.get_value(iter, 3)
+            if cur == handle:
+                print "found matching contact list entry", self._model.get_value(iter, 1)
+                break
+            iter = self._model.iter_next(iter)
+
         for (name, params) in statuses.iteritems():
-             print "update contact with presence", handle, name, params
+            print "update contact with presence", handle, name, params
 #            row = self._model_rows[handle]
 #            path = row.get_path()
 #            iter = self._model.get_iter()
-#            self._model.set_value(iter, 2, name)
+            if iter:
+                self._model.set_value(iter, 2, self.get_status_message(name, params))
+            # FIXME: I don't actually know how to display multiple statuses...
+            # it's something we should leave to galago
+            break
 
     def add_contact(self, handle, handle_type, name):
         iter = self._model.append()
         self._model.set(iter,
                         0, self._icon,
                         1, "<b><action id='click%s'>%s</action></b>" % (handle, name),
-                        2, "")
+                        2, "Offline",
+                        3, handle)
 #        path = self._model.get_path(iter)
 #        row = gtk.TreeRowReference(self._model, path)
 #        self._model_rows[handle] = row
