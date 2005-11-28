@@ -16,6 +16,7 @@ org.freedesktop.Telepathy.Channel.Type.RoomList
 org.freedesktop.Telepathy.Channel.Type.Text
 org.freedesktop.Telepathy.Channel.Interface.DTMF
 org.freedesktop.Telepathy.Channel.Interface.Group
+org.freedesktop.Telepathy.Channel.Interface.Hold
 org.freedesktop.Telepathy.Channel.Interface.Named
 org.freedesktop.Telepathy.Channel.Interface.Password
 org.freedesktop.Telepathy.Channel.Interface.Subject

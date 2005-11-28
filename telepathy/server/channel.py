@@ -756,6 +756,78 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         self._remote_pending.difference_update(removed)
 
 
+class ChannelInterfaceHold(dbus.service.Interface):
+    """
+    Interface for channels where members may put you on hold, or you may put
+    members on hold. This usually only makes sense for channels where you are
+    streaming media to or from the members. Hold is defined as requesting
+    that you are not sent any media streams by another, so these states
+    indicate whether or not you are sending and receiving media streams
+    to each member of the channel.
+    """
+    def __init__(self):
+        """ Initialise the interface. """
+        self._interfaces.add(CHANNEL_INTERFACE_HOLD)
+
+    @dbus.service.method(CHANNEL_INTERFACE_HOLD, in_signature='u', out_signature='u')
+    def GetHoldState(self, member):
+        """
+        Given a member of the channel, return their current hold state. This
+        can be one of the following values:
+        0 - CHANNEL_HOLD_STATE_NONE
+            Neither the local user and the remote member are on hold, and media
+            is being sent bidirectionally.
+        1 - CHANNEL_HOLD_STATE_SEND_ONLY
+            The local user has put the remote member on hold, so is sending
+            media but has arranged not to receive any media streams.
+        2 - CHANNEL_HOLD_STATE_RECV_ONLY
+            The user has been put on hold by the remote member, so is receiving
+            media but has arranged not to send any media streams.
+        3 - CHANNEL_HOLD_STATE_BOTH
+            Both the local user and the remote member have agreed not to send
+            any media streams to each other.
+
+        Parameters:
+        member - the handle of a member of the channel
+
+        Returns:
+        state - an integer representing the hold state, as defined above
+
+        Potential Errors:
+        Disconnected, InvalidHandle
+        """
+
+    @dbus.service.signal(CHANNEL_INTERFACE_HOLD, signature='uu')
+    def HoldStateChanged(self, member, state):
+        """
+        Emitted to indicate that the hold state (as defined in GetHoldState
+        above) has changed for a member of this channel. This may occur as
+        a consequence of you requesting a change with RequestHold, or the
+        state changing as a result of a request from the remote member
+        or another process.
+
+        Parameters:
+        member - the integer handle of a member of the channel
+        state - an integer representing the new hold state
+        """
+        pass
+
+    @dbus.service.method(CHANNEL_INTERFACE_HOLD, in_signature='ub', out_signature='')
+    def RequestHold(self, member, hold):
+        """
+        Request that a certain member be put on hold (be instructed not to send
+        any media streams to you) or be taken off hold. Success is indicated
+        by the HoldStateChanged signal being emitted.
+
+        Parameters:
+        member - the integer handle of a member of the channel
+        hold - an boolean indicating whether or not the user should be on hold
+
+        Potential Errors:
+        Disconnected, NetworkError, InvalidHandle
+        """
+        pass
+
 class ChannelInterfaceNamed(dbus.service.Interface):
     """
     Interface for channels which have an immutable name represented
