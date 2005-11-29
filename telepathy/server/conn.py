@@ -52,7 +52,7 @@ class Connection(dbus.service.Object):
     reference count these handles to determine if they are in use either by any
     active clients or any open channels, and may deallocate them when this
     ceases to be true. Clients may request handles of a given type and name
-    with the RequestHandle method, inspect the type and name of a handle
+    with the RequestHandle method, inspect the entity name of a handle
     with the InspectHandle method, keep a given handle from being released
     with HoldHandle, and notify that they are no longer storing a handle with
     ReleaseHandle.
@@ -128,14 +128,14 @@ class Connection(dbus.service.Object):
         if self._status != CONNECTION_STATUS_CONNECTED:
             raise Disconnected('method cannot be called unless status is CONNECTION_STATUS_CONNECTED')
 
-    def check_handle(self, handle):
-        if handle not in self._handles:
+    def check_handle(self, handle_type, handle):
+        if (handle_type, handle) not in self._handles:
             raise InvalidHandle('handle number %s not valid' % handle)
 
     def check_handle_type(self, type):
         if (type < CONNECTION_HANDLE_TYPE_CONTACT or
             type > CONNECTION_HANDLE_TYPE_LIST):
-            raise NotAvailable('handle type %s not known' % type)
+            raise InvalidArgument('handle type %s not known' % type)
 
     def get_handle_id(self):
         id = self._next_handle_id
@@ -144,9 +144,9 @@ class Connection(dbus.service.Object):
 
     def add_client_handle(self, handle, sender):
         if sender in self._client_handles:
-            self._client_handles[sender].add(handle)
+            self._client_handles[sender].add((handle.get_type(), handle))
         else:
-            self._client_handles[sender] = set([handle])
+            self._client_handles[sender] = set([(handle.get_type(), handle)])
 
     def name_owner_changed_callback(self, name, old_owner, new_owner):
         # when name and old_owner are the same, and new_owner is
@@ -166,7 +166,7 @@ class Connection(dbus.service.Object):
     def add_channel(self, channel, handle, supress_handler):
         """ add a new channel and signal its creation""" 
         self._channels.add(channel)
-        self.NewChannel(channel._object_path, channel._type, handle.get_id(), supress_handler)
+        self.NewChannel(channel._object_path, channel._type, handle.get_type(), handle.get_id(), supress_handler)
 
     def remove_channel(self, channel):
         self._channels.remove(channel)
@@ -194,31 +194,34 @@ class Connection(dbus.service.Object):
 
         Returns:
         a string identifier for the protocol
+
+        Potential Errors:
+        Disconnected
         """
         return self._proto
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='u', out_signature='us')
-    def InspectHandle(self, handle):
+    @dbus.service.method(CONN_INTERFACE, in_signature='uu', out_signature='s')
+    def InspectHandle(self, handle_type, handle):
         """
         For a given handle representing a contact, room or list entity on
-        this connection, return the type and a string representation of
-        the entity name.
+        this connection, return a string representation of the entity name.
 
         Parameters:
+        handle_type - an integer handle type (as defined in RequestHandle)
         handle - an integer handle number
 
         Returns:
-        an integer handle type (see RequestHandle)
         a string entity name
 
         Potential Errors:
-        Disconnected, InvalidHandle (the given handle is not valid on this
-        connection)
+        Disconnected, InvalidArgument (the given type is not valid),
+        InvalidHandle (the given handle is not valid on this connection)
         """
         self.check_connected()
-        self.check_handle(handle)
-        hand = self._handles[handle]
-        return (hand.get_type(), hand.get_name())
+        self.check_handle_type(handle_type)
+        self.check_handle(handle_type, handle)
+        hand = self._handles[handle_type, handle]
+        return hand.get_name()
 
     @dbus.service.method(CONN_INTERFACE, in_signature='us', out_signature='u', sender_keyword='sender')
     def RequestHandle(self, handle_type, name, sender):
@@ -233,9 +236,10 @@ class Connection(dbus.service.Object):
         number 0 must not be returned by the connection manager.
 
         The type value may be one of the following:
-        0 - CONNECTION_HANDLE_TYPE_CONTACT
-        1 - CONNECTION_HANDLE_TYPE_ROOM
-        2 - CONNECTION_HANDLE_TYPE_LIST
+        0 - CONNECTION_HANDLE_TYPE_NONE
+        1 - CONNECTION_HANDLE_TYPE_CONTACT
+        2 - CONNECTION_HANDLE_TYPE_ROOM
+        3 - CONNECTION_HANDLE_TYPE_LIST
 
         Parameters:
         type - an integer handle type
@@ -245,20 +249,20 @@ class Connection(dbus.service.Object):
         a non-zero integer handle number
 
         Potential Errors:
-        Disconnected, NotAvailable (the given type is not valid), InvalidArgument (the given name is not a valid entity of the given type)
+        Disconnected, InvalidArgument (the given type is not valid), NotAvailable (the given name is not a valid entity of the given type)
         """
         self.check_connected()
         self.check_handle_type(handle_type)
 
         id = self.get_handle_id()
         handle = Handle(id, handle_type, name)
-        self._handles[id] = handle
+        self._handles[handle_type, id] = handle
         self.add_client_handle(handle, sender)
 
         return id
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='u', out_signature='', sender_keyword='sender')
-    def HoldHandle(self, handle, sender):
+    @dbus.service.method(CONN_INTERFACE, in_signature='uu', out_signature='', sender_keyword='sender')
+    def HoldHandle(self, handle_type, handle, sender):
         """
         Notify the connection manger that your client is holding a copy
         of a handle which may not be in use in any existing channel or
@@ -270,19 +274,22 @@ class Connection(dbus.service.Object):
         method is called, or the clients disappear from the bus.
 
         Parameters:
+        handle_type - an integer representing the handle type
         handle - an integer handle to hold
 
         Potential Errors:
-        Disconnected, InvalidHandle (the given handle is not valid)
+        Disconnected, InvalidArgument (the handle type is invalid),
+        InvalidHandle (the given handle is not valid)
         """
         self.check_connected()
-        self.check_handle(handle)
+        self.check_handle_type(handle_type)
+        self.check_handle(handle_type, handle)
 
-        hand = self._handles[handle]
+        hand = self._handles[handle_type, handle]
         self.add_client_handle(hand, sender)
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='u', out_signature='')
-    def ReleaseHandle(self, handle):
+    @dbus.service.method(CONN_INTERFACE, in_signature='uu', out_signature='')
+    def ReleaseHandle(self, handle_type, handle):
         """
         Explicitly notify the connection manager that your client is no
         longer holding any references to the given handle, and that it
@@ -290,29 +297,33 @@ class Connection(dbus.service.Object):
         referenced by any existing channels.
 
         Parameters:
-        handle - an integer handle to hold
+        handle_type 
+        handle - an integer handle being held by the client
 
         Potential Errors:
-        Disconnected, InvalidHandle (the given handle is not valid), InvalidArgument (the given handle is not held by this client)
+        Disconnected, InvalidArgument (the given handle type is invalid),
+        InvalidHandle (the given handle is not valid), NotAvailable (the given
+        handle is not held by this client)
         """
         self.check_connected()
-        self.check_handle(handle)
+        self.check_handle_type(handle_type)
+        self.check_handle(handle_type, handle)
 
-        hand = self._handles[handle]
+        hand = self._handles[handle_type, handle]
         if sender in self._client_handles:
             if hand in self._client_handles[sender]:
                 self._client_handles[sender].remove(hand)
             else:
-                raise InvalidArgument('client is not holding handle %s' % handle)
+                raise NotAvailable('client is not holding handle %s' % handle)
         else:
-            raise InvalidArgument('client does not hold any handles')
+            raise NotAvailable('client does not hold any handles')
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='u')
     def GetSelfHandle(self):
         """
         Get the handle which represents the user on this connection, which will
         remain valid for the lifetime of this connection or until the user's
-        identifier changes.
+        identifier changes. This is always a CONTACT type handle.
 
         Returns:
         an integer handle representing the user
@@ -386,8 +397,8 @@ class Connection(dbus.service.Object):
         """
         self.check_connected()
 
-    @dbus.service.signal(CONN_INTERFACE, signature='osub')
-    def NewChannel(self, object_path, type, handle, supress_handler):
+    @dbus.service.signal(CONN_INTERFACE, signature='osuub')
+    def NewChannel(self, object_path, channel_type, handle_type, handle, supress_handler):
         """
         Emitted when a new Channel object is created, either through user
         request or incoming information from the service. The supress_handler
@@ -396,13 +407,14 @@ class Connection(dbus.service.Object):
 
         Parameters:
         object_path - a D-Bus object path for the channel object on this service
-        type - a D-Bus interface name representing the channel type
-        handle - a handle indicating the contact, room or list this channel communicates with, or zero
+        channel_type - a D-Bus interface name representing the channel type
+        handle_type - an integer representing the type of handle this channel communicates with, which is zero if no handle is specified
+        handle - a handle indicating the specific contact, room or list this channel communicates with, or zero if it is an anonymous channel
         supress_handler - a boolean indicating that the channel was requested by a client that intends to display it to the user, so no handler needs to be launched
         """
         pass
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='a(osu)')
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='a(osuu)')
     def ListChannels(self):
         """
         List all the channels which currently exist on this connection.
@@ -411,6 +423,7 @@ class Connection(dbus.service.Object):
         an array of structs containing:
             a D-Bus object path for the channel object on this service
             a D-Bus interface name representing the channel type
+            an integer representing the handle type this channel communicates with, or zero
             an integer handle representing the contact, room or list this channel communicates with, or zero
 
         Potential Errors:
@@ -419,12 +432,12 @@ class Connection(dbus.service.Object):
         self.check_connected()
         ret = []
         for channel in self._channels:
-            chan = (channel._object_path, channel._type, channel._handle)
+            chan = (channel._object_path, channel._type, channel._handle.get_type(), channel._handle)
             ret.append(chan)
         return ret
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='sub', out_signature='o')
-    def RequestChannel(self, type, handle, supress_handler):
+    @dbus.service.method(CONN_INTERFACE, in_signature='suub', out_signature='o')
+    def RequestChannel(self, type, handle_type, handle, supress_handler):
         """
         Request a channel satisfying the specified type and communicating with
         the contact, room or list indicated by the given handle. The handle may
@@ -435,6 +448,7 @@ class Connection(dbus.service.Object):
 
         Parameters:
         type - a D-Bus interface name representing base channel type
+        handle_type - an integer representing the handle type, or zero if no handle is being specified
         handle - an integer handle representing a contact, room or list, or zero
         supress_handler - a boolean indicating that the requesting client intends to take responsibility for displaying the channel to the user, so that no other handler needs to be launched
 

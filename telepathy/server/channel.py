@@ -30,13 +30,20 @@ class Channel(dbus.service.Object):
     as a buddy list) or a Channel.Type.Text which represents a channel over
     which textual messages are sent and received.
 
+    Each channel may have an immutable handle associated with it, which may
+    be any handle type, such as a contact, room or list handle, indicating
+    that the channel is for communicating with that handle. If a channel does
+    not have a handle, it means that the channel is defined by some other
+    terms, such as it may be a transient group defined only by its members
+    as visible through the Channel.Type.Group interface.
+
     Other optional interfaces can be implemented to indicate other available
-    functionality, such as Channel.Interface.Group if the members of a channel
-    can change after its creation, Channel.Interface.Named to associate a
-    channel with a given room or list handle, and Channel.Interface.Subject
-    for channels with a subject or topic line. The interfaces implemented
-    may not vary after the channel's creation has been signalled to the bus
-    (with the connection's NewChannel signal).
+    functionality, such as Channel.Interface.Group if the channel contains
+    a number of contacts, Channel.Interface.Password to indicate
+    that a channel may have a password set to require entry, and
+    Channel.Interface.Subject for channels with a subject or topic line.
+    The interfaces implemented may not vary after the channel's creation has
+    been signalled to the bus (with the connection's NewChannel signal).
 
     Specific connection manager implementations may implement channel types and
     interfaces which are not contained within this specification in order to
@@ -47,21 +54,22 @@ class Channel(dbus.service.Object):
     methods or signals with conflicting names, the D-Bus interface names should
     always be used to invoke methods and bind signals.
     """
-    def __init__(self, connection, type):
+    def __init__(self, connection, type, handle):
         """
         Initialise the base channel object.
 
         Parameters:
         connection - the parent Connection object
         type - interface name for the type of this channel
+        handle - the channels handle if applicable
         """
         self._conn = connection
         object_path = self._conn.get_channel_path()
         dbus.service.Object.__init__(self, self._conn._name, object_path)
 
         self._type = type
+        self._handle = handle
         self._interfaces = set()
-        self._members = set()
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
@@ -93,6 +101,16 @@ class Channel(dbus.service.Object):
         """ Returns the interface name for the type of this channel. """
         return self._type
 
+    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='uu')
+    def GetHandle(self):
+        """ Returns the handle type and number if this channel represents a
+        communication with a particular contact, room or server-stored list, or
+        zero if it is transient and defined only by its contents. """
+        if self._handle:
+            return self._handle.get_type(), self._handle
+        else:
+            return (CONNECTION_HANDLE_TYPE_NONE, 0)
+
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
         """
@@ -102,31 +120,6 @@ class Channel(dbus.service.Object):
         an array of the D-Bus interface names
         """
         return self._interfaces
-
-    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='au')
-    def GetMembers(self):
-        """
-        Returns an array of handles for the members of this channel.
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
-        return self._members
-
-    @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='u')
-    def GetSelfHandle(self):
-        """
-        Returns the handle for the user on this channel if they are a
-        member, and 0 if not.
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
-        self_handle = self._conn.GetSelfHandle()
-        if self_handle in self._members:
-            return self_handle
-        else:
-            return 0
 
 
 class ChannelTypeContactSearch(Channel):
@@ -420,11 +413,11 @@ class ChannelTypeRoomList(Channel):
     def GotRooms(self, rooms):
         """
         Emitted when information about rooms on the server becomes available.
-        The array contains the room name (as can be passed to the Named channel
-        interface when requesting a room), the channel type, and a dictionary
-        containing further information about the room as available. The
-        following well-known keys and types are recommended for use where
-        appropriate:
+        The array contains the room handle (as can be passed to the
+        RequestChannel method with CONNECTION_HANDLE_TYPE_ROOM), the channel
+        type, and a dictionary containing further information about the
+        room as available. The following well-known keys and types are
+        recommended for use where appropriate:
          s:subject - the subject of the room
          u:members - the number of members of the room
          b:password - true if the room requires a password to enter
@@ -433,7 +426,7 @@ class ChannelTypeRoomList(Channel):
         Parameters:
         rooms - an array of structs containing:
             an integer room handle
-            a string channel type
+            a string representing the D-Bus interface name of the channel type
             an dictionary mapping string keys to variant boxed information
         """
         pass
@@ -636,6 +629,7 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     def __init__(self):
         self._interfaces.add(CHANNEL_INTERFACE_GROUP)
         self._group_flags = 0
+        self._members = set()
         self._local_pending = set()
         self._remote_pending = set()
 
@@ -675,7 +669,6 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         self._group_flags |= added
         self._group_flags &= ~removed
 
-
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='au', out_signature='')
     def AddMembers(self, contacts):
         """
@@ -704,6 +697,31 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidHandle
         """
         pass
+
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='au')
+    def GetMembers(self):
+        """
+        Returns an array of handles for the members of this channel.
+
+        Possible Errors:
+        Disconnected, NetworkError
+        """
+        return self._members
+
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='u')
+    def GetSelfHandle(self):
+        """
+        Returns the handle for the user on this channel if they are a
+        member, and 0 if not.
+
+        Possible Errors:
+        Disconnected, NetworkError
+        """
+        self_handle = self._conn.GetSelfHandle()
+        if self_handle in self._members:
+            return self_handle
+        else:
+            return 0
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='au')
     def GetLocalPendingMembers(self):
@@ -827,30 +845,6 @@ class ChannelInterfaceHold(dbus.service.Interface):
         Disconnected, NetworkError, InvalidHandle
         """
         pass
-
-class ChannelInterfaceNamed(dbus.service.Interface):
-    """
-    Interface for channels which have an immutable name represented
-    by a handle.
-    """
-    def __init__(self, handle):
-        """ Initialise the interface.
-
-        Parameters:
-        handle - the handle of this channel's immutable name
-        """
-        self._interfaces.add(CHANNEL_INTERFACE_NAMED)
-        self._handle = handle
-
-    @dbus.service.method(CHANNEL_INTERFACE_NAMED, in_signature='', out_signature='u')
-    def GetHandle(self):
-        """
-        Get the handle representing the immutable name of this channel.
-
-        Returns:
-        an integer representing the name of this channel
-        """
-        return self._handle.get_id()
 
 
 class ChannelInterfacePassword(dbus.service.Interface):
