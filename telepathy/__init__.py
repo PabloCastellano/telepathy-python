@@ -17,7 +17,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-version = (0, 10, 2)
+version = (0, 11, 0)
 
 from constants import *
 from errors import *
