@@ -131,7 +131,9 @@ else:
         if 'methods' in doc[name]:
             if len(doc[name]["methods"]) > 0:
                 print '<h2>Methods:</h2>'
-                for method in doc[name]["methods"].keys(): 
+                methods = doc[name]["methods"].keys()
+                methods.sort()
+                for method in methods:
                     print '<div class="method">'
                     print '<h2>%s ( %s ) -> %s</h2>' % (method,doc[name]["methods"][method]["in_sig"], doc[name]["methods"][method]["out_sig"])
                     print '<pre>', doc[name]["methods"][method]["text"], '</pre>'
@@ -142,7 +144,9 @@ else:
         if 'signals' in doc[name]:
             if len(doc[name]["signals"]) > 0:
                 print '<h2>Signals:</h2>'
-                for signal in doc[name]["signals"].keys(): 
+                signals = doc[name]["signals"].keys()
+                signals.sort()
+                for signal in signals:
                     print '<div class="signal">'
                     print '<h2>%s ( %s )</h2>' % (signal,doc[name]["signals"][signal]["sig"])
                     print '<pre>', doc[name]["signals"][signal]["text"], '</pre>'
