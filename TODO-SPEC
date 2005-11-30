@@ -1,9 +1,6 @@
 Specification Todo
 ------------------
 
-add:
-sending messages when adding/removing people from a group channel
-
 ponder:
 forwarding reason
 member changed reason? requested, remote, disconnect?

@@ -596,16 +596,15 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     cannot be presumed by the channel's existence (for example, a channel you
     may request membership of but your request may not be granted).
 
-    As well as the basic Channel's member list, this interface implements a
-    further two lists: local pending and remote pending members. Contacts on
-    the remote pending list have been invited to the channel, but the remote
-    user has not accepted the invitation. Contacts on the local pending list
-    have requested membership of the channel, but the local user of the
-    framework must accept their request before they may join. A single
-    contact should never appear on more than one of the three lists. The
-    lists are empty when the channel is created, and the MembersChanged
-    signal should be emitted when information is retrieved from the
-    server, or changes occur.
+    This interface implements three lists: a list of current members, and two
+    lists of local pending and remote pending members. Contacts on the remote
+    pending list have been invited to the channel, but the remote user has not
+    accepted the invitation. Contacts on the local pending list have requested
+    membership of the channel, but the local user of the framework must accept
+    their request before they may join. A single contact should never appear on
+    more than one of the three lists. The lists are empty when the channel is
+    created, and the MembersChanged signal should be emitted when information
+    is retrieved from the server, or changes occur.
 
     Addition of members to the channel may be requested by using AddMembers. If
     remote acknowledgement is required, use of the AddMembers method will cause
@@ -642,11 +641,29 @@ class ChannelInterfaceGroup(dbus.service.Interface):
 
         These can be:
         1 - CHANNEL_GROUP_FLAG_CAN_ADD
-            the AddMembers method can be used to add or invite members who are not already in the local pending list (which is always valid)
+            The AddMembers method can be used to add or invite members who are
+            not already in the local pending list (which is always valid).
         2 - CHANNEL_GROUP_FLAG_CAN_REMOVE
-            the RemoveMembers method can be used to remove channel members (removing those on the pending local list is always valid)
+            The RemoveMembers method can be used to remove channel members
+            (removing those on the pending local list is always valid).
         4 - CHANNEL_GROUP_FLAG_CAN_RESCIND
-            the RemoveMembers method can be used on people on the remote pending list
+            The RemoveMembers method can be used on people on the remote
+            pending list.
+        8 - CHANNEL_GROUP_FLAG_MESSAGE_ADD
+            A message may be sent to the server when calling AddMembers on
+            contacts who are not currently pending members.
+        16 - CHANNEL_GROUP_FLAG_MESSAGE_REMOVE
+            A message may be sent to the server when calling RemoveMembers on
+            contacts who are currently channel members.
+        32 - CHANNEL_GROUP_FLAG_MESSAGE_ACCEPT
+            A message may be sent to the server when calling AddMembers on
+            contacts who are locally pending.
+        64 - CHANNEL_GROUP_FLAG_MESSAGE_REJECT
+            A message may be sent to the server when calling RemoveMembers on
+            contacts who are locally pending.
+        128 - CHANNEL_GROUP_FLAG_MESSAGE_RESCIND
+            A message may be sent to the server when calling RemoveMembers on
+            contacts who are remote pending.
 
         Returns:
         an integer of flags or'd together
@@ -669,29 +686,41 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         self._group_flags |= added
         self._group_flags &= ~removed
 
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='au', out_signature='')
-    def AddMembers(self, contacts):
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='aus', out_signature='')
+    def AddMembers(self, contacts, message):
         """
-        Invite all the given contacts into the channel, or approve requests
-        for channel membership for contacts on the pending local list.
+        Invite all the given contacts into the channel, or accept requests for
+        channel membership for contacts on the pending local list. A message
+        may be provided along with the request, which will be sent to the
+        server if supported. See the CHANNEL_GROUP_FLAG_MESSAGE_ADD and
+        CHANNEL_GROUP_FLAG_MESSAGE_ACCEPT flags to see in which cases this
+        message should be provided.
 
         Parameters:
         contacts - an array of contact handles to invite to the channel
+        message - a string message, which can be blank if desired
 
         Possible Errors:
         Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidHandle
         """
         pass
 
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='au', out_signature='')
-    def RemoveMembers(self, contacts):
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='aus', out_signature='')
+    def RemoveMembers(self, contacts, message):
         """
-        Requests the removal of contacts from a channel, refuse their request
+        Requests the removal of contacts from a channel, reject their request
         for channel membership on the pending local list, or rescind their
-        invitation on the pending remote list.
+        invitation on the pending remote list. A message may be provided along
+        with the request, which will be sent to the server if supported. See
+        the CHANNEL_GROUP_FLAG_MESSAGE_REMOVE,
+        CHANNEL_GROUP_FLAG_MESSAGE_REJECT and
+        CHANNEL_GROUP_FLAG_MESSAGE_RESCIND flags to see in which cases this
+        message should be provided.
+
 
         Parameters:
         contacts - an array of contact handles to remove from the channel
+        message - a string message, which can be blank if desired
 
         Possible Errors:
         Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidHandle
