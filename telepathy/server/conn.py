@@ -469,10 +469,33 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
     remains unchanged. Provides a method for the user to set their own alias,
     and a signal which should be emitted when a contact's alias is changed
     or first discovered.
+
+    On connections where the user is allowed to set aliases for contacts and
+    store them on the server, the GetAliasFlags method will have the
+    CONNECTION_ALIAS_FLAG_USER_SET flag set, and the SetAlias method
+    may be called on contact handles other than the user themselves.
     """
 
     def __init__(self):
         self._interfaces.add(CONN_INTERFACE_ALIASING)
+
+    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='', out_signature='u')
+    def GetAliasFlags(self):
+        """
+        Return a logical OR of flags detailing the behaviour of aliases on this
+        server. Valid flags are:
+        1 - CONNECTION_ALIAS_FLAG_USER_SET
+            The aliases of contacts on this server are specified by the user
+            of the service, not the contacts themselves. This is the case on
+            eg Jabber.
+
+        Returns:
+        a integer with a logical OR of flags as defined above
+
+        Potential Errors:
+        Disconnected
+        """
+        return 0
 
     @dbus.service.signal(CONN_INTERFACE_ALIASING, signature='us')
     def AliasUpdate(self, contact, alias):
@@ -501,13 +524,17 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
         """
         pass
 
-    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='s', out_signature='')
-    def SetAlias(self, alias):
+    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='us', out_signature='')
+    def SetAlias(self, contact, alias):
         """
-        Request that the user's alias be changed. Success will be indicated by
-        emitting an AliasUpdate signal.
+        Request that the alias of the given contact be changed. Success will be
+        indicated by emitting an AliasUpdate signal. On connections where the
+        CONNECTION_ALIAS_FLAG_USER_SET flag is not set, this method will only
+        ever succeed if contact is the user's own handle (as returned by
+        GetSelfHandle on the Connection interface).
 
         Parameters:
+        contact - the handle of the contact whose alias to set
         alias - the new alias to set
 
         Possible Errors:

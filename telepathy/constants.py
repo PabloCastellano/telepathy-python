@@ -17,6 +17,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+CONNECTION_ALIAS_FLAG_USER_SET = 1
+
 CONNECTION_CAPABILITY_TYPE_CREATE = 0
 CONNECTION_CAPABILITY_TYPE_INVITE = 1
 
