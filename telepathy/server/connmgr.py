@@ -234,15 +234,6 @@ class ConnectionManager(dbus.service.Object):
         s:fullname - the user's full name if the service requires this
         when authenticating or registering.
 
-        s:authentication-realm - a string identifier for your authentication
-        realm, if necessary.
-
-        s:authentication-username - a username to use for authentication, if 
-        necessary.
-
-        s:authentication-type - a string representation of authentication type,
-        such as 'Digest'.
-
         Parameters:
         proto - the protocol identifier
         parameters - a dictionary mapping parameter name to the variant boxed value
