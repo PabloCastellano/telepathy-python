@@ -1,0 +1,3 @@
+sip-connection-manager.xml	SIPConnectionManager	ConnectionManager
+sip-connection.xml	SIPConnection	Connection, ConnectionInterfaceStreamedMedia, ConnectionInterfaceForwarding, ConnectionInterfaceCapabilities
+sip-channel.xml	SIPChannel	ChannelTypeStreamedMedia, ChannelInterfaceGroup, ChannelInterfaceDTMF, ChannelInterfaceTransfer
