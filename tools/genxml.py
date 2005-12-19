@@ -4,6 +4,11 @@ import sys
 
 defs = file(sys.argv[1])
 for line in defs:
+    if line[0] == '#':
+        continue
+    elif line == '\n':
+        continue
+
     (filename, name, basenames) = line.split('\t')
     bases = eval(basenames)
     if type(bases) != tuple:
