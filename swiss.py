@@ -58,10 +58,9 @@ class JabberJidHandle(telepathy.server.Handle):
     def get_jid(self):
         return self._jid
 
-class JabberSubscribeListChannel(telepathy.server.ChannelTypeContactList, telepathy.server.ChannelInterfaceGroup, telepathy.server.ChannelInterfaceNamed):
+class JabberSubscribeListChannel(telepathy.server.ChannelTypeContactList, telepathy.server.ChannelInterfaceGroup):
     def __init__(self, conn, handle):
-        telepathy.server.ChannelTypeContactList.__init__(self, conn)
-        telepathy.server.ChannelInterfaceNamed.__init__(self, handle)
+        telepathy.server.ChannelTypeContactList.__init__(self, conn, handle)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
         self.GroupFlagsChanged(CHANNEL_GROUP_FLAG_CAN_ADD ^ CHANNEL_GROUP_FLAG_CAN_REMOVE ^ CHANNEL_GROUP_FLAG_CAN_RESCIND, 0)
 
@@ -125,7 +124,7 @@ class JabberSubscribeListChannel(telepathy.server.ChannelTypeContactList, telepa
 
         handles = []
         for id in members:
-            self._conn.check_handle(id)
+            self._conn.check_handle(self._conn._handles[id].get_type(), id)
             handles.append(self._conn._handles[id])
 
         for handle in handles:
@@ -143,7 +142,7 @@ class JabberSubscribeListChannel(telepathy.server.ChannelTypeContactList, telepa
 
         handles = []
         for id in members:
-            self._conn.check_handle(id)
+            self._conn.check_handle(self._conn._handles[id].get_type(), id)
             handles.append(self._conn._handles[id])
 
         for handle in handles:
@@ -154,10 +153,9 @@ class JabberSubscribeListChannel(telepathy.server.ChannelTypeContactList, telepa
             else:
                 pass
 
-class JabberPublishListChannel(telepathy.server.ChannelTypeContactList, telepathy.server.ChannelInterfaceGroup, telepathy.server.ChannelInterfaceNamed):
+class JabberPublishListChannel(telepathy.server.ChannelTypeContactList, telepathy.server.ChannelInterfaceGroup):
     def __init__(self, conn, handle):
-        telepathy.server.ChannelTypeContactList.__init__(self, conn)
-        telepathy.server.ChannelInterfaceNamed.__init__(self, handle)
+        telepathy.server.ChannelTypeContactList.__init__(self, conn, handle)
         telepathy.server.ChannelInterfaceGroup.__init__(self)
         self.GroupFlagsChanged(CHANNEL_GROUP_FLAG_CAN_REMOVE, 0)
         self._pending_subscribe_requests = weakref.WeakKeyDictionary()
@@ -219,7 +217,7 @@ class JabberPublishListChannel(telepathy.server.ChannelTypeContactList, telepath
 
         handles = []
         for id in members:
-            self._conn.check_handle(id)
+            self._conn.check_handle(self._conn._handles[id].get_type(), id)
             handles.append(self._conn._handles[id])
 
         for handle in handles:
@@ -237,7 +235,7 @@ class JabberPublishListChannel(telepathy.server.ChannelTypeContactList, telepath
 
         handles = []
         for id in members:
-            self._conn.check_handle(id)
+            self._conn.check_handle(self._conn._handles[id].get_type(), id)
             handles.append(self._conn._handles[id])
 
         for handle in handles:
@@ -250,20 +248,14 @@ class JabberPublishListChannel(telepathy.server.ChannelTypeContactList, telepath
             else:
                 pass
 
-class JabberIMChannel(telepathy.server.ChannelTypeText, telepathy.server.ChannelInterfaceNamed):
+class JabberIMChannel(telepathy.server.ChannelTypeText):
     def __init__(self, conn, handle):
-        telepathy.server.ChannelTypeText.__init__(self, conn)
-        telepathy.server.ChannelInterfaceNamed.__init__(self, handle)
+        telepathy.server.ChannelTypeText.__init__(self, conn, handle)
 
         self._jid = handle.get_jid()
-        self._members.add(conn._self_handle)
-        self._members.add(handle)
         self._recv_id = 0
 
     def message_handler(self, sender, stanza):
-        if not sender in self._members:
-            return False
-
         id = self._recv_id
         timestamp = int(time.time())
         type = CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
@@ -343,7 +335,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         else:
             handle = JabberJidHandle(self.get_handle_id(), CONNECTION_HANDLE_TYPE_CONTACT, barejid)
             self._jid_handles[barejid] = handle
-            self._handles[handle.get_id()] = handle
+            self._handles[handle.get_type(), handle.get_id()] = handle
             print "new JID handle", handle.get_id(), unicode(handle.get_jid())
 
         return handle
@@ -354,7 +346,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         else:
             handle = telepathy.server.Handle(self.get_handle_id(), CONNECTION_HANDLE_TYPE_LIST, list)
             self._list_handles[list] = handle
-            self._handles[handle.get_id()] = handle
+            self._handles[handle.get_type(), handle.get_id()] = handle
             print "new list handle", handle.get_id(), unicode(handle.get_name())
 
         return handle
@@ -517,7 +509,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         if t:
             print u'Type: "%s".' % (t,)
         else:
-            print u'Type: "normal".' % (t,)
+            print u'Type: "normal".'
 
         # skip typing notification for the time being (jabber:x:event)
         if body == None:
@@ -553,7 +545,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
             self.StatusChanged(CONNECTION_STATUS_CONNECTING, CONNECTION_STATUS_REASON_REQUESTED)
             gobject.idle_add(self.connect_cb())
 
-    def RequestHandle(self, handle_type, name, sender):
+    def xObsoleteRequestHandle(self, handle_type, name, sender):
         self.check_connected()
         self.check_handle_type(handle_type)
 
@@ -568,17 +560,17 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         self.add_client_handle(handle, sender)
         return handle.get_id()
 
-    def RequestChannel(self, type, handle_id, supress_handler):
+    def RequestChannel(self, type, handle_type, handle_id, supress_handler):
         self.check_connected()
 
         chan = None
 
         if type == CHANNEL_TYPE_TEXT:
-            self.check_handle(handle_id)
+            self.check_handle(CONNECTION_HANDLE_TYPE_CONTACT, handle_id)
 
-            handle = self._handles[handle_id]
+            handle = self._handles[(CONNECTION_HANDLE_TYPE_CONTACT, handle_id)]
 
-            if handle.get_type() != CONNECTION_HANDLE_TYPE_CONTACT:
+            if handle_type != CONNECTION_HANDLE_TYPE_CONTACT:
                 raise InvalidHandle('only contact handles are valid for text channels at the moment')
 
             if handle in self._im_channels:
@@ -587,11 +579,11 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
                 chan = JabberIMChannel(self, handle)
                 self._im_channels[handle] = chan
         elif type == CHANNEL_TYPE_CONTACT_LIST:
-            self.check_handle(handle_id)
+            self.check_handle(CONNECTION_HANDLE_TYPE_LIST, handle_id)
 
-            handle = self.handles[handle_id]
+            handle = self.handles[(CONNECTION_HANDLE_TYPE_LIST, handle_id)]
 
-            if handle.get_type() != CONNECTION_HANDLE_TYPE_LIST:
+            if handle.handle_type != CONNECTION_HANDLE_TYPE_LIST:
                 raise InvalidHandle('only list handles are valid for contact list channel')
 
             if handle in self._list_channels:
@@ -649,8 +641,8 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         print "got presence request for", contacts
         print list(self._presence_cache.iteritems())
         for handle_id in contacts:
-            self.check_handle(handle_id)
-            handle = self._handles[handle_id]
+            self.check_handle(CONNECTION_HANDLE_TYPE_CONTACT, handle_id)
+            handle = self._handles[CONNECTION_HANDLE_TYPE_CONTACT, handle_id]
 
             # FIXME: this is crap, this cache doesn't expire entries
             # and there's no provision for probing presence or anything
