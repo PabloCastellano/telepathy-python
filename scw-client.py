@@ -91,7 +91,7 @@ class ContactWindow:
         self._window.set_title("Contacts for %s" % name)
 
     def get_self_handle_reply_cb(self, handle):
-        self._conn.call_with_handle(handle, self.set_window_title_cb)
+        self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, handle, self.set_window_title_cb)
 
     def get_statuses_reply_cb(self, statuses):
         self._statuses = statuses
@@ -164,18 +164,19 @@ class ContactWindow:
                                                                 error_handler=self.error_cb)
 
     def subscribe_get_members_reply_cb(self, members):
+        print members
         for member in members:
             print "subscribe_get_members_reply_cb", member
-            self._conn.call_with_handle(member, self.add_contact)
+            self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self.add_contact)
 
     def subscribe_members_changed_signal_cb(self, reason, added, removed, local_pending, remote_pending):
         for member in added:
             print "subscribe_members_changed_signal_cb", member
-            self._conn.call_with_handle(member, self.add_contact)
+            self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self.add_contact)
 
     def set_subscribe_list(self, subscribe):
         self._subscribe = subscribe
-        self._subscribe[CHANNEL_INTERFACE].GetMembers(reply_handler=self.subscribe_get_members_reply_cb, error_handler=self.error_cb)
+        self._subscribe[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.subscribe_get_members_reply_cb, error_handler=self.error_cb)
         self._subscribe[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.subscribe_members_changed_signal_cb)
 
     def set_publish_list(self, publish):
@@ -193,7 +194,7 @@ class ContactWindow:
         if action_id[:5] == 'click':
             handle = int(action_id[5:])
             print "requesting channel to", handle
-            self._conn[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, False,
+            self._conn[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_CONTACT, handle, False,
                                                       reply_handler=(lambda chan: None),
                                                       error_handler=self.error_cb)
 
@@ -206,8 +207,11 @@ class ContactListChannel(telepathy.client.Channel):
         self._name = handle
 
     def got_interfaces(self):
-        self._conn[CONN_INTERFACE].InspectHandle(self._handle, reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
-        self[CHANNEL_INTERFACE].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
+        print "ContactListChannel: got_interfaces", self, dir(self), self._handle
+#        if self._handle == CONN_INTERFACE:
+#            self._conn[CONN_INTERFACE].InspectHandle(CONNECTION_HANDLE_TYPE_CONTACT, self._handle,
+#                    reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers(reply_handler=self.get_remote_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_signal_cb)
@@ -313,14 +317,16 @@ class TextChannel(telepathy.client.Channel):
         # set the window title according to who you're talking to
         self._window.set_title("Conversation")
         if handle:
-            self._conn.call_with_handle(handle, self.set_window_title_cb)
+            self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, handle, self.set_window_title_cb)
 
         self._window.show_all()
 
         # asynchronously retrieve messages that have not been
         self._handled_pending_message = None
+
         self[CHANNEL_TYPE_TEXT].ListPendingMessages(reply_handler=self.list_pending_messages_reply_cb, error_handler=self.error_cb)
-        self[CHANNEL_INTERFACE].GetSelfHandle(reply_handler=self.get_self_handle_reply_cb, error_handler=self.error_cb)
+        print dir(self[CONN_INTERFACE])
+        self[CONN_INTERFACE].GetSelfHandle(reply_handler=self.get_self_handle_reply_cb, error_handler=self.error_cb)
 
     def list_pending_messages_reply_cb(self, pending_messages):
         print "got pending messages", pending_messages
@@ -332,6 +338,7 @@ class TextChannel(telepathy.client.Channel):
 
     def gtk_delete_event_cb(self, window, event):
         self[CHANNEL_INTERFACE].Close(reply_callback=(lambda: None), error_callback=self.error_cb)
+        print self._conn._channels.keys()
         del self._conn._channels[self._object_path]
 
     def gtk_entry_activate_cb(self, entry):
@@ -379,7 +386,7 @@ class TextChannel(telepathy.client.Channel):
                 print "Skipping already handled message", id
                 return
 
-        self._conn.call_with_handle(sender, (lambda handle, handle_type, sender: self.show_received_cb(id, timestamp, message_type, message, sender)))
+        self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, sender, (lambda handle, handle_type, sender: self.show_received_cb(id, timestamp, message_type, message, sender)))
 
     def show_sent_cb(self, timestamp, message_type, message, sender):
         iter = self._model.append()
@@ -389,14 +396,15 @@ class TextChannel(telepathy.client.Channel):
                         2, message)
 
     def get_self_handle_reply_cb(self, handle):
+        print "get_self_handle_reply_cb", self, handle
         self._self_handle = handle
         for func in self._self_handle_cb:
-            self._conn.call_with_handle(handle, func)
+            self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, handle, func)
 
     def sent_signal_cb(self, timestamp, message_type, message):
         func = (lambda handle, handle_type, sender: self.show_sent_cb(timestamp, message_type, message, sender))
         if self._self_handle:
-            self._conn.call_with_handle(self._self_handle, func)
+            self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, self._self_handle, func)
         else:
             self._self_handle_cb.append(func)
 
@@ -443,19 +451,25 @@ class TestConnection(telepathy.client.Connection):
         else:
             self._lists[name] = channel
 
-    def new_channel_signal_cb(self, obj_path, channel_type, handle, supress_handler):
+    def new_channel_signal_cb(self, obj_path, channel_type, handle_type, handle, supress_handler):
         if obj_path in self._channels:
             return
 
-        print 'NewChannel', obj_path, channel_type, handle, supress_handler
+        print 'NewChannel', obj_path, channel_type, handle_type, handle, supress_handler
 
         channel = None
 
         if channel_type == CHANNEL_TYPE_TEXT:
+            print "text chan"
             channel = TextChannel(self, obj_path, handle)
+            print "chan created"
         elif channel_type == CHANNEL_TYPE_CONTACT_LIST:
+            print "contact list chan"
             channel = ContactListChannel(self, obj_path, handle)
-            self.call_with_handle(handle, (lambda id, channel_type, name: self.give_list_to_contact_window(channel, name)))
+            print "calling with handle"
+            self.call_with_handle(CONNECTION_HANDLE_TYPE_LIST, handle, (lambda id, channel_type, name: self.give_list_to_contact_window(channel, name)))
+
+        print "NewChannel: chan", channel
 
         if channel != None:
             self._channels[obj_path] = channel
@@ -506,12 +520,12 @@ class TestConnection(telepathy.client.Connection):
 
         del self._handle_callbacks[id]
 
-    def call_with_handle(self, handle_id, func):
+    def call_with_handle(self, handle_type, handle_id, func):
         if handle_id in self._handle_cache:
             func(handle_id, *self._handle_cache[handle_id])
         else:
             if handle_id not in self._handle_callbacks:
-                self[CONN_INTERFACE].InspectHandle(handle_id, reply_handler=(lambda *args: self.inspect_handle_reply_cb(handle_id, *args)), error_handler=self.error_cb)
+                self[CONN_INTERFACE].InspectHandle(handle_type, handle_id, reply_handler=(lambda *args: self.inspect_handle_reply_cb(handle_id, handle_type, *args)), error_handler=self.error_cb)
                 self._handle_callbacks[handle_id] = set()
 
             self._handle_callbacks[handle_id].add(func)
@@ -581,3 +595,5 @@ if __name__ == '__main__':
             mainloop.run()
         except KeyboardInterrupt:
             quit_cb()
+        except e:
+            print e, e.Message
