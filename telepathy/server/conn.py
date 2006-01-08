@@ -130,6 +130,8 @@ class Connection(dbus.service.Object):
 
     def check_handle(self, handle_type, handle):
         if (handle_type, handle) not in self._handles:
+            print "Connection.check_handle", handle, handle_type, self._handles.keys()
+            print str(list( [ self._handles[x] for x in self._handles.keys() ] ) )
             raise InvalidHandle('handle number %s not valid' % handle)
 
     def check_handle_type(self, type):

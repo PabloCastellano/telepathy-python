@@ -247,14 +247,14 @@ class ChannelTypeContactList(Channel):
     """
     _dbus_interfaces = [CHANNEL_TYPE_CONTACT_LIST]
 
-    def __init__(self, connection):
+    def __init__(self, connection, handle):
         """
         Initialise the channel.
 
         Parameters:
         connection - the parent Telepathy Connection object
         """
-        Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_LIST)
+        Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_LIST, handle)
 
 
 class ChannelTypeStreamedMedia(Channel):
@@ -459,14 +459,14 @@ class ChannelTypeText(Channel):
     to the server.
     """
 
-    def __init__(self, connection):
+    def __init__(self, connection, handle):
         """
         Initialise the channel.
 
         Parameters:
         connection - the parent Telepathy Connection object
         """
-        Channel.__init__(self, connection, CHANNEL_TYPE_TEXT)
+        Channel.__init__(self, connection, CHANNEL_TYPE_TEXT, handle)
 
         self._pending_messages = {}
 
