@@ -439,8 +439,8 @@ class TestConnection(telepathy.client.Connection):
         self.status_changed_signal_cb(status, CONNECTION_STATUS_REASON_NONE_SPECIFIED)
 
     def list_channels_reply_cb(self, channels):
-        for (obj_path, channel_type, handle) in channels:
-            self.new_channel_signal_cb(obj_path, channel_type, handle, False)
+        for (obj_path, channel_type, handle_type, handle) in channels:
+            self.new_channel_signal_cb(obj_path, channel_type, handle_type, handle, False)
 
     def give_list_to_contact_window(self, channel, name):
         if self._contact_window:
