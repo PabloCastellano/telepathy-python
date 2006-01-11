@@ -164,14 +164,13 @@ class ContactWindow:
                                                                 error_handler=self.error_cb)
 
     def subscribe_get_members_reply_cb(self, members):
-        print members
         for member in members:
-            print "subscribe_get_members_reply_cb", member
+            print "subscribe_get_members_reply_cb, adding contact:", member
             self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self.add_contact)
 
     def subscribe_members_changed_signal_cb(self, reason, added, removed, local_pending, remote_pending):
         for member in added:
-            print "subscribe_members_changed_signal_cb", member
+            print "subscribe_members_changed_signal_cb, adding contact:", member
             self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self.add_contact)
 
     def set_subscribe_list(self, subscribe):
@@ -199,24 +198,23 @@ class ContactWindow:
                                                       error_handler=self.error_cb)
 
 class ContactListChannel(telepathy.client.Channel):
-    def __init__(self, conn, object_path, handle):
+    def __init__(self, conn, object_path, handle_type, handle):
         telepathy.client.Channel.__init__(self, conn._service_name, object_path)
         self.get_valid_interfaces().add(CHANNEL_TYPE_CONTACT_LIST)
         self._conn = conn
+        self._handle_type = handle_type
         self._handle = handle
         self._name = handle
 
     def got_interfaces(self):
-        print "ContactListChannel: got_interfaces", self, dir(self), self._handle
-#        if self._handle == CONN_INTERFACE:
-#            self._conn[CONN_INTERFACE].InspectHandle(CONNECTION_HANDLE_TYPE_CONTACT, self._handle,
-#                    reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
+        self._conn[CONN_INTERFACE].InspectHandle(self._handle_type, self._handle,
+            reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers(reply_handler=self.get_remote_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_signal_cb)
 
-    def inspect_handle_reply_cb(self, handle_type, name):
+    def inspect_handle_reply_cb(self, name):
         print "CLC", self._name, "is", name
         self._name = name
         if name == 'subscribe':
@@ -267,7 +265,7 @@ class ContactListChannel(telepathy.client.Channel):
         print "got remote pending members on CLC %s: %s" % (self._name, members)
 
 class TextChannel(telepathy.client.Channel):
-    def __init__(self, conn, object_path, handle):
+    def __init__(self, conn, object_path, handle_type, handle):
         telepathy.client.Channel.__init__(self, conn._service_name, object_path)
         self.get_valid_interfaces().add(CHANNEL_TYPE_TEXT)
         self[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.received_signal_cb)
@@ -314,13 +312,12 @@ class TextChannel(telepathy.client.Channel):
         # set the window title according to who you're talking to
         self._window.set_title("Conversation")
         if handle:
-            self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, handle, self.set_window_title_cb)
+            self._conn.call_with_handle(handle_type, handle, self.set_window_title_cb)
 
         self._window.show_all()
 
-        # asynchronously retrieve messages that have not been
+        # asynchronously retrieve messages that have not been acknowledged
         self._handled_pending_message = None
-
         self[CHANNEL_TYPE_TEXT].ListPendingMessages(reply_handler=self.list_pending_messages_reply_cb, error_handler=self.error_cb)
 
         # kick off a request for the user's handle number
@@ -453,6 +450,7 @@ class TestConnection(telepathy.client.Connection):
 
     def new_channel_signal_cb(self, obj_path, channel_type, handle_type, handle, supress_handler):
         if obj_path in self._channels:
+            print 'Skipping existing channel', obj_path
             return
 
         print 'NewChannel', obj_path, channel_type, handle_type, handle, supress_handler
@@ -460,24 +458,19 @@ class TestConnection(telepathy.client.Connection):
         channel = None
 
         if channel_type == CHANNEL_TYPE_TEXT:
-            print "text chan"
-            channel = TextChannel(self, obj_path, handle)
-            print "chan created"
+            channel = TextChannel(self, obj_path, handle_type, handle)
         elif channel_type == CHANNEL_TYPE_CONTACT_LIST:
-            print "contact list chan"
-            channel = ContactListChannel(self, obj_path, handle)
-            print "calling with handle"
-            self.call_with_handle(CONNECTION_HANDLE_TYPE_LIST, handle, (lambda id, channel_type, name: self.give_list_to_contact_window(channel, name)))
-
-        print "NewChannel: chan", channel
+            channel = ContactListChannel(self, obj_path, handle_type, handle)
+            self.call_with_handle(handle_type, handle, (lambda id, channel_type, name: self.give_list_to_contact_window(channel, name)))
 
         if channel != None:
+            print 'Created', channel
             self._channels[obj_path] = channel
         else:
             print 'Unknown channel type', channel_type
 
     def connected_cb(self):
-        print "connected"
+        print "Connected!"
         self[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
 #        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
 #        self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
