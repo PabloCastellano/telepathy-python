@@ -35,21 +35,22 @@ from telepathy import *
 import telepathy.client
 
 class ContactListChannel(telepathy.client.Channel):
-    def __init__(self, conn, object_path, handle):
+    def __init__(self, conn, object_path, handle_type, handle):
         telepathy.client.Channel.__init__(self, conn._service_name, object_path)
         self.get_valid_interfaces().add(CHANNEL_TYPE_CONTACT_LIST)
         self._conn = conn
+        self._handle_type = handle_type
         self._handle = handle
         self._name = handle
 
     def got_interfaces(self):
-        self._conn[CONN_INTERFACE].InspectHandle(self._handle, reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
-        self[CHANNEL_INTERFACE].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
+        self._conn[CONN_INTERFACE].InspectHandle(self._handle_type, self._handle, reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers(reply_handler=self.get_remote_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_signal_cb)
 
-    def inspect_handle_reply_cb(self, type, name):
+    def inspect_handle_reply_cb(self, name):
         print "CLC", self._name, "is", name
         self._name = name
         if name == 'subscribe':
@@ -100,16 +101,16 @@ class ContactListChannel(telepathy.client.Channel):
         print "got remote pending members on CLC %s: %s" % (self._name, members)
 
 class StreamedMediaChannel(telepathy.client.Channel):
-    def __init__(self, conn, object_path, handle):
+    def __init__(self, conn, object_path, handle_type, handle):
         telepathy.client.Channel.__init__(self, conn._service_name, object_path)
         self._conn = conn
         self.get_valid_interfaces().add(CHANNEL_TYPE_STREAMED_MEDIA)
         self[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal('ReceivedMediaParameters', self.received_media_params_cb)
         self[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
- 
+
     def got_interfaces(self):
         print "SMC got interfaces"
-        self[CHANNEL_INTERFACE].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers(reply_handler=self.get_remote_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_signal_cb)
@@ -151,7 +152,7 @@ class StreamedMediaChannel(telepathy.client.Channel):
         print "Channel has remote pending members", members
 
 class TextChannel(telepathy.client.Channel):
-    def __init__(self, conn, object_path, handle):
+    def __init__(self, conn, object_path, handle_type, handle):
         # FIXME: this is racy and buggy and smells, and is deprecated in
         # favour of the stuff in sdp-client.py
         telepathy.client.Channel.__init__(self, conn._service_name, object_path)
@@ -212,27 +213,25 @@ class TestConnection(telepathy.client.Connection):
         print "get_status_reply_cb", status
         self.status_changed_signal_cb(status, CONNECTION_STATUS_REASON_NONE_SPECIFIED)
 
-    def new_channel_signal_cb(self, obj_path, type, handle, supress_handler):
+    def new_channel_signal_cb(self, obj_path, chan_type, handle_type, handle, supress_handler):
         if obj_path in self._channels:
             return
 
-        print 'NewChannel', obj_path, type, handle, supress_handler
+        print 'NewChannel', obj_path, chan_type, handle_type, handle, supress_handler
 
         channel = None
-        
-        print "channel type ", type
-        if type == CHANNEL_TYPE_TEXT:
-            channel = TextChannel(self, obj_path, handle)
-        elif type == CHANNEL_TYPE_CONTACT_LIST:
-            channel = ContactListChannel(self, obj_path, handle)
-        elif type == CHANNEL_TYPE_STREAMED_MEDIA:
-            print "got new streamed media channel"
-            channel = StreamedMediaChannel(self, obj_path, handle)
-        
+
+        if chan_type == CHANNEL_TYPE_TEXT:
+            channel = TextChannel(self, obj_path, handle_type, handle)
+        elif chan_type == CHANNEL_TYPE_CONTACT_LIST:
+            channel = ContactListChannel(self, obj_path, handle_type, handle)
+        elif chan_type == CHANNEL_TYPE_STREAMED_MEDIA:
+            channel = StreamedMediaChannel(self, obj_path, handle_type, handle)
+
         if channel != None:
             self._channels[obj_path] = channel
         else:
-            print 'Unknown channel type', type
+            print 'Unknown channel type', handle_type
 
     def connected_cb(self):
         if CONN_INTERFACE_STREAMED_MEDIA in self.get_valid_interfaces():
@@ -242,7 +241,7 @@ class TestConnection(telepathy.client.Connection):
             handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, os.environ["SIPDEBUG"][5:])
             print "got handle %d for %s" % (handle, os.environ["SIPDEBUG"][5:])
             print "calling RequestChannel"
-            obj = self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_STREAMED_MEDIA, handle, True)
+            obj = self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_CONTACT, handle, True)
             print "called RequestChannel, got ", obj
         elif "SIPDEBUG" in os.environ and os.environ["SIPDEBUG"][:8] == "forward:":
             handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, os.environ["SIPDEBUG"][8:])
