@@ -275,9 +275,6 @@ class TextChannel(telepathy.client.Channel):
         self._conn = conn
         self._object_path = object_path
 
-        self._self_handle = None
-        self._self_handle_cb = []
-
         self._window = gtk.Window()
         self._window.connect("delete-event", self.gtk_delete_event_cb)
         self._window.set_size_request(400, 300)
@@ -325,8 +322,11 @@ class TextChannel(telepathy.client.Channel):
         self._handled_pending_message = None
 
         self[CHANNEL_TYPE_TEXT].ListPendingMessages(reply_handler=self.list_pending_messages_reply_cb, error_handler=self.error_cb)
-        print dir(self[CONN_INTERFACE])
-        self[CONN_INTERFACE].GetSelfHandle(reply_handler=self.get_self_handle_reply_cb, error_handler=self.error_cb)
+
+        # kick off a request for the user's handle number
+        self._self_handle = None
+        self._self_handle_cb = []
+        self._conn[CONN_INTERFACE].GetSelfHandle(reply_handler=self.get_self_handle_reply_cb, error_handler=self.error_cb)
 
     def list_pending_messages_reply_cb(self, pending_messages):
         print "got pending messages", pending_messages
