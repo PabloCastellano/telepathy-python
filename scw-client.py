@@ -121,7 +121,7 @@ class ContactWindow:
             msg = 'Unknown'
 
         if 'message' in parameters:
-            msg = "%s: %s", msg, parameters['message']
+            msg = "%s: %s" % (msg, parameters['message'])
 
         return msg
 
