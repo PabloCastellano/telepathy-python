@@ -280,7 +280,7 @@ class ChannelTypeStreamedMedia(Channel):
         Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA)
         self._media_parameters = {}
 
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uosi')
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uos')
 
     def NewMediaSessionHandler(self, member, session_handler, type):
         """
@@ -312,7 +312,7 @@ class MediaSessionHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='oi')
+    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='oii')
     def NewMediaStreamHandler(self, stream_handler, media_type, direction):
         """
         Emitted when a new media stream handler has been created for this
@@ -321,13 +321,13 @@ class MediaSessionHandler(dbus.service.Object):
         Parameters:
         stream_handler - an object path to a new MediaStreamHandler
         media_type - enum for type of media that this stream should handle
-          AUDIO = 0
-          VIDEO = 1
+          MEDIA_STREAM_TYPE_AUDIO = 0
+          MEDIA_STREAM_TYPE_VIDEO = 1
         direction - enum for direction of this stream
-          NONE = 0
-          SEND = 1
-          REIEVE = 2
-          BIDIRECTIONAL = 3
+          MEDIA_STREAM_DIRECTION_NONE = 0
+          MEDIA_STREAM_DIRECTION_SEND = 1
+          MEDIA_STREAM_DIRECTION_RECIEVE = 2
+          MEDIA_STREAM_DIRECTION_BIDIRECTIONAL = 3
         """
         pass
 
@@ -337,7 +337,7 @@ class MediaStreamHandler(dbus.service.Object):
     information to this handler as and when is it ready
     """
 
-    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='', 
                                                 out_signature='')
     def Ready(self):
         """
@@ -346,7 +346,7 @@ class MediaStreamHandler(dbus.service.Object):
         """
         pass;
 
-    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='is', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='is', 
                                                 out_signature='')
     def Error(self, errno, message):
         """
@@ -354,16 +354,16 @@ class MediaStreamHandler(dbus.service.Object):
 
         Parameters:
         errno - id of error:
-          UNKNOWN_ERROR = 0
-          ERROR_EOS = 1
         message - string describing the error
+          MEDIA_STREAM_ERROR_UNKNOWN = 0
+          MEDIA_STREAM_ERROR_EOS = 1
         """
         pass
 
 
     @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(isqisdiss)', 
                                                out_signature='')
-    def NewNativeCandidate(self, id, candidate_id, transports ):
+    def NewNativeCandidate(self, candidate_id, transports ):
         """
         Inform this MediaStreamHandler that a new native transport candidate
         has been ascertained.
@@ -375,19 +375,19 @@ class MediaStreamHandler(dbus.service.Object):
           ip (as a string)
           port
           enum for base network protocol 
-            UDP = 0
-            TCP = 1
+            MEDIA_STREAM_BASE_PROTO_UDP = 0
+            MEDIA_STREAM_BASE_PROTO_TCP = 1
           string specifying proto subtype (e.g SAVP for an RTP stream)
           our preference value of this transport (double in range 0-1 
           inclusive)
-              1 signals most preferred transport
+            1 signals most preferred transport
           transport type  
-              LOCAL = 0 - a local address      
-              DERIVED = 1 - an external address derived by a method 
-                            such as STUN
-              RELAY = 2 - an external stream relay
+            MEDIA_STREAM_TRANSPORT_TYPE_LOCAL = 0 - a local address      
+            MEDIA_STREAM_TRANSPORT_TYPE_DERIVED = 1 - an external address 
+                derived by a method such as STUN
+            MEDIA_STREAM_TRANSPORT_TYPE_RELAY = 2 - an external stream relay
           username - string to specify a username if authentication 
-              is required 
+                     is required 
           password - string to specify a password if authentication 
                      is required 
        """
@@ -411,8 +411,7 @@ class MediaStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(MEDIA_STREAM_HANDLER, in_signature='ss', 
-                                               out_signature='')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='ss')
     def SetActiveCandidatePair(self, native_candidate_id, remote_candidate_id):
         """
         used by the connection manager to inform the voip engine that a 
@@ -422,7 +421,7 @@ class MediaStreamHandler(dbus.service.Object):
         pass
 
 
-    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='a(sa(isqisdiss))')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(sa(isqisdiss))')
     def SetRemoteCandidateList(self, remote_candidates):
         """
         Signal emitted when the connectoin manager wishes to inform the 
@@ -435,7 +434,7 @@ class MediaStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='sa(isqisdiss)')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='sa(isqisdiss)')
     def AddRemoteCandidate(self, candidate_id, transports):
         """
         Signal emitted when the connectoin manager wishes to inform the 
@@ -449,7 +448,7 @@ class MediaStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='sa(isqisdiss)')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='s')
     def RemoveRemoteCandidate(self, candidate_id):
         """
         Signal emitted when the connectoin manager wishes to inform the 
@@ -472,7 +471,7 @@ class MediaStreamHandler(dbus.service.Object):
     pass
 
 
-    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='a(isiiia{ss})', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(isiiia{ss})', 
                                                 out_signature='')
     def SupportedCodecs(self, codecs):
         """
@@ -488,7 +487,7 @@ class MediaStreamHandler(dbus.service.Object):
             string key-value pairs for supported optional parameters
         """ 
  
-    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='a(isiiia{ss})')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(isiiia{ss})')
     def SetRemoteCodecs(self, codecs):
         """
         Signal emitted when the connectoin manager wishes to inform the 
