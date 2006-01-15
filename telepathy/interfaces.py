@@ -28,7 +28,6 @@ CONN_INTERFACE_FORWARDING = 'org.freedesktop.Telepathy.Connection.Interface.Forw
 CONN_INTERFACE_PRESENCE = 'org.freedesktop.Telepathy.Connection.Interface.Presence'
 CONN_INTERFACE_PRIVACY = 'org.freedesktop.Telepathy.Connection.Interface.Privacy'
 CONN_INTERFACE_RENAMING = 'org.freedesktop.Telepathy.Connection.Interface.Renaming'
-CONN_INTERFACE_STREAMED_MEDIA = 'org.freedesktop.Telepathy.Connection.Interface.StreamedMedia'
 
 CHANNEL_INTERFACE = 'org.freedesktop.Telepathy.Channel'
 CHANNEL_TYPE_CONTACT_LIST = 'org.freedesktop.Telepathy.Channel.Type.ContactList'
