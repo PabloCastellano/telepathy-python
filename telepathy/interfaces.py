@@ -44,3 +44,5 @@ CHANNEL_INTERFACE_PASSWORD = 'org.freedesktop.Telepathy.Channel.Interface.Passwo
 CHANNEL_INTERFACE_SUBJECT = 'org.freedesktop.Telepathy.Channel.Interface.Subject'
 CHANNEL_INTERFACE_TRANSFER = 'org.freedesktop.Telepathy.Channel.Interface.Transfer'
 
+MEDIA_SESSION_HANDLER = 'org.freedesktop.Telepathy.MediaSessionHandler'
+
