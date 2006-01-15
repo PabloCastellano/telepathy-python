@@ -361,7 +361,7 @@ class MediaStreamHandler(dbus.service.Object):
         pass
 
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(isqisdiss)', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(isqissdiss)', 
                                                out_signature='')
     def NewNativeCandidate(self, candidate_id, transports ):
         """
@@ -377,7 +377,8 @@ class MediaStreamHandler(dbus.service.Object):
           enum for base network protocol 
             MEDIA_STREAM_BASE_PROTO_UDP = 0
             MEDIA_STREAM_BASE_PROTO_TCP = 1
-          string specifying proto subtype (e.g SAVP for an RTP stream)
+          string specifying proto subtype (e.g RTP )
+          string specifying proto profile (e.g AVP)
           our preference value of this transport (double in range 0-1 
           inclusive)
             1 signals most preferred transport
@@ -421,7 +422,7 @@ class MediaStreamHandler(dbus.service.Object):
         pass
 
 
-    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(sa(isqisdiss))')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(sa(isqissdiss))')
     def SetRemoteCandidateList(self, remote_candidates):
         """
         Signal emitted when the connectoin manager wishes to inform the 
@@ -434,7 +435,7 @@ class MediaStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='sa(isqisdiss)')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='sa(isqissdiss)')
     def AddRemoteCandidate(self, candidate_id, transports):
         """
         Signal emitted when the connectoin manager wishes to inform the 
