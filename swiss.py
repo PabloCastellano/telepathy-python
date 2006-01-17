@@ -545,7 +545,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
             self.StatusChanged(CONNECTION_STATUS_CONNECTING, CONNECTION_STATUS_REASON_REQUESTED)
             gobject.idle_add(self.connect_cb())
 
-    def xObsoleteRequestHandle(self, handle_type, name, sender):
+    def RequestHandle(self, handle_type, name, sender):
         self.check_connected()
         self.check_handle_type(handle_type)
 
@@ -581,7 +581,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         elif type == CHANNEL_TYPE_CONTACT_LIST:
             self.check_handle(CONNECTION_HANDLE_TYPE_LIST, handle_id)
 
-            handle = self.handles[(CONNECTION_HANDLE_TYPE_LIST, handle_id)]
+            handle = self._handles[(CONNECTION_HANDLE_TYPE_LIST, handle_id)]
 
             if handle.handle_type != CONNECTION_HANDLE_TYPE_LIST:
                 raise InvalidHandle('only list handles are valid for contact list channel')
