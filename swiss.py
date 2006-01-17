@@ -583,9 +583,6 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
 
             handle = self._handles[(CONNECTION_HANDLE_TYPE_LIST, handle_id)]
 
-            if handle.handle_type != CONNECTION_HANDLE_TYPE_LIST:
-                raise InvalidHandle('only list handles are valid for contact list channel')
-
             if handle in self._list_channels:
                 chan = self._list_channels[handle]
             else:
