@@ -270,14 +270,14 @@ class ChannelTypeStreamedMedia(Channel):
     parameters which contains the same information for the remote user's
     streams.
     """
-    def __init__(self, connection):
+    def __init__(self, connection, handle):
         """
         Initialise the channel.
 
         Parameters:
         connection - the parent Telepathy Connection object
         """
-        Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA)
+        Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA, handle)
         self._media_parameters = {}
 
     @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uos')
@@ -313,7 +313,21 @@ class MediaSessionHandler(dbus.service.Object):
     A media session handler is an object that handles a number of synchonised
     media streams.
     """
-    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='is', 
+
+    def __init__(self, bus_name, object_path):
+        dbus.service.Object.__init__(self,bus_name, object_path);
+
+    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='', 
+                                                out_signature='')
+    def Ready(self):
+        """
+        Inform the connection manager that a client is ready to handle
+        this SessionHandler
+        """
+        print "ready called on base class"
+        pass;
+
+    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='us', 
                                                 out_signature='')
     def Error(self, errno, message):
         """
@@ -321,7 +335,7 @@ class MediaSessionHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='oii')
+    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='ouu')
     def NewMediaStreamHandler(self, stream_handler, media_type, direction):
         """
         Emitted when a new media stream handler has been created for this
@@ -346,6 +360,9 @@ class MediaStreamHandler(dbus.service.Object):
     information to this handler as and when is it ready
     """
 
+    def __init__(self, bus_name, object_path):
+        dbus.service.Object.__init__(self, bus_name, object_path);
+
     @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='', 
                                                 out_signature='')
     def Ready(self):
@@ -355,7 +372,7 @@ class MediaStreamHandler(dbus.service.Object):
         """
         pass;
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='is', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='us', 
                                                 out_signature='')
     def Error(self, errno, message):
         """
@@ -370,7 +387,7 @@ class MediaStreamHandler(dbus.service.Object):
         pass
 
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(isqissdiss)', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(usuussdiss)', 
                                                out_signature='')
     def NewNativeCandidate(self, candidate_id, transports ):
         """
@@ -431,7 +448,7 @@ class MediaStreamHandler(dbus.service.Object):
         pass
 
 
-    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(sa(isqissdiss))')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(sa(usuussduss))')
     def SetRemoteCandidateList(self, remote_candidates):
         """
         Signal emitted when the connectoin manager wishes to inform the 
@@ -444,7 +461,7 @@ class MediaStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='sa(isqissdiss)')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='sa(usuussduss)')
     def AddRemoteCandidate(self, candidate_id, transports):
         """
         Signal emitted when the connectoin manager wishes to inform the 
@@ -472,7 +489,7 @@ class MediaStreamHandler(dbus.service.Object):
         pass
 
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='i', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='u', 
                                                out_signature='')
     def CodecChoice(self, codec_id):
         """
@@ -481,7 +498,7 @@ class MediaStreamHandler(dbus.service.Object):
     pass
 
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(isiiia{ss})', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(usuuua{ss})', 
                                                 out_signature='')
     def SupportedCodecs(self, codecs):
         """
@@ -497,7 +514,7 @@ class MediaStreamHandler(dbus.service.Object):
             string key-value pairs for supported optional parameters
         """ 
  
-    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(isiiia{ss})')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(usuuua{ss})')
     def SetRemoteCodecs(self, codecs):
         """
         Signal emitted when the connectoin manager wishes to inform the 
