@@ -299,6 +299,15 @@ class ChannelTypeStreamedMedia(Channel):
         """
         pass
 
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='', 
+                                                      out_signature='a(uos)')
+    def GetSessionHandlers(self):
+        """
+        Returns all currently active session handlers on this channel
+        as a list of (member,session_handler_path,type)
+        """
+        pass
+
 class MediaSessionHandler(dbus.service.Object):
     """
     A media session handler is an object that handles a number of synchonised
