@@ -18,7 +18,6 @@ tp-conn-iface-forwarding.xml	TpConnIfaceForwarding	dbus.service.Object, Connecti
 tp-conn-iface-presence.xml	TpConnIfacePresence	dbus.service.Object, ConnectionInterfacePresence
 tp-conn-iface-privacy.xml	TpConnIfacePrivacy	dbus.service.Object, ConnectionInterfacePrivacy
 tp-conn-iface-renaming.xml	TpConnIfaceRenaming	dbus.service.Object, ConnectionInterfaceRenaming
-tp-conn-iface-streamed-media.xml	TpConnIfaceStreamedMedia	dbus.service.Object, ConnectionInterfaceStreamedMedia
 
 # channel interfaces
 tp-chan-iface-dtmf.xml	TpChanIfaceDTMF	dbus.service.Object, ChannelInterfaceDTMF
