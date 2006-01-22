@@ -58,7 +58,7 @@ def type_to_gtype(s):
     if s == 'v':  #variant
         return ("GValue *", "G_TYPE_VALUE", "BOXED", True)
     if s[:1] == '(': #struct
-        return ("GValueArray *", "G_VALUE_ARRAY", "BOXED", True)
+        return ("GValueArray *", "G_TYPE_VALUE_ARRAY", "BOXED", True)
     if s == 'as':  #array of strings
         return ("gchar **", "G_TYPE_STRV", "BOXED", True)
     if s == 'ay': #byte array
