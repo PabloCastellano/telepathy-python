@@ -471,7 +471,8 @@ class TestConnection(telepathy.client.Connection):
 
     def connected_cb(self):
         print "Connected!"
-        self[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
+        if CONN_INTERFACE_PRESENCE in self.get_valid_interfaces():
+            self[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
 #        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
 #        self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
 #        print self[CONN_INTERFACE_PRESENCE].GetStatuses()
