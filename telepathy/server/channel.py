@@ -349,7 +349,7 @@ class MediaSessionHandler(dbus.service.Object):
         direction - enum for direction of this stream
           MEDIA_STREAM_DIRECTION_NONE = 0
           MEDIA_STREAM_DIRECTION_SEND = 1
-          MEDIA_STREAM_DIRECTION_RECIEVE = 2
+          MEDIA_STREAM_DIRECTION_RECEIVE = 2
           MEDIA_STREAM_DIRECTION_BIDIRECTIONAL = 3
         """
         pass
