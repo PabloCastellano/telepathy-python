@@ -213,11 +213,11 @@ class TestConnection(telepathy.client.Connection):
         print "get_status_reply_cb", status
         self.status_changed_signal_cb(status, CONNECTION_STATUS_REASON_NONE_SPECIFIED)
 
-    def new_channel_signal_cb(self, obj_path, chan_type, handle_type, handle, supress_handler):
+    def new_channel_signal_cb(self, obj_path, chan_type, handle_type, handle, suppress_handler):
         if obj_path in self._channels:
             return
 
-        print 'NewChannel', obj_path, chan_type, handle_type, handle, supress_handler
+        print 'NewChannel', obj_path, chan_type, handle_type, handle, suppress_handler
 
         channel = None
 

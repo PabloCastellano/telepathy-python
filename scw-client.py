@@ -448,12 +448,12 @@ class TestConnection(telepathy.client.Connection):
         else:
             self._lists[name] = channel
 
-    def new_channel_signal_cb(self, obj_path, channel_type, handle_type, handle, supress_handler):
+    def new_channel_signal_cb(self, obj_path, channel_type, handle_type, handle, suppress_handler):
         if obj_path in self._channels:
             print 'Skipping existing channel', obj_path
             return
 
-        print 'NewChannel', obj_path, channel_type, handle_type, handle, supress_handler
+        print 'NewChannel', obj_path, channel_type, handle_type, handle, suppress_handler
 
         channel = None
 

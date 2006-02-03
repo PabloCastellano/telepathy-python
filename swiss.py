@@ -396,7 +396,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         subscribe_handle = self.get_handle_for_list('subscribe')
         subscribe_channel = JabberSubscribeListChannel(self, subscribe_handle)
         self._list_channels[subscribe_handle] = subscribe_channel
-        self.add_channel(subscribe_channel, subscribe_handle, supress_handler=False)
+        self.add_channel(subscribe_channel, subscribe_handle, suppress_handler=False)
 
         # set up handlers for <presence/> stanzas which deal with subscriptions
         self.stream.set_presence_handler("subscribed",subscribe_channel.subscribed_handler)
@@ -406,7 +406,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         publish_handle = self.get_handle_for_list('publish')
         publish_channel = JabberPublishListChannel(self, publish_handle)
         self._list_channels[publish_handle] = publish_channel
-        self.add_channel(publish_channel, publish_handle, supress_handler=False)
+        self.add_channel(publish_channel, publish_handle, suppress_handler=False)
 
         # set up handlers for <presence/> stanzas which deal with publishing
         self.stream.set_presence_handler("subscribe",publish_channel.subscribe_handler)
@@ -527,7 +527,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         if not handled:
             chan = JabberIMChannel(self, sender)
             self._im_channels[sender] = chan
-            self.add_channel(chan, sender, supress_handler=False)
+            self.add_channel(chan, sender, suppress_handler=False)
             handled = chan.message_handler(sender, stanza)
 
         return handled
@@ -560,7 +560,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         self.add_client_handle(handle, sender)
         return handle.get_id()
 
-    def RequestChannel(self, type, handle_type, handle_id, supress_handler):
+    def RequestChannel(self, type, handle_type, handle_id, suppress_handler):
         self.check_connected()
 
         chan = None
@@ -593,7 +593,7 @@ class JabberConnection(pyxmpp.jabber.client.JabberClient, telepathy.server.Conne
         assert(chan)
 
         if not chan in self._channels:
-            self.add_channel(chan, handle, supress_handler)
+            self.add_channel(chan, handle, suppress_handler)
 
         return chan._object_path
 

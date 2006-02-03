@@ -165,10 +165,10 @@ class Connection(dbus.service.Object):
         self._next_channel_id += 1
         return ret
 
-    def add_channel(self, channel, handle, supress_handler):
+    def add_channel(self, channel, handle, suppress_handler):
         """ add a new channel and signal its creation""" 
         self._channels.add(channel)
-        self.NewChannel(channel._object_path, channel._type, handle.get_type(), handle.get_id(), supress_handler)
+        self.NewChannel(channel._object_path, channel._type, handle.get_type(), handle.get_id(), suppress_handler)
 
     def remove_channel(self, channel):
         self._channels.remove(channel)
@@ -400,10 +400,10 @@ class Connection(dbus.service.Object):
         self.check_connected()
 
     @dbus.service.signal(CONN_INTERFACE, signature='osuub')
-    def NewChannel(self, object_path, channel_type, handle_type, handle, supress_handler):
+    def NewChannel(self, object_path, channel_type, handle_type, handle, suppress_handler):
         """
         Emitted when a new Channel object is created, either through user
-        request or incoming information from the service. The supress_handler
+        request or incoming information from the service. The suppress_handler
         boolean indicates if the channel was requested by an existing client,
         or is an incoming communication and needs to have a handler launched.
 
@@ -412,7 +412,7 @@ class Connection(dbus.service.Object):
         channel_type - a D-Bus interface name representing the channel type
         handle_type - an integer representing the type of handle this channel communicates with, which is zero if no handle is specified
         handle - a handle indicating the specific contact, room or list this channel communicates with, or zero if it is an anonymous channel
-        supress_handler - a boolean indicating that the channel was requested by a client that intends to display it to the user, so no handler needs to be launched
+        suppress_handler - a boolean indicating that the channel was requested by a client that intends to display it to the user, so no handler needs to be launched
         """
         pass
 
@@ -439,7 +439,7 @@ class Connection(dbus.service.Object):
         return ret
 
     @dbus.service.method(CONN_INTERFACE, in_signature='suub', out_signature='o')
-    def RequestChannel(self, type, handle_type, handle, supress_handler):
+    def RequestChannel(self, type, handle_type, handle, suppress_handler):
         """
         Request a channel satisfying the specified type and communicating with
         the contact, room or list indicated by the given handle. The handle may
@@ -452,7 +452,7 @@ class Connection(dbus.service.Object):
         type - a D-Bus interface name representing base channel type
         handle_type - an integer representing the handle type, or zero if no handle is being specified
         handle - an integer handle representing a contact, room or list, or zero
-        supress_handler - a boolean indicating that the requesting client intends to take responsibility for displaying the channel to the user, so that no other handler needs to be launched
+        suppress_handler - a boolean indicating that the requesting client intends to take responsibility for displaying the channel to the user, so that no other handler needs to be launched
 
         Returns:
         the D-Bus object path for the channel created or retrieved
