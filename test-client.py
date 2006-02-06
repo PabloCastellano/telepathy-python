@@ -213,6 +213,10 @@ class TestConnection(telepathy.client.Connection):
         print "get_status_reply_cb", status
         self.status_changed_signal_cb(status, CONNECTION_STATUS_REASON_NONE_SPECIFIED)
 
+    def list_channels_reply_cb(self, channels):
+        for (obj_path, channel_type, handle_type, handle) in channels:
+            self.new_channel_signal_cb(obj_path, channel_type, handle_type, handle, False)
+
     def new_channel_signal_cb(self, obj_path, chan_type, handle_type, handle, suppress_handler):
         if obj_path in self._channels:
             return
@@ -255,6 +259,7 @@ class TestConnection(telepathy.client.Connection):
 
     def get_interfaces_reply_cb(self, interfaces):
         self.get_valid_interfaces().update(interfaces)
+        self[CONN_INTERFACE].ListChannels(reply_handler=self.list_channels_reply_cb, error_handler=self.error_cb)
         #self[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
         gobject.idle_add(self.connected_cb)
 
