@@ -238,9 +238,6 @@ class TestConnection(telepathy.client.Connection):
             print 'Unknown channel type', handle_type
 
     def connected_cb(self):
-        if CONN_INTERFACE_STREAMED_MEDIA in self.get_valid_interfaces():
-            self[CONN_INTERFACE_STREAMED_MEDIA].SetMediaParameters(
-"v=0\r\nm=audio 0 RTP/AVP 3 0 8\r\na=rtpmap:3 GSM/8000\r\na=rtpmap  PCMU/8000\r\na=rtpmap:8 PCMA/8000\r\n")
         if "SIPDEBUG" in os.environ and os.environ["SIPDEBUG"][:5] == "call:":
             handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, os.environ["SIPDEBUG"][5:])
             print "got handle %d for %s" % (handle, os.environ["SIPDEBUG"][5:])
