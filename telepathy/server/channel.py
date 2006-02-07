@@ -774,6 +774,14 @@ class ChannelTypeText(Channel):
         """
         self._pending_messages[id] = (timestamp, sender, type, text)
 
+    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='')
+    def LostMessage(self):
+        """
+        This signal is emitted to indicate that a message was not able
+        to be stored and forwarded by the connection manager due to lack
+        of memory.
+        """
+        pass
 
 class ChannelInterfaceDTMF(dbus.service.Interface):
     """
