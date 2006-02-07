@@ -619,6 +619,7 @@ class ChannelTypeRoomList(Channel):
         type, and a dictionary containing further information about the
         room as available. The following well-known keys and types are
         recommended for use where appropriate:
+         s:name - the name of the room if different from the handle
          s:subject - the subject of the room
          u:members - the number of members of the room
          b:password - true if the room requires a password to enter
