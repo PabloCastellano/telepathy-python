@@ -700,22 +700,24 @@ class ChannelTypeText(Channel):
         """
         pass
 
-    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='u', out_signature='')
-    def AcknowledgePendingMessage(self, id):
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='au', out_signature='')
+    def AcknowledgePendingMessages(self, ids):
         """
-        Inform the channel that you have handled a message by displaying it to
-        the user (or equivalent), so it can be removed from the pending queue.
+        Inform the channel that you have handled messages by displaying them to
+        the user (or equivalent), so they can be removed from the pending queue.
 
         Parameters:
-        id - the message to acknowledge
+        ids - the message to acknowledge
 
         Possible Errors:
-        InvalidArgument (the given message ID was not found)
+        InvalidArgument (a given message ID was not found, no action taken)
         """
-        if id in self._pending_messages:
+        for id in ids:
+            if id not in self._pending_messages:
+                raise telepathy.InvalidArgument("the given message ID was not found")
+
+        for id in ids:
             del self._pending_messages[id]
-        else:
-            raise telepathy.InvalidArgument("the given message ID was not found")
 
     @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='a(uuuus)')
     def ListPendingMessages(self):
