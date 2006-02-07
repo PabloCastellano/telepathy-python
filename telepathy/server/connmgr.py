@@ -244,7 +244,7 @@ class ConnectionManager(dbus.service.Object):
         the D-Bus object path to the Connection on this service
 
         Potential Errors:
-        NetworkError, NotImplemented (unknown protocol), InvalidArgument (unrecognised connection parameters)
+        NetworkError, NotImplemented (unknown protocol), NotAvailable (the requested connection already appears to exist), InvalidArgument (unrecognised connection parameters)
         """
         if proto in self._protos:
             conn = self._protos[proto](self, parameters)
