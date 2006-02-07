@@ -953,7 +953,8 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         status - the string identifier of the status not to publish anymore for the user
 
         Possible Errors:
-        Disconnected, NetworkError, PermissionDenied
+        Disconnected, NetworkError, PermissionDenied, InvalidArgument (if the status
+        requested is not currently set)
         """
         pass
 
