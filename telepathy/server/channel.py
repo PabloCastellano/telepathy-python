@@ -672,6 +672,18 @@ class ChannelTypeText(Channel):
         Channel.__init__(self, connection, CHANNEL_TYPE_TEXT, handle)
 
         self._pending_messages = {}
+        self._message_types = [CHANNEL_TEXT_MESSAGE_TYPE_NORMAL]
+
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='au')
+    def GetMessageTypes(self):
+        """
+        Return an array indicating which types of message may be sent on this
+        channel.
+
+        Returns:
+        an array of integer message types as defined above
+        """
+        return self._message_types
 
     @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='us', out_signature='')
     def Send(self, type, text):
