@@ -548,22 +548,6 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
         """
         pass
 
-    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='u', out_signature='s')
-    def RequestAlias(self, contact):
-        """
-        Request the value of a contact's alias (or that of the user themselves).
-
-        Parameters:
-        contact - the handle representing a contact
-
-        Returns:
-        a string representing the contact's alias
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable, InvalidHandle
-        """
-        pass
-
     @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='au', out_signature='a{us}')
     def RequestAliases(self, contacts):
         """
