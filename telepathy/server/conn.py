@@ -173,15 +173,10 @@ class Connection(dbus.service.Object):
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
         """
-        Get the optional interfaces supported by the connection. Not valid
-        until the connection has been established (GetState returns
-        CONNECTION_STATE_CONNECTED).
+        Get the optional interfaces supported by this connection.
 
         Returns:
         an array of D-Bus interface names
-
-        Potential Errors:
-        Disconnected
         """
         self.check_connected()
         return self._interfaces
