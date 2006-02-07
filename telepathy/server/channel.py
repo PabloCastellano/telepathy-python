@@ -653,7 +653,9 @@ class ChannelTypeText(Channel):
     1 - CHANNEL_TEXT_MESSAGE_TYPE_ACTION
         an action which might be presented to the user as * <sender> <action>
     2 - CHANNEL_TEXT_MESSAGE_TYPE_NOTICE
-        an automated message not expecting a reply
+        an one-off or automated message not necessarily expecting a reply
+    3 - CHANNEL_TEXT_MESSAGE_TYPE_AUTO_REPLY
+        an automatically-generated reply message
 
     Sending messages can be requested using the Send method, which will return
     and cause the Sent signal to be emitted when the message has been delivered
