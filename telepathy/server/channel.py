@@ -261,10 +261,10 @@ class ChannelTypeContactList(Channel):
 class ChannelTypeStreamedMedia(Channel):
     """
     A channel that can send and receive streamed media such as audio or video.
+    The negotiation interface is based off the Farsight project's API for
+    negotiating ICE-style connection candidates, but should be applicable
+    to most streaming media systems.
 
-    A complete negotiation interface is defined, based off that of 
-    the Farsight project's.
-  
     When the negotiations are completed, the ReceivedMediaParameters signal is
     emitted, containing the 'local' media parameters, which contain the SDP
     information for the local user's media streams, and the 'remote' media
@@ -285,27 +285,26 @@ class ChannelTypeStreamedMedia(Channel):
 
     def NewMediaSessionHandler(self, member, session_handler, type):
         """
-        signal that a session handler object has been created for a member
-        of this channel
-        The client should then service this session handler object to provide
-        streaming services.
-  
+        Signal that a session handler object has been created for a member
+        of this channel. The client should then service this session handler
+        object to provide streaming services.
+
         Parameter:
         member - member that the MediaSessionHandler is created for
-        session_handler - object path to MediaSessionHandler object
-        type - string indicateing type of session, eg "rtp"
-        
+        session_handler - object path of the MediaSessionHandler object
+        type - string indicating type of session, eg "rtp"
+
         Possible Errors:
         Disconnected, InvalidHandle, NotAvailable (if the contact has sent nothing to us on this channel)
         """
         pass
 
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='', 
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='',
                                                       out_signature='a(uos)')
     def GetSessionHandlers(self):
         """
         Returns all currently active session handlers on this channel
-        as a list of (member,session_handler_path,type)
+        as a list of (member, session_handler_path, type).
         """
         pass
 
@@ -341,24 +340,22 @@ class ChannelTypeStreamedMedia(Channel):
 
 class MediaSessionHandler(dbus.service.Object):
     """
-    A media session handler is an object that handles a number of synchonised
+    A media session handler is an object that handles a number of synchronised
     media streams.
     """
-
     def __init__(self, bus_name, object_path):
-        dbus.service.Object.__init__(self,bus_name, object_path);
+        dbus.service.Object.__init__(self, bus_name, object_path)
 
-    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='', 
+    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='',
                                                 out_signature='')
     def Ready(self):
         """
         Inform the connection manager that a client is ready to handle
-        this SessionHandler
+        this SessionHandler.
         """
-        print "ready called on base class"
         pass;
 
-    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='us', 
+    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='us',
                                                 out_signature='')
     def Error(self, errno, message):
         """
@@ -371,7 +368,7 @@ class MediaSessionHandler(dbus.service.Object):
         """
         Emitted when a new media stream handler has been created for this
         session.
-  
+
         Parameters:
         stream_handler - an object path to a new MediaStreamHandler
         media_type - enum for type of media that this stream should handle
@@ -387,42 +384,37 @@ class MediaSessionHandler(dbus.service.Object):
 
 class MediaStreamHandler(dbus.service.Object):
     """
-    Handles ths lifetime of a media stream. A client should provide 
-    information to this handler as and when is it ready
+    Handles ths lifetime of a media stream. A client should provide
+    information to this handler as and when is it ready.
     """
-
     def __init__(self, bus_name, object_path):
-        dbus.service.Object.__init__(self, bus_name, object_path);
+        dbus.service.Object.__init__(self, bus_name, object_path)
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(usuuua{ss})', 
-                                               out_signature='')
-    def Ready(self, codecs):
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='', 
+                                                out_signature='')
+    def Ready(self):
         """
         Inform the connection manager that a client is ready to handle
-        this StreamHandler. Also provide it with info about all supported
-        codecs.
-
-        Parameters:
-        codecs - as for SupportedCodecs
+        this StreamHandler
         """
         pass;
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='us', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='us',
                                                 out_signature='')
     def Error(self, errno, message):
         """
         Inform the connection manager that an error occured in this stream.
 
         Parameters:
-        errno - id of error:
-        message - string describing the error
+        errno - id of error, one of the following:
           MEDIA_STREAM_ERROR_UNKNOWN = 0
           MEDIA_STREAM_ERROR_EOS = 1
+        message - string describing the error
         """
         pass
 
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(usuussduss)', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(usuussdiss)', 
                                                out_signature='')
     def NewNativeCandidate(self, candidate_id, transports ):
         """
@@ -435,62 +427,62 @@ class MediaStreamHandler(dbus.service.Object):
           component number
           ip (as a string)
           port
-          enum for base network protocol 
+          enum for base network protocol
             MEDIA_STREAM_BASE_PROTO_UDP = 0
             MEDIA_STREAM_BASE_PROTO_TCP = 1
-          string specifying proto subtype (e.g RTP )
+          string specifying proto subtype (e.g RTP)
           string specifying proto profile (e.g AVP)
-          our preference value of this transport (double in range 0-1 
+          our preference value of this transport (double in range 0-1
           inclusive)
             1 signals most preferred transport
-          transport type  
-            MEDIA_STREAM_TRANSPORT_TYPE_LOCAL = 0 - a local address      
-            MEDIA_STREAM_TRANSPORT_TYPE_DERIVED = 1 - an external address 
-                derived by a method such as STUN
-            MEDIA_STREAM_TRANSPORT_TYPE_RELAY = 2 - an external stream relay
-          username - string to specify a username if authentication 
-                     is required 
-          password - string to specify a password if authentication 
-                     is required 
-       """
+          transport type, one of the following:
+            MEDIA_STREAM_TRANSPORT_TYPE_LOCAL = 0
+              a local address
+            MEDIA_STREAM_TRANSPORT_TYPE_DERIVED = 1
+              an external address derived by a method such as STUN
+            MEDIA_STREAM_TRANSPORT_TYPE_RELAY = 2
+              an external stream relay
+          username - string to specify a username if authentication
+                     is required
+          password - string to specify a password if authentication
+                     is required
+        """
         pass
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='',
                                                out_signature='')
     def NativeCandidatesPrepared(self):
         """
         Informs the connection manager that all possible native candisates
         have been discovered for the moment.
         """
-    pass
+        pass
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='ss', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='ss',
                                                out_signature='')
     def NewActiveCandidatePair(self, native_candidate_id, remote_candidate_id):
         """
         Informs the connection manager that a valid candidate pair
-        has been discovered and streaming is in progress
+        has been discovered and streaming is in progress.
         """
         pass
 
     @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='ss')
     def SetActiveCandidatePair(self, native_candidate_id, remote_candidate_id):
         """
-        used by the connection manager to inform the voip engine that a 
+        Emitted by the connection manager to inform the client that a
         valid candidate pair has been discovered by the remote end
-        and streaming is in progress
+        and streaming is in progress.
         """
         pass
-
 
     @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(sa(usuussduss))')
     def SetRemoteCandidateList(self, remote_candidates):
         """
-        Signal emitted when the connectoin manager wishes to inform the 
-        voip engine of all the remotes candidates at once.
-        
-        Parameters:
+        Signal emitted when the connection manager wishes to inform the
+        client of all the available remote candidates at once.
 
+        Parameters:
         remote_candidates - a list of candidate id and a list of transports
         as defined in NewNativeCandidate
         """
@@ -499,58 +491,41 @@ class MediaStreamHandler(dbus.service.Object):
     @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='sa(usuussduss)')
     def AddRemoteCandidate(self, candidate_id, transports):
         """
-        Signal emitted when the connectoin manager wishes to inform the 
-        voip engine of new remote candidate
-        
-        Parameters:
+        Signal emitted when the connection manager wishes to inform the
+        client of a new remote candidate.
 
+        Parameters:
         candidate_id - string identifier for this candidate
-        transports - array of transports for this candidate with fields
-                     As defined in NewNativeCandidate
+        transports - array of transports for this candidate with fields,
+                     as defined in NewNativeCandidate
         """
         pass
 
     @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='s')
     def RemoveRemoteCandidate(self, candidate_id):
         """
-        Signal emitted when the connectoin manager wishes to inform the 
-        voip engine thatthe remote end has dropped a previously usable
-        candidate
-        
-        Parameters:
+        Signal emitted when the connection manager wishes to inform the
+        client that the remote end has removed a previously usable
+        candidate.
 
+        Parameters:
         candidate_id - string identifier for remote candidate to drop
         """
         pass
 
-
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='u', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='u',
                                                out_signature='')
     def CodecChoice(self, codec_id):
         """
-        Informs the connection manaager of the current codec choice
+        Inform the connection manager of the current codec choice.
         """
     pass
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='u', 
-                                               out_signature='')
-    def StreamState(self, state):
-        """
-        Informs the connection manaager of the stream's current state
-        State is as specified in ChannelTypeStreamedMedia::GetStreams
-        """
-    pass
-
-
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(usuuua{ss})', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(usuuua{ss})',
                                                 out_signature='')
     def SupportedCodecs(self, codecs):
         """
         Inform the connection manager of the supported codecs for this session.
-        This is called after the connection manager has emitted SetRemoteCodecs
-        to notify what codecs are supported by the peer, and will thus be an
-        intersection of all locally supported codecs (passed to Ready)
-        and those supported by the peer.
         
         Parameters:
         codecs - list of codec info structures containing
@@ -560,19 +535,20 @@ class MediaStreamHandler(dbus.service.Object):
             clock rate of codec
             number of supported channels
             string key-value pairs for supported optional parameters
-        """ 
- 
+        """
+        pass
+
     @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(usuuua{ss})')
     def SetRemoteCodecs(self, codecs):
         """
-        Signal emitted when the connectoin manager wishes to inform the 
-        voip engine of the codecs supported by the remote end.
+        Signal emitted when the connectoin manager wishes to inform the
+        client of the codecs supported by the remote end.
+
         Parameters:
         codecs - as for SupportedCodecs
         """
         pass
 
-    
 
 class ChannelTypeRoomList(Channel):
     """
