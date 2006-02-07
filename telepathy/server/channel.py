@@ -719,10 +719,14 @@ class ChannelTypeText(Channel):
         for id in ids:
             del self._pending_messages[id]
 
-    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='', out_signature='a(uuuus)')
-    def ListPendingMessages(self):
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='b', out_signature='a(uuuus)')
+    def ListPendingMessages(self, clear):
         """
-        List the messages currently in the pending queue.
+        List the messages currently in the pending queue, and optionally
+        remove then all.
+
+        Parameters:
+        clear - a boolean indicating whether the queue should be cleared
 
         Returns:
         an array of structs containing:
