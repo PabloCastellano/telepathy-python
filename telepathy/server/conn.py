@@ -217,6 +217,35 @@ class Connection(dbus.service.Object):
         hand = self._handles[handle_type, handle]
         return hand.get_name()
 
+    @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='a{us}')
+    def InspectHandles(self, handle_type, handles):
+        """
+        Return a string representation for a number of handles of a given
+        type.
+
+        Parameters:
+        handle_type - an integer handle type (as defined in RequestHandle)
+        handles - an array of integer handles of this type
+
+        Returns:
+        a dictionary of handle number to string name
+
+        Potential Errors:
+        Disconnected, InvalidArgument (the given type is not valid),
+        InvalidHandle (a given handle is not valid on this connection)
+        """
+        self.check_connected()
+        self.check_handle_type(handle_type)
+
+        for handle in handles:
+            self.check_handle(handle_type, handle)
+
+        ret = {}
+        for handle in handles:
+            ret[handle] = self._handles[handle_type, handle].get_name()
+
+        return ret
+
     @dbus.service.method(CONN_INTERFACE, in_signature='us', out_signature='u', sender_keyword='sender')
     def RequestHandle(self, handle_type, name, sender):
         """
