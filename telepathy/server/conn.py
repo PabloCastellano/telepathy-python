@@ -320,7 +320,7 @@ class Connection(dbus.service.Object):
         referenced by any existing channels.
 
         Parameters:
-        handle_type 
+        handle_type - an integer representing the handle type
         handle - an integer handle being held by the client
 
         Potential Errors:
