@@ -62,3 +62,21 @@ class InvalidHandle(dbus.DBusException):
     The contact name specified is unknown on this channel or connection.
     """
     _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.InvalidHandle'
+
+class ChannelBanned(dbus.DBusException):
+    """
+    You are banned from the channel.
+    """
+    _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.Channel.Banned'
+
+class ChannelFull(dbus.DBusException):
+    """
+    The channel is full.
+    """
+    _dbus_error_name = _TELEPATHY_ERROR_IFACE +'.Channel.Full'
+
+class ChannelInviteOnly(dbus.DBusException):
+    """
+    The requested channel is invite only.
+    """
+    _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.Channel.InviteOnly'

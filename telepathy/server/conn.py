@@ -493,7 +493,10 @@ class Connection(dbus.service.Object):
         the D-Bus object path for the channel created or retrieved
 
         Possible Errors:
-        Disconnected, NetworkError, NotImplemented (unknown channel type), InvalidHandle (the given handle does not exist), NotAvailable (the requested channel type cannot be created with the given handle)
+        Disconnected, NetworkError, NotImplemented (unknown channel type),
+        InvalidHandle (the given handle does not exist or cannot be created),
+        NotAvailable (the requested channel type cannot be created with the given handle),
+        Channel.Banned, Channel.Full, Channel.InviteOnly
         """
         self.check_connected()
         raise NotImplemented('unknown channel type %s' % type)
