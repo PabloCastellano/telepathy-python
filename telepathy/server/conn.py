@@ -31,9 +31,6 @@ class Connection(dbus.service.Object):
     receive channels of differing types (such as text channels or streaming
     media channels) which are used to carry out further communication.
 
-    A Connection object should always endeavour to remain connected to the
-    server until instructed to the contrary with the Disconnect method.
-
     As well as the methods and signatures below, arbitrary interfaces may be
     provided by the Connection object to represent extra connection-wide
     functionality, such as the Connection.Interface.Presence for receiving and
@@ -394,14 +391,24 @@ class Connection(dbus.service.Object):
         return self._status
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='')
-    def Disconnect(self):
+    def Connect(self):
         """
-        Request that the connection be closed.
+        Request that the connection be established. This will be done
+        asynchronously and errors will be returned by emitting StatusChanged
+        signals.
 
         Potential Errors:
-        Disconnected
+        NotAvailable (the connection is already connecting or connected)
         """
-        self.check_connected()
+        pass
+
+    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='')
+    def Disconnect(self):
+        """
+        Request that the connection be closed. This does nothing if the
+        connection is not connected.
+        """
+        pass
 
     @dbus.service.signal(CONN_INTERFACE, signature='osuub')
     def NewChannel(self, object_path, channel_type, handle_type, handle, suppress_handler):

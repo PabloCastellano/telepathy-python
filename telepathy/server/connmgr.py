@@ -179,7 +179,8 @@ class ConnectionManager(dbus.service.Object):
         Connect to a given account on a given protocol with the given
         parameters. The method returns the bus name and the object path where
         the new Connection object can be found, which should have the status of
-        CONNECTION_STATUS_CONNECTING.
+        CONNECTION_STATUS_DISCONNECTED, to allow signal handlers to be attached
+        before connecting is started with the Connect method.
 
         In order to allow Connection objects to be discovered by new clients,
         the bus name and object path must be of the form:
