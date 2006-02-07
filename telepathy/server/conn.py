@@ -373,6 +373,10 @@ class Connection(dbus.service.Object):
             encryption was unavailable and require-encryption was set when the
             connection was created.
 
+        5 - CONNECTION_STATUS_REASON_NAME_IN_USE
+            Someone is already connected to the server using the name
+            you are trying to connect with.
+
         Parameters:
         status - an integer indicating the new status
         reason - an integer indicating the reason for the status change
