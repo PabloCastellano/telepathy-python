@@ -28,3 +28,6 @@ org.freedesktop.Telepathy.Error.NetworkError
 org.freedesktop.Telepathy.Error.NotAvailable
 org.freedesktop.Telepathy.Error.NotImplemented
 org.freedesktop.Telepathy.Error.PermissionDenied
+org.freedesktop.Telepathy.Error.Channel.Banned
+org.freedesktop.Telepathy.Error.Channel.Full
+org.freedesktop.Telepathy.Error.Channel.InviteOnly
