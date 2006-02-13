@@ -390,14 +390,18 @@ class MediaStreamHandler(dbus.service.Object):
     def __init__(self, bus_name, object_path):
         dbus.service.Object.__init__(self, bus_name, object_path)
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='', 
-                                                out_signature='')
-    def Ready(self):
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(usuuua{ss})', 
+                                               out_signature='')
+    def Ready(self, codecs):
         """
         Inform the connection manager that a client is ready to handle
-        this StreamHandler
+        this StreamHandler. Also provide it with info about all supported
+        codecs.
+
+        Parameters:
+        codecs - as for SupportedCodecs
         """
-        pass;
+        pass
 
     @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='us',
                                                 out_signature='')
@@ -416,7 +420,7 @@ class MediaStreamHandler(dbus.service.Object):
 
     @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(usuussdiss)', 
                                                out_signature='')
-    def NewNativeCandidate(self, candidate_id, transports ):
+    def NewNativeCandidate(self, candidate_id, transports):
         """
         Inform this MediaStreamHandler that a new native transport candidate
         has been ascertained.
@@ -526,7 +530,11 @@ class MediaStreamHandler(dbus.service.Object):
     def SupportedCodecs(self, codecs):
         """
         Inform the connection manager of the supported codecs for this session.
-        
+        This is called after the connection manager has emitted SetRemoteCodecs
+        to notify what codecs are supported by the peer, and will thus be an
+        intersection of all locally supported codecs (passed to Ready)
+        and those supported by the peer.
+
         Parameters:
         codecs - list of codec info structures containing
             id of codec
