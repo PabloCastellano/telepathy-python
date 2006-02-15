@@ -272,13 +272,25 @@ class TextChannel(telepathy.client.Channel):
         self[CHANNEL_TYPE_TEXT].connect_to_signal('Sent', self.sent_signal_cb)
         self._conn = conn
         self._object_path = object_path
+        self._handle_type = handle_type
+        self._handle = handle
 
         self._window = gtk.Window()
         self._window.connect("delete-event", self.gtk_delete_event_cb)
         self._window.set_size_request(400, 300)
 
-        self._box = gtk.VBox(False, 6)
+        self._box = gtk.VBox(False, 0)
         self._window.add(self._box)
+
+        self._toolbar = gtk.Toolbar()
+        image = gtk.Image()
+        image.set_from_file("call.png")
+
+        item = gtk.ToolButton(icon_widget=image, label="Call")
+        item.connect("clicked", self.on_call_button_clicked)
+
+        self._toolbar.insert(item, 0)
+        self._box.pack_start(self._toolbar, False, True)
 
         self._swin = gtk.ScrolledWindow(None, None)
         self._swin.set_policy (gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
@@ -307,7 +319,7 @@ class TextChannel(telepathy.client.Channel):
         self._entry = scw.Entry()
         self._entry.connect("activate", self.gtk_entry_activate_cb)
         self._entry.set_property("history-size", 100)
-        self._box.pack_end(self._entry, False, True, 0)
+        self._box.pack_end(self._entry, False, True, 2)
 
         # set the window title according to who you're talking to
         self._window.set_title("Conversation")
@@ -404,6 +416,37 @@ class TextChannel(telepathy.client.Channel):
             self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, self._self_handle, func)
         else:
             self._self_handle_cb.append(func)
+
+    def on_call_button_clicked(self, button):
+        print "on_call_button_clicked"
+
+        self._conn[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_STREAMED_MEDIA,
+                                                  self._handle_type,
+                                                  self._handle,
+                                                  True,
+                                                  reply_handler=self.got_media_channel,
+                                                  error_handler=self.error_cb)
+
+    def got_media_channel(self, object_path):
+        print "got_media_channel with object path:", object_path
+
+        self._media_channel = MediaChannel(self._conn,
+                self._object_path,
+                self._handle_type,
+                self._handle)
+
+    def error_cb(self, error):
+        print "Exception received from asynchronous method call:"
+        print error
+
+class MediaChannel(telepathy.client.Channel):
+    def __init__(self, conn, object_path, handle_type, handle):
+        telepathy.client.Channel.__init__(self, conn._service_name, object_path)
+        self.get_valid_interfaces().add(CHANNEL_TYPE_TEXT)
+        #self[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal('Received', self.received_signal_cb)
+        #self[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal('Sent', self.sent_signal_cb)
+        self._conn = conn
+        self._object_path = object_path
 
 class TestConnection(telepathy.client.Connection):
     def __init__(self, service_name, object_path, mainloop):
