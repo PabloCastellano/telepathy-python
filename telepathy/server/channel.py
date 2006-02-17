@@ -35,7 +35,7 @@ class Channel(dbus.service.Object):
     that the channel is for communicating with that handle. If a channel does
     not have a handle, it means that the channel is defined by some other
     terms, such as it may be a transient group defined only by its members
-    as visible through the Channel.Type.Group interface.
+    as visible through the Channel.Interface.Group interface.
 
     Other optional interfaces can be implemented to indicate other available
     functionality, such as Channel.Interface.Group if the channel contains
