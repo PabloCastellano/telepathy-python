@@ -237,6 +237,8 @@ class MainWindow(gtk.Window):
             self._conversations[handle].show()
 
     def _login_btn_clicked_cb(self, button):
+        self._pending_presence_lookups = []
+
         button.set_sensitive(False)
 
         bus = dbus.Bus()
@@ -276,8 +278,10 @@ class MainWindow(gtk.Window):
         conn.bus_name = bus_name
         conn.obj_path = obj_path
 
-        conn[CONN_INTERFACE].connect_to_signal("StatusChanged", lambda *args: gobject.idle_add(self._conn_status_changed_cb, *args))
-        conn[CONN_INTERFACE].connect_to_signal("NewChannel", lambda *args: gobject.idle_add(self._conn_new_channel_cb, *args))
+        conn[CONN_INTERFACE].connect_to_signal("StatusChanged",
+                lambda *args: gobject.idle_add(self._conn_status_changed_cb, *args))
+        conn[CONN_INTERFACE].connect_to_signal("NewChannel",
+                lambda *args: gobject.idle_add(self._conn_new_channel_cb, *args))
 
         dbus_call_async(conn[CONN_INTERFACE].GetStatus,
                         reply_handler=self._conn_get_status_reply_cb,
@@ -309,7 +313,9 @@ class MainWindow(gtk.Window):
         dbus_call_async(self._conn[CONN_INTERFACE].ListChannels,
                         reply_handler=self._conn_list_channels_reply_cb,
                         error_handler=self._conn_error_cb)
-        self._conn[CONN_INTERFACE_PRESENCE].connect_to_signal("PresenceUpdate", lambda *args: gobject.idle_add(self._presence_update_signal_cb, *args))
+        self._conn[CONN_INTERFACE_PRESENCE].connect_to_signal("PresenceUpdate",
+                lambda *args: gobject.idle_add(self._presence_update_signal_cb, *args))
+        self._process_presence_queue()
 
     def _conn_list_channels_reply_cb(self, channels):
         for (obj_path, channel_type, handle_type, handle) in channels:
@@ -327,7 +333,7 @@ class MainWindow(gtk.Window):
         if channel_type == CHANNEL_TYPE_CONTACT_LIST:
             channel = ContactListChannel(self._conn, obj_path, handle)
             self._conn.lookup_handle(handle_type, handle,
-                                     lambda id, channel_type, name: self._set_contact_list(channel, name))
+                                     self._set_contact_list, channel)
         elif channel_type == CHANNEL_TYPE_TEXT and handle_type == CONNECTION_HANDLE_TYPE_ROOM:
             channel = RoomChannel(self._conn, obj_path, handle)
             self._conn.lookup_handle(handle_type, handle, self._new_room_chan_handle_lookup_cb, channel)
@@ -356,7 +362,7 @@ class MainWindow(gtk.Window):
     def _conn_error_cb(self, exception):
         print "Exception received:", exception
 
-    def _set_contact_list(self, channel, name):
+    def _set_contact_list(self, handle_type, handle, name, channel):
         if name == "subscribe":
             self._subscribe = channel
             dbus_call_async(self._subscribe[CHANNEL_INTERFACE_GROUP].GetMembers,
@@ -385,10 +391,17 @@ class MainWindow(gtk.Window):
                         2, "Offline",
                         3, handle)
 
-        dbus_call_async(self._conn[CONN_INTERFACE_PRESENCE].RequestPresence,
-                        (handle,),
-                        reply_handler=lambda: None,
-                        error_handler=self._conn_error_cb)
+        self._pending_presence_lookups.append(handle)
+        self._process_presence_queue()
+
+    def _process_presence_queue(self):
+        if CONN_INTERFACE_PRESENCE in self._conn.get_valid_interfaces():
+            for handle in self._pending_presence_lookups:
+                dbus_call_async(self._conn[CONN_INTERFACE_PRESENCE].RequestPresence,
+                                (handle,),
+                                reply_handler=lambda: None,
+                                error_handler=self._conn_error_cb)
+            self._pending_presence_lookups = []
 
     def _presence_update_signal_cb(self, presences):
         for handle, presence in presences.iteritems():
