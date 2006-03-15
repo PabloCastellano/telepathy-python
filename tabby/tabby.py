@@ -54,7 +54,19 @@ DEFAULT_ROOM_ENTRY_TEXT = "gajim@conference.jabber.no"
 current_call = None
 call_queue = []
 
+def dbus_signal_cb(callback, *args):
+    # do it directly for now
+    callback(*args)
+    return
+
+    kwargs = { "priority" : gobject.PRIORITY_HIGH }
+    gobject.idle_add(callback, *args, **kwargs)
+
 def dbus_call_async(method, *args, **kwargs):
+    # do it directly for now
+    method(*args, **kwargs)
+    return
+
     global current_call
     global call_queue
 
@@ -85,8 +97,9 @@ def _try_next_call():
 
     # do it
     method, args, kwargs = current_call
-    our_kwargs = { "reply_handler" : lambda *args: gobject.idle_add(_reply_cb, *args),
-                   "error_handler" : lambda *args: gobject.idle_add(_error_cb, *args) }
+    gia_kwargs = { "priority" : gobject.PRIORITY_HIGH }
+    our_kwargs = { "reply_handler" : lambda *args: gobject.idle_add(_reply_cb, *args, **gia_kwargs),
+                   "error_handler" : lambda *args: gobject.idle_add(_error_cb, *args, **gia_kwargs) }
     method(*args, **our_kwargs)
 
 def _reply_cb(*args):
@@ -279,9 +292,9 @@ class MainWindow(gtk.Window):
         conn.obj_path = obj_path
 
         conn[CONN_INTERFACE].connect_to_signal("StatusChanged",
-                lambda *args: gobject.idle_add(self._conn_status_changed_cb, *args))
+                lambda *args: dbus_signal_cb(self._conn_status_changed_cb, *args))
         conn[CONN_INTERFACE].connect_to_signal("NewChannel",
-                lambda *args: gobject.idle_add(self._conn_new_channel_cb, *args))
+                lambda *args: dbus_signal_cb(self._conn_new_channel_cb, *args))
 
         dbus_call_async(conn[CONN_INTERFACE].GetStatus,
                         reply_handler=self._conn_get_status_reply_cb,
@@ -314,7 +327,7 @@ class MainWindow(gtk.Window):
                         reply_handler=self._conn_list_channels_reply_cb,
                         error_handler=self._conn_error_cb)
         self._conn[CONN_INTERFACE_PRESENCE].connect_to_signal("PresenceUpdate",
-                lambda *args: gobject.idle_add(self._presence_update_signal_cb, *args))
+                lambda *args: dbus_signal_cb(self._presence_update_cb, *args))
         self._process_presence_queue()
 
     def _conn_list_channels_reply_cb(self, channels):
@@ -354,10 +367,16 @@ class MainWindow(gtk.Window):
 
     def _new_room_chan_handle_lookup_cb(self, handle_type, handle, name, channel):
         if not handle in self._rooms:
-            self._rooms[handle] = Room(self._conn, self._convo_nb, handle, name)
+            room = Room(self, self._convo_nb, self._conn, handle, name)
+            room.connect("closed", self._room_closed_cb)
+            self._rooms[handle] = room
 
         self._rooms[handle].take_room_channel(channel)
         self._rooms[handle].show()
+
+    def _room_closed_cb(self, room, handle, page_index):
+        del self._rooms[handle]
+        self._convo_nb.remove_page(page_index)
 
     def _conn_error_cb(self, exception):
         print "Exception received:", exception
@@ -369,7 +388,7 @@ class MainWindow(gtk.Window):
                             reply_handler=self._cl_get_members_reply_cb,
                             error_handler=self._conn_error_cb)
             self._subscribe[CHANNEL_INTERFACE_GROUP].connect_to_signal("MembersChanged",
-                    lambda *args: gobject.idle_add(self._cl_subscribe_members_changed_signal_cb, *args))
+                    lambda *args: dbus_signal_cb(self._cl_subscribe_members_changed_cb, *args))
         elif name == "publish":
             self._publish = channel
         else:
@@ -379,7 +398,7 @@ class MainWindow(gtk.Window):
         for member in members:
             self._conn.lookup_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self._cl_add_contact)
 
-    def _cl_subscribe_members_changed_signal_cb(self, reason, added, removed, local_pending, remote_pending):
+    def _cl_subscribe_members_changed_cb(self, reason, added, removed, local_pending, remote_pending):
         for member in added:
             self._conn.lookup_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self._cl_add_contact)
 
@@ -403,7 +422,7 @@ class MainWindow(gtk.Window):
                                 error_handler=self._conn_error_cb)
             self._pending_presence_lookups = []
 
-    def _presence_update_signal_cb(self, presences):
+    def _presence_update_cb(self, presences):
         for handle, presence in presences.iteritems():
             idle, statuses = presence
 
@@ -546,7 +565,7 @@ class Conversation:
     def take_media_channel(self, chan):
         self._media_chan = chan
 
-        chan.connect("flags-changed", self._media_flags_changed_signal_cb)
+        chan.connect("flags-changed", self._media_flags_changed_cb)
         chan.connect("members-changed", lambda chan, *args: self._media_update_members(chan))
 
         self._media_frame.show()
@@ -575,7 +594,7 @@ class Conversation:
         except ValueError:
             return
 
-    def _media_flags_changed_signal_cb(self, chan):
+    def _media_flags_changed_cb(self, chan):
         flags = chan.get_flags()
 
         print "new flags:", flags
@@ -621,8 +640,15 @@ class Conversation:
         print "_error_cb: got error '%s'" % error
 
 
-class Room:
-    def __init__(self, conn, notebook, handle, name):
+class Room(gobject.GObject):
+    __gsignals__ = {
+        "closed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                   (gobject.TYPE_UINT, gobject.TYPE_INT,)),
+    }
+
+    def __init__(self, window, notebook, conn, handle, name):
+        self.__gobject_init__()
+
         xml = gtk.glade.XML("data/glade/room.glade", "main_vbox")
         vbox = xml.get_widget("main_vbox")
 
@@ -667,8 +693,9 @@ class Room:
         self._entry.set_property("history-size", 100)
         vbox.pack_end(self._entry, False, True)
 
-        self._conn = conn
+        self._window = window
         self._notebook = notebook
+        self._conn = conn
 
         if name is not None:
             pos = name.index("@")
@@ -697,18 +724,24 @@ class Room:
     def take_room_channel(self, chan):
         self._room_chan = chan
 
-        chan.connect("flags-changed", self._flags_changed_signal_cb)
-        chan.connect("members-changed", self._members_changed_signal_cb)
-        chan.connect("message-received", self._message_received_signal_cb)
+        chan.connect("closed", self._closed_cb)
+        chan.connect("flags-changed", self._flags_changed_cb)
+        chan.connect("members-changed", self._members_changed_cb)
+        chan.connect("message-received", self._message_received_cb)
+        chan.connect("password-flags-changed", self._password_flags_changed_cb)
 
-    def _flags_changed_signal_cb(self, chan):
+    def _closed_cb(self, chan):
+        self.emit("closed", self._handle, self._page_index)
+
+    def _flags_changed_cb(self, chan):
         flags = chan.get_flags()
 
         print "new flags:", flags
 
-    def _members_changed_signal_cb(self, chan, message, added, removed,
-                                   local_pending, remote_pending):
-        print "_members_changed_signal_cb"
+    def _members_changed_cb(self, chan, message, added, removed,
+                            local_pending, remote_pending):
+        print "_members_changed_cb"
+        print "  message: '%s'" % message
         print "  added:", added
         print "  removed:", removed
         print "  local pending:", local_pending
@@ -732,7 +765,7 @@ class Room:
                 iter = model.iter_next(iter)
 
             if not found:
-                print "_members_changed_signal_cb: eeek, couldn't find user to be removed"
+                print "_members_changed_cb: eeek, couldn't find user to be removed"
 
     def _nick_from_jid(self, jid):
         return jid[jid.index("/") + 1:]
@@ -748,8 +781,8 @@ class Room:
                   0, nick,
                   1, handle)
 
-    def _message_received_signal_cb(self, chan, id, timestamp, sender, type, text):
-        print "_message_received_signal_cb: got message with id", id, "-- acknowledging"
+    def _message_received_cb(self, chan, id, timestamp, sender, type, text):
+        print "_message_received_cb: got message with id", id, "-- acknowledging"
         self._room_chan.ack_message(id)
 
         self._pending_messages[id] = [timestamp, sender, str(sender), type, text]
@@ -781,6 +814,36 @@ class Room:
         self._room_chan.send_message(CHANNEL_TEXT_MESSAGE_TYPE_NORMAL,
                                      entry.get_text())
         entry.set_text("")
+
+    def _password_flags_changed_cb(self, chan, added, removed):
+        if added & CHANNEL_PASSWORD_FLAG_PROVIDE:
+            dlg = EntryDialog(self._window, "Password required", "Enter password:", True)
+            if dlg.run() == gtk.RESPONSE_ACCEPT:
+                chan.provide_password(dlg.get_text())
+            dlg.destroy()
+
+
+class EntryDialog(gtk.Dialog):
+    def __init__(self, parent, title, text, password=False):
+        gtk.Dialog.__init__(self, title, parent,
+                            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                            (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT,
+                             gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT))
+
+        label = gtk.Label(text)
+        label.set_alignment(0.0, 0.5)
+        self.vbox.pack_start(label, False)
+        self._label = label
+
+        entry = gtk.Entry()
+        entry.set_visibility(not password)
+        self.vbox.pack_start(entry, False, True, 5)
+        self._entry = entry
+
+        self.show_all()
+
+    def get_text(self):
+        return self._entry.get_text()
 
 
 class Connection(telepathy.client.Connection):
@@ -823,6 +886,8 @@ class BaseChannel(gobject.GObject, telepathy.client.Channel):
     __gsignals__ = {
         "ready": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                   ()),
+        "closed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                   ()),
     }
 
     def __init__(self, conn, obj_path, handle_type, handle, type):
@@ -837,7 +902,13 @@ class BaseChannel(gobject.GObject, telepathy.client.Channel):
         self._name = handle
 
     def got_interfaces(self):
-        gobject.idle_add(self.emit, "ready")
+        self[CHANNEL_INTERFACE].connect_to_signal("Closed",
+                lambda *args: dbus_signal_cb(self._closed_cb, *args))
+
+        gobject.idle_add(self.emit, "ready", priority=gobject.PRIORITY_HIGH)
+
+    def _closed_cb(self):
+        self.emit("closed")
 
 
 class GroupChannel(BaseChannel):
@@ -856,12 +927,11 @@ class GroupChannel(BaseChannel):
         self._local_p = None
         self._remote_p = None
 
-        self.connect("ready", self.__ready_signal_cb)
+        self._members_changed_queue = []
 
-    def __ready_signal_cb(self, channel):
-        self[CHANNEL_INTERFACE_GROUP].connect_to_signal("GroupFlagsChanged", lambda *args: gobject.idle_add(self._flags_changed_signal_cb, *args))
-        self[CHANNEL_INTERFACE_GROUP].connect_to_signal("MembersChanged", lambda *args: gobject.idle_add(self._members_changed_signal_cb, *args))
+        self.connect("ready", self.__ready_cb)
 
+    def __ready_cb(self, channel):
         dbus_call_async(self[CHANNEL_INTERFACE_GROUP].GetGroupFlags,
                         reply_handler=self._get_flags_reply_cb,
                         error_handler=self.__error_cb)
@@ -874,6 +944,11 @@ class GroupChannel(BaseChannel):
         dbus_call_async(self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers,
                         reply_handler=self._get_remote_pending_members_reply_cb,
                         error_handler=self.__error_cb)
+
+        self[CHANNEL_INTERFACE_GROUP].connect_to_signal("GroupFlagsChanged",
+                lambda *args: dbus_signal_cb(self._flags_changed_cb, *args))
+        self[CHANNEL_INTERFACE_GROUP].connect_to_signal("MembersChanged",
+                lambda *args: dbus_signal_cb(self._members_changed_cb, *args))
 
     def get_flags(self):
         return self._flags
@@ -908,7 +983,7 @@ class GroupChannel(BaseChannel):
     def __error_cb(self, exception):
         print "GroupChannel.__error_cb: got exception", exception
 
-    def _flags_changed_signal_cb(self, added, removed):
+    def _flags_changed_cb(self, added, removed):
         if self._flags is not None:
             print "added:   0x%x" % added
             print "removed: 0x%x" % removed
@@ -919,8 +994,8 @@ class GroupChannel(BaseChannel):
         if self.__is_ready():
             self.emit("flags-changed")
 
-    def _members_changed_signal_cb(self, message, added, removed, local_p, remote_p):
-        if self._members is not None:
+    def _members_changed_cb(self, message, added, removed, local_p, remote_p):
+        if self.__is_ready():
             for member in added:
                 self._members.append(member)
 
@@ -928,14 +1003,13 @@ class GroupChannel(BaseChannel):
                 if member in self._members:
                     self._members.remove(member)
 
-        if self._local_p is not None:
             self._local_p = local_p
-
-        if self._remote_p is not None:
             self._remote_p = remote_p
 
-        if self.__is_ready():
             self.emit("members-changed", message, added, removed, local_p, remote_p)
+        else:
+            self._members_changed_queue.append((message, added, removed,
+                                                local_p, remote_p))
 
     def _get_flags_reply_cb(self, flags):
         self._flags = flags
@@ -964,8 +1038,13 @@ class GroupChannel(BaseChannel):
             return
 
         self.emit("flags-changed")
-        self.emit("members-changed", "", self._members, (), self._local_p,
+        self.emit("members-changed", "", self._members, [], self._local_p,
                   self._remote_p)
+
+        for entry in self._members_changed_queue:
+            self._members_changed_cb(*entry)
+
+        del self._members_changed_queue
 
 
 class ContactListChannel(GroupChannel):
@@ -980,6 +1059,8 @@ class RoomChannel(GroupChannel):
                              (gobject.TYPE_UINT, gobject.TYPE_UINT,
                               gobject.TYPE_UINT, gobject.TYPE_UINT,
                               gobject.TYPE_STRING)),
+        "password-flags-changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                                   (gobject.TYPE_UINT, gobject.TYPE_UINT)),
     }
 
     def __init__(self, conn, obj_path, handle):
@@ -988,14 +1069,23 @@ class RoomChannel(GroupChannel):
 
         self._fetched_all = False
         self._messages = []
+        self._pw_flags = None
 
-        self.connect("ready", self.__ready_signal_cb)
+        self.connect("ready", self.__ready_cb)
 
-    def __ready_signal_cb(self, channel):
+    def __ready_cb(self, channel):
         self[CHANNEL_TYPE_TEXT].connect_to_signal("Received",
-                                                  lambda *args: gobject.idle_add(self._message_received_signal_cb, *args))
+                lambda *args: dbus_signal_cb(self._message_received_cb, *args))
+
         dbus_call_async(self[CHANNEL_TYPE_TEXT].ListPendingMessages,
                         reply_handler=self._list_pending_messages_reply_cb,
+                        error_handler=self.__error_cb)
+
+        self[CHANNEL_INTERFACE_PASSWORD].connect_to_signal("PasswordFlagsChanged",
+                lambda *args: dbus_signal_cb(self._password_flags_changed_cb, *args))
+
+        dbus_call_async(self[CHANNEL_INTERFACE_PASSWORD].GetPasswordFlags,
+                        reply_handler=self._get_password_flags_reply_cb,
                         error_handler=self.__error_cb)
 
     def ack_message(self, message_id):
@@ -1010,7 +1100,19 @@ class RoomChannel(GroupChannel):
                         reply_handler=lambda: None,
                         error_handler=self.__error_cb)
 
-    def _message_received_signal_cb(self, *args):
+    def provide_password(self, password):
+        dbus_call_async(self[CHANNEL_INTERFACE_PASSWORD].ProvidePassword,
+                        password,
+                        reply_handler=self._provide_password_reply_cb,
+                        error_handler=self.__error_cb)
+
+    def _provide_password_reply_cb(self, result):
+        if result:
+            print "Password accepted"
+        else:
+            print "Password incorrect"
+
+    def _message_received_cb(self, *args):
         if self._fetched_all:
             self.emit("message-received", *args)
         else:
@@ -1024,6 +1126,20 @@ class RoomChannel(GroupChannel):
             self.emit("message-received", *message)
 
         del self._messages
+
+    def _password_flags_changed_cb(self, added, removed):
+        if self._pw_flags is None:
+            return
+
+        self._pw_flags |= added
+        self._pw_flags &= ~removed
+
+        self.emit("password-flags-changed", added, removed)
+
+    def _get_password_flags_reply_cb(self, flags):
+        self._pw_flags = flags
+
+        self.emit("password-flags-changed", flags, 0)
 
     def __error_cb(self, exception):
         print "RoomChannel.__error_cb: got exception", exception
