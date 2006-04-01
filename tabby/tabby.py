@@ -141,9 +141,14 @@ class MainWindow(gtk.Window):
 
         dbus_call_async(self._conn[CONN_INTERFACE].RequestChannel,
                         CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_ROOM,
-                        handle, False,
-                        reply_handler=lambda *args: None,
+                        handle, True,
+                        reply_handler=lambda obj_path: self._request_room_channel_reply_cb(obj_path, handle),
                         error_handler=self._conn_error_cb)
+
+    def _request_room_channel_reply_cb(self, obj_path, handle):
+        channel = RoomChannel(self._conn, obj_path, handle)
+        self._conn.lookup_handle(CONNECTION_HANDLE_TYPE_ROOM, handle,
+                                 self._new_room_chan_handle_lookup_cb, channel)
 
     def _view_activate_cb(self, view, action_id, action_data):
         if action_id[:5] == "click":
@@ -269,7 +274,28 @@ class MainWindow(gtk.Window):
                                      self._set_contact_list, channel)
         elif channel_type == CHANNEL_TYPE_TEXT and handle_type == CONNECTION_HANDLE_TYPE_ROOM:
             channel = RoomChannel(self._conn, obj_path, handle)
-            self._conn.lookup_handle(handle_type, handle, self._new_room_chan_handle_lookup_cb, channel)
+
+            name = self._conn[CONN_INTERFACE].InspectHandle(handle_type, handle)
+            dlg = gtk.MessageDialog(parent=self,
+                                    flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                                    type=gtk.MESSAGE_QUESTION,
+                                    buttons=gtk.BUTTONS_YES_NO,
+                                    message_format="Someone is inviting you to %s, accept?" % name)
+            response = dlg.run()
+            dlg.destroy()
+
+            if response == gtk.RESPONSE_YES:
+                room = Room(self, self._convo_nb, self._conn, handle, name)
+                room.connect("closed", self._room_closed_cb)
+                room.take_room_channel(channel)
+                room.show()
+                self._rooms[handle] = room
+
+                self_handle = channel[CHANNEL_INTERFACE_GROUP].GetSelfHandle()
+                channel.add_member(self_handle, "")
+            else:
+                channel[CHANNEL_INTERFACE].Close()
+                return
         elif channel_type == CHANNEL_TYPE_STREAMED_MEDIA:
             channel = StreamedMediaChannel(self._conn, obj_path)
 
@@ -284,7 +310,6 @@ class MainWindow(gtk.Window):
         else:
             print "Unknown channel type", channel_type
 
-
     def _new_room_chan_handle_lookup_cb(self, handle_type, handle, name, channel):
         if not handle in self._rooms:
             room = Room(self, self._convo_nb, self._conn, handle, name)
@@ -295,7 +320,11 @@ class MainWindow(gtk.Window):
         self._rooms[handle].show()
 
     def _room_closed_cb(self, room, handle, page_index):
-        del self._rooms[handle]
+        obj_path = room._room_chan._obj_path
+        if obj_path in self._channels:
+            del self._channels[obj_path]
+        if handle in self._rooms:
+            del self._rooms[handle]
         self._convo_nb.remove_page(page_index)
 
     def _conn_error_cb(self, exception):

@@ -155,6 +155,7 @@ class BaseChannel(gobject.GObject, telepathy.client.Channel):
         self.get_valid_interfaces().add(type)
 
         self._conn = conn
+        self._obj_path = obj_path
         self._handle_type = handle_type
         self._handle = handle
         self._name = handle

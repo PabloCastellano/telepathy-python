@@ -40,6 +40,7 @@ class Room(gobject.GObject):
         chat_sw = xml.get_widget("chat_sw")
         members_sw = xml.get_widget("members_sw")
         btn = xml.get_widget("invite_tbtn")
+        self._members_lbl = xml.get_widget("members_lbl")
         btn.connect("clicked", self._invite_clicked_cb)
 
         # Chat widget
@@ -68,9 +69,9 @@ class Room(gobject.GObject):
         model = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_UINT)
         model.set_sort_column_id(0, gtk.SORT_ASCENDING)
         self._members_model = model
-        
+
         view = gtk.TreeView(model=self._members_model)
-        
+
         view.insert_column_with_attributes(0, "Nick", gtk.CellRendererText(),
                                            text=0)
         view.connect("row-activated", self._member_activated_cb)
@@ -79,7 +80,7 @@ class Room(gobject.GObject):
         view.set_headers_visible(False)
         self._members_view = view
         members_sw.add(view)
-        
+
         # Member popup menu
         menu = gtk.Menu()
         item = gtk.MenuItem("_Kick user")
@@ -104,7 +105,21 @@ class Room(gobject.GObject):
         else:
             title = "Room"
 
-        self._page_index = notebook.append_page(vbox, gtk.Label(title))
+
+        hbox = gtk.HBox()
+
+        label = gtk.Label(title)
+        hbox.pack_start(label, expand=True)
+
+        btn = gtk.Button()
+        # HACK HACK HACK
+        btn.set_size_request(20, 10)
+        btn.connect("clicked", lambda btn: self._room_chan[CHANNEL_INTERFACE].Close())
+        hbox.pack_start(btn, expand=False, padding=5)
+
+        hbox.show_all()
+
+        self._page_index = notebook.append_page(vbox, hbox)
 
         self._handle = handle
         self._name = name
@@ -130,7 +145,7 @@ class Room(gobject.GObject):
         chan.connect("members-changed", self._members_changed_cb)
         chan.connect("message-received", self._message_received_cb)
         chan.connect("password-flags-changed", self._password_flags_changed_cb)
-    
+
     def close(self):
         self.emit("closed", self._handle, self._page_index)
 
@@ -154,29 +169,30 @@ class Room(gobject.GObject):
                 view.set_cursor(path, col, 0)
                 self._member_popup.popup(None, None, None, event.button,
                                          event.time)
-    
+
     def _member_popup_cb(self, view):
         print "_member_popup_cb: FIXME"
-        
+
     def _invite_clicked_cb(self, button):
         user_dlg = EntryDialog(self._window, "Invite user", "Enter username to invite:", False)
         if user_dlg.run() == gtk.RESPONSE_ACCEPT:
             username = user_dlg.get_text()
-            
+
             if username:
                 msg_dlg = EntryDialog(self._window, "Invite user", "Enter invite message or leave blank for none:", False)
-                
+
                 if msg_dlg.run() == gtk.RESPONSE_ACCEPT:
                     message = msg_dlg.get_text()
-                    
+
                     handle = self._conn[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT,
                                                                       username)
                     if handle != 0:
-                        self._room_chan.add_member(handle, message)             
+                        self._room_chan.add_member(handle, message)
+
+                msg_dlg.destroy()
 
         user_dlg.destroy()
-        msg_dlg.destroy()
-            
+
     def _kick_user_activate_cb(self, item):
         model, iter = self._members_view.get_selection().get_selected()
         if iter is not None:
@@ -216,6 +232,8 @@ class Room(gobject.GObject):
             if not found:
                 print "_members_changed_cb: eeek, couldn't find user to be removed"
 
+        self.update_member_info()
+
     def _nick_from_jid(self, jid):
         return jid[jid.index("/") + 1:]
 
@@ -229,6 +247,18 @@ class Room(gobject.GObject):
         model.set(iter,
                   0, nick,
                   1, handle)
+
+        self.update_member_info()
+
+    def update_member_info(self):
+        count = len(self._members_model)
+
+        if count == 0 or count > 1:
+            suffix = "s"
+        else:
+            suffix = ""
+
+        self._members_lbl.set_text("%d member%s" % (count, suffix))
 
     def _message_received_cb(self, chan, id, timestamp, sender, type, text):
         print "_message_received_cb: got message with id", id, "-- acknowledging"
@@ -258,7 +288,7 @@ class Room(gobject.GObject):
                       0, timestamp,
                       1, self._nick_from_jid(sender_name),
                       2, text)
-      
+
         self._pending_messages = {}
 
     def _entry_activate_cb(self, entry):
