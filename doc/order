@@ -17,7 +17,7 @@ org.freedesktop.Telepathy.Channel.Interface.DTMF
 org.freedesktop.Telepathy.Channel.Interface.Group
 org.freedesktop.Telepathy.Channel.Interface.Hold
 org.freedesktop.Telepathy.Channel.Interface.Password
-org.freedesktop.Telepathy.Channel.Interface.Subject
+org.freedesktop.Telepathy.Channel.Interface.RoomProperties
 org.freedesktop.Telepathy.Channel.Interface.Transfer
 org.freedesktop.Telepathy.Media.SessionHandler
 org.freedesktop.Telepathy.Media.StreamHandler
