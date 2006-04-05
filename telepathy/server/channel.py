@@ -939,7 +939,8 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         message - a string message, which can be blank if desired
 
         Possible Errors:
-        Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidHandle
+        Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidHandle,
+        Channel.Full, Channel.InviteOnly, Channel.Banned
         """
         pass
 
