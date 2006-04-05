@@ -308,6 +308,36 @@ class ChannelTypeStreamedMedia(Channel):
         """
         pass
 
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='',
+                                                      out_signature='a(uuuu)')
+    def GetStreams(self):
+        """
+        Returns an array of structs of contact handles, stream identifiers
+        accompanying stream types and the current state of the stream.
+        Stream identifiers are unsigned interegers and are unique for 
+        each contact.
+        Stream types are identified by the following values:
+          MEDIA_STREAM_TYPE_AUDIO = 0
+          MEDIA_STREAM_TYPE_VIDEO = 1
+        Stream states are identified by
+          MEDIA_STREAM_STATE_STOPPED =0
+          MEDIA_STREAM_STATE_PLAYING = 1
+          MEDIA_STREAM_STATE_CONNECTING = 2
+          MEDIA_STREAM_STATE_CONNECTED = 3
+        """
+        pass
+
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uuu')
+    def StreamStateChanged(self, contact_handle, stream_id, stream_state):
+        """
+        Signal emitted when a memeber's stream's state changes.
+        stream_id is as returned in GetStreams
+        stream_state is as defined in GetStreams
+        """
+        pass
+
+
+
 class MediaSessionHandler(dbus.service.Object):
     """
     A media session handler is an object that handles a number of synchonised
@@ -498,6 +528,15 @@ class MediaStreamHandler(dbus.service.Object):
     def CodecChoice(self, codec_id):
         """
         Informs the connection manaager of the current codec choice
+        """
+    pass
+
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='u', 
+                                               out_signature='')
+    def StreamState(self, state):
+        """
+        Informs the connection manaager of the stream's current state
+        State is as specified in ChannelTypeStreamedMedia::GetStreams
         """
     pass
 
