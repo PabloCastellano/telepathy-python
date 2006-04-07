@@ -91,7 +91,7 @@ class MainWindow(gtk.Window):
         view = scw.View()
         view.connect("activate", self._view_activate_cb)
         view.set_property("model", self._model)
-        view.set_column_foldable(2)
+        view.set_column_foldable(2, True)
         view.set_column_visible(3, False)
         sw.add(view)
         self._view = view
@@ -125,6 +125,13 @@ class MainWindow(gtk.Window):
 
         self._login_btn.grab_focus()
 
+        self.connect("delete-event", self._delete_event_cb)
+
+    def _delete_event_cb(self, widget, event):
+        if self._conn is not None:
+            self._conn[CONN_INTERFACE].Disconnect()
+        return False
+
     def _request_room_btn_clicked(self, button):
         name = self._request_room_entry.get_text()
         if not name:
@@ -134,21 +141,30 @@ class MainWindow(gtk.Window):
         dbus_call_async(self._conn[CONN_INTERFACE].RequestHandle,
                         CONNECTION_HANDLE_TYPE_ROOM, name,
                         reply_handler=self._request_room_handle_reply_cb,
-                        error_handler=self._conn_error_cb)
+                        error_handler=self._conn_error_cb,
+                        extra_args=(name,))
 
-    def _request_room_handle_reply_cb(self, handle):
-        print "Got handle", handle, "requesting text channel with room"
+    def _request_room_handle_reply_cb(self, handle, name):
+        print "Got handle", handle, "requesting text channel with room '%s'" % name
 
         dbus_call_async(self._conn[CONN_INTERFACE].RequestChannel,
                         CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_ROOM,
                         handle, True,
-                        reply_handler=lambda obj_path: self._request_room_channel_reply_cb(obj_path, handle),
-                        error_handler=self._conn_error_cb)
+                        reply_handler=self._request_room_channel_reply_cb,
+                        error_handler=self._conn_error_cb,
+                        extra_args=(handle, name,))
 
-    def _request_room_channel_reply_cb(self, obj_path, handle):
+    def _request_room_channel_reply_cb(self, obj_path, handle, name):
+        print "Got room channel with '%s' [%d]" % (name, handle)
         channel = RoomChannel(self._conn, obj_path, handle)
-        self._conn.lookup_handle(CONNECTION_HANDLE_TYPE_ROOM, handle,
-                                 self._new_room_chan_handle_lookup_cb, channel)
+
+        if not handle in self._rooms:
+            room = Room(self, self._convo_nb, self._conn, handle, name)
+            room.connect("closed", self._room_closed_cb)
+            self._rooms[handle] = room
+
+        self._rooms[handle].take_room_channel(channel)
+        self._rooms[handle].show()
 
     def _view_activate_cb(self, view, action_id, action_data):
         if action_id[:5] == "click":
@@ -234,6 +250,9 @@ class MainWindow(gtk.Window):
         if status == self._status:
             return
 
+        if status == CONNECTION_STATUS_CONNECTED:
+            self.self_handle = self._conn[CONN_INTERFACE].GetSelfHandle()
+
         self._status = status
 
         if status == CONNECTION_STATUS_CONNECTED:
@@ -275,12 +294,27 @@ class MainWindow(gtk.Window):
         elif channel_type == CHANNEL_TYPE_TEXT and handle_type == CONNECTION_HANDLE_TYPE_ROOM:
             channel = RoomChannel(self._conn, obj_path, handle)
 
+            # find out who invited us
+            inviter_handle = channel[CHANNEL_INTERFACE_GROUP].GetMembers()[0]
+            inviter_name = self._conn[CONN_INTERFACE].InspectHandle(
+                    CONNECTION_HANDLE_TYPE_CONTACT,
+                    inviter_handle)
+
+            # and check if there's a message
+            pending = channel[CHANNEL_TYPE_TEXT].ListPendingMessages()
+            msg_text = ""
+            if pending:
+                msg_id, msg_stamp, msg_sender, msg_type, msg_text = pending[0]
+
+                msg_text = " with the reason '%s'" % msg_text
+
             name = self._conn[CONN_INTERFACE].InspectHandle(handle_type, handle)
             dlg = gtk.MessageDialog(parent=self,
                                     flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
                                     type=gtk.MESSAGE_QUESTION,
                                     buttons=gtk.BUTTONS_YES_NO,
-                                    message_format="Someone is inviting you to %s, accept?" % name)
+                                    message_format="%s is inviting you to %s%s, accept?" %
+                                        (inviter_name, name, msg_text))
             response = dlg.run()
             dlg.destroy()
 
@@ -291,8 +325,7 @@ class MainWindow(gtk.Window):
                 room.show()
                 self._rooms[handle] = room
 
-                self_handle = channel[CHANNEL_INTERFACE_GROUP].GetSelfHandle()
-                channel.add_member(self_handle, "")
+                channel.add_member(self.self_handle, "")
             else:
                 channel[CHANNEL_INTERFACE].Close()
                 return
@@ -309,15 +342,6 @@ class MainWindow(gtk.Window):
             self._channels[obj_path] = channel
         else:
             print "Unknown channel type", channel_type
-
-    def _new_room_chan_handle_lookup_cb(self, handle_type, handle, name, channel):
-        if not handle in self._rooms:
-            room = Room(self, self._convo_nb, self._conn, handle, name)
-            room.connect("closed", self._room_closed_cb)
-            self._rooms[handle] = room
-
-        self._rooms[handle].take_room_channel(channel)
-        self._rooms[handle].show()
 
     def _room_closed_cb(self, room, handle, page_index):
         obj_path = room._room_chan._obj_path

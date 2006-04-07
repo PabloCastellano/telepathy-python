@@ -24,6 +24,7 @@ import gtk
 import scw
 from telepathy import *
 from widgets import EntryDialog
+from util import *
 
 class Room(gobject.GObject):
     __gsignals__ = {
@@ -40,6 +41,14 @@ class Room(gobject.GObject):
         chat_sw = xml.get_widget("chat_sw")
         members_sw = xml.get_widget("members_sw")
         btn = xml.get_widget("invite_tbtn")
+
+        test_btn = xml.get_widget("test_tbtn")
+        test_btn.connect("clicked", self.test_btn_clicked_cb)
+
+        self.prop_tbl = xml.get_widget("prop_tbl")
+        self.prop_apply_btn = xml.get_widget("prop_apply_btn")
+        self.prop_apply_btn.connect("clicked", self.prop_apply_btn_clicked_cb)
+
         self._members_lbl = xml.get_widget("members_lbl")
         btn.connect("clicked", self._invite_clicked_cb)
 
@@ -146,8 +155,174 @@ class Room(gobject.GObject):
         chan.connect("message-received", self._message_received_cb)
         chan.connect("password-flags-changed", self._password_flags_changed_cb)
 
+        chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].connect_to_signal("PropertyFlagsChanged",
+                lambda *args: dbus_signal_cb(self.room_property_flags_changed_cb, *args))
+        chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].connect_to_signal("PropertiesChanged",
+                lambda *args: dbus_signal_cb(self.room_properties_changed_cb, *args))
+
+        props_new_flags = {}
+        props = {}
+        i = 0
+        for id, info in chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].ListProperties().items():
+            name, type, flags = info
+            props_new_flags[id] = flags
+
+            key_widget = gtk.Label("%s:" % name)
+            key_widget.set_alignment(0.0, 0.5)
+            key_widget.show()
+
+            self.prop_tbl.attach(key_widget, 0, 1, i, i + 1, gtk.FILL, gtk.FILL, 15, 0)
+
+            # name, type, value, flags, row, widget
+            props[id] = [name, type, None, 0, i, None]
+
+            i += 1
+
+        self.props = props
+
+        self.update_property_flags(props_new_flags)
+        self.prop_apply_btn.set_sensitive(False)
+
+    def room_property_flags_changed_cb(self, properties):
+        print "room_property_flags_changed_cb: got '%s'" % properties
+        self.update_property_flags(properties)
+
+    def room_properties_changed_cb(self, properties):
+        print "room_properties_changed_cb: got '%s'" % properties
+
+        for id, value in properties.items():
+            cur_info = self.props[id]
+
+            if (cur_info[3] & CHANNEL_ROOM_PROPERTY_FLAG_READ) == 0:
+                cur_info[3] |= CHANNEL_ROOM_PROPERTY_FLAG_READ
+
+            self.property_value_update(id, value)
+
+    def property_value_update(self, prop_id, value):
+        cur_info = self.props[prop_id]
+        cur_name, cur_type, cur_value, cur_flags, cur_row, cur_widget = cur_info
+
+        # Get the current widget class name
+        if cur_widget is not None:
+            cur_cn = cur_widget.__class__.__name__
+        else:
+            cur_cn = None
+
+        # Get the new widget class name
+        if cur_flags != 0:
+            if cur_type in ("s", "u"):
+                cn = "Entry"
+                sn = "changed"
+            elif cur_type == "b":
+                cn = "CheckButton"
+                sn = "toggled"
+        else:
+            cn = "Label"
+            sn = None
+
+        # If it's different, (re)create the widget and connect any signals
+        if cur_cn != cn:
+            if cur_widget is not None:
+                cur_widget.destroy()
+
+            widget = getattr(gtk, cn)()
+            if sn is not None:
+                widget.connect(sn, lambda *args: self.update_property_button_state())
+
+            widget.show()
+
+            self.prop_tbl.attach(widget, 1, 2, cur_row, cur_row + 1,
+                                 gtk.FILL, gtk.FILL, 15, 0)
+
+            cur_info[5] = widget
+        else:
+            widget = cur_widget
+
+        cur_info[2] = value
+
+        if cn != "Label":
+            sensitive = (cur_flags & CHANNEL_ROOM_PROPERTY_FLAG_WRITE) != 0
+            widget.set_sensitive(sensitive)
+
+        if hasattr(widget, "set_active"):
+            widget.set_active(value)
+        elif hasattr(widget, "set_text"):
+            if value is not None:
+                widget.set_text(value)
+
+            if cn == "Label":
+                widget.set_text("N/A")
+                widget.set_alignment(0.0, 0.5)
+
+    def update_property_flags(self, properties):
+        for id, new_flags in properties.items():
+            cur_name, cur_type, cur_value, cur_flags, cur_row, cur_widget = self.props[id]
+
+            self.props[id][3] = new_flags
+
+            if (new_flags & CHANNEL_ROOM_PROPERTY_FLAG_READ) != 0:
+                props = self._room_chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].GetProperties((id,))
+                value = props[id]
+            else:
+                value = None
+
+            self.property_value_update(id, value)
+
+    def update_property_button_state(self):
+        modified = False
+
+        for id, info in self.props.items():
+            name, type, value, flags, row, widget = info
+
+            if (flags & CHANNEL_ROOM_PROPERTY_FLAG_WRITE) == 0:
+                continue
+
+            if value is None:
+                continue
+
+            if type in ("s", "u"):
+                val = widget.get_text()
+            elif type == "b":
+                val = widget.get_active()
+
+            if val != value:
+                modified = True
+                break
+
+        self.prop_apply_btn.set_sensitive(modified)
+
+    def prop_apply_btn_clicked_cb(self, button):
+        changed_props = {}
+        for id, info in self.props.items():
+            name, type, value, flags, row, widget = info
+
+            if (flags & CHANNEL_ROOM_PROPERTY_FLAG_WRITE) == 0:
+                continue
+
+            if value is None:
+                continue
+
+            if type in ("s", "u"):
+                val = widget.get_text()
+            elif type == "b":
+                val = widget.get_active()
+
+            if val != value:
+                info[2] = val
+                changed_props[id] = val
+
+        self._room_chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].SetProperties(changed_props)
+
+        button.set_sensitive(False)
+
     def close(self):
         self.emit("closed", self._handle, self._page_index)
+
+    def test_btn_clicked_cb(self, widget):
+        print
+        for key, value in self._room_chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].ListProperties().items():
+            print "%s = %s" % (key, value)
+        print
 
     def _flags_changed_cb(self, chan):
         flags = chan.get_flags()

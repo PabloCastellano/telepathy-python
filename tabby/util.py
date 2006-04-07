@@ -90,6 +90,8 @@ def _reply_cb(*args):
     global current_call
 
     method, func_args, func_kwargs = current_call
+    if "extra_args" in func_kwargs:
+        args += func_kwargs["extra_args"]
     func_kwargs["reply_handler"](*args)
 
     current_call = None
@@ -180,6 +182,8 @@ class GroupChannel(BaseChannel):
 
     def __init__(self, *args):
         BaseChannel.__init__(self, *args)
+
+        self.get_valid_interfaces().add(CHANNEL_INTERFACE_GROUP)
 
         self._flags = None
         self._members = None
@@ -325,6 +329,8 @@ class RoomChannel(GroupChannel):
     def __init__(self, conn, obj_path, handle):
         GroupChannel.__init__(self, conn, obj_path, CONNECTION_HANDLE_TYPE_ROOM,
                               handle, CHANNEL_TYPE_TEXT)
+
+        self.get_valid_interfaces().add(CHANNEL_INTERFACE_ROOM_PROPERTIES)
 
         self._fetched_all = False
         self._messages = []
