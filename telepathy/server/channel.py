@@ -939,6 +939,13 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         128 - CHANNEL_GROUP_FLAG_MESSAGE_RESCIND
             A message may be sent to the server when calling RemoveMembers on
             contacts who are remote pending.
+        256 - CHANNEL_GROUP_FLAG_CHANNEL_SPECIFIC_HANDLES
+            The members of this group have handles which are specific to
+            this channel, and are not valid as general-purpose handles on
+            the connection. Depending on the channel, it may be possible to
+            call GetHandleOwners to find the owners of these handles, which
+            should be done if you wish to eg subscribe to the contact's
+            presence.
 
         Returns:
         an integer of flags or'd together
@@ -1069,6 +1076,32 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         Disconnected, NetworkError
         """
         return (self._members, self._local_pending, self._remote_pending)
+
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='au',
+                                                  out_signature='au')
+    def GetHandleOwners(self, handles):
+        """
+        If the CHANNEL_GROUP_FLAG_CHANNEL_SPECIFIC_HANDLES flag is set on
+        the channel, then the handles of the group members are specific
+        to this channel, and are not meaningful in a connection-wide
+        context such as contact lists. This method allows you to find
+        the owner of the handle if it can be discovered in this channel,
+        or 0 if the owner is not available.
+
+        Parameters:
+        handles - a list of integer handles representing members of the
+            channel
+
+        Returns:
+        an array of integer handles representing the owner handle of
+            the the given room members, in the same order, or 0 if the
+            owner is not available
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidHandle, InvalidArgument (one
+        of the given handles is not a member)
+        """
+        pass
 
     @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sauauauauuu')
     def MembersChanged(self, message, added, removed, local_pending, remote_pending, actor, reason):
