@@ -314,8 +314,9 @@ class ChannelTypeStreamedMedia(Channel):
         """
         Returns an array of structs of contact handles, stream identifiers
         accompanying stream types and the current state of the stream.
-        Stream identifiers are unsigned interegers and are unique for 
+        Stream identifiers are unsigned integers and are unique for 
         each contact.
+
         Stream types are identified by the following values:
           MEDIA_STREAM_TYPE_AUDIO = 0
           MEDIA_STREAM_TYPE_VIDEO = 1
@@ -330,12 +331,14 @@ class ChannelTypeStreamedMedia(Channel):
     @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uuu')
     def StreamStateChanged(self, contact_handle, stream_id, stream_state):
         """
-        Signal emitted when a memeber's stream's state changes.
-        stream_id is as returned in GetStreams
-        stream_state is as defined in GetStreams
+        Signal emitted when a memeber's stream's state changes, as defined
+        in GetStreams
+
+        Parameters:
+        stream_id - stream ID as returned by GetStreams
+        stream_state - new stream state
         """
         pass
-
 
 
 class MediaSessionHandler(dbus.service.Object):
@@ -523,7 +526,16 @@ class MediaStreamHandler(dbus.service.Object):
         """
         Inform the connection manager of the current codec choice.
         """
-    pass
+        pass
+
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='u',
+                                               out_signature='')
+    def StreamState(self, state):
+        """
+        Informs the connection manager of the stream's current state
+        State is as specified in ChannelTypeStreamedMedia::GetStreams.
+        """
+        pass
 
     @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(usuuua{ss})',
                                                 out_signature='')
