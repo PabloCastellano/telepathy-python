@@ -49,10 +49,10 @@ class Connection(dbus.service.Object):
     reference count these handles to determine if they are in use either by any
     active clients or any open channels, and may deallocate them when this
     ceases to be true. Clients may request handles of a given type and name
-    with the RequestHandle method, inspect the entity name of a handle
-    with the InspectHandle method, keep a given handle from being released
-    with HoldHandle, and notify that they are no longer storing a handle with
-    ReleaseHandle.
+    with the RequestHandles method, inspect the entity name of handles
+    with the InspectHandles method, keep handles from being released with
+    HoldHandles, and notify that they are no longer storing handles with
+    ReleaseHandles.
     """
     def __init__(self, proto, account):
         """
@@ -194,41 +194,18 @@ class Connection(dbus.service.Object):
         """
         return self._proto
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='uu', out_signature='s')
-    def InspectHandle(self, handle_type, handle):
-        """
-        For a given handle representing a contact, room or list entity on
-        this connection, return a string representation of the entity name.
-
-        Parameters:
-        handle_type - an integer handle type (as defined in RequestHandle)
-        handle - an integer handle number
-
-        Returns:
-        a string entity name
-
-        Potential Errors:
-        Disconnected, InvalidArgument (the given type is not valid),
-        InvalidHandle (the given handle is not valid on this connection)
-        """
-        self.check_connected()
-        self.check_handle_type(handle_type)
-        self.check_handle(handle_type, handle)
-        hand = self._handles[handle_type, handle]
-        return hand.get_name()
-
-    @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='a{us}')
+    @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='as')
     def InspectHandles(self, handle_type, handles):
         """
         Return a string representation for a number of handles of a given
         type.
 
         Parameters:
-        handle_type - an integer handle type (as defined in RequestHandle)
+        handle_type - an integer handle type (as defined in RequestHandles)
         handles - an array of integer handles of this type
 
         Returns:
-        a dictionary of handle number to string name
+        an array of handle names in the same order as the given numbers
 
         Potential Errors:
         Disconnected, InvalidArgument (the given type is not valid),
@@ -240,23 +217,23 @@ class Connection(dbus.service.Object):
         for handle in handles:
             self.check_handle(handle_type, handle)
 
-        ret = {}
+        ret = []
         for handle in handles:
-            ret[handle] = self._handles[handle_type, handle].get_name()
+            ret.append(self._handles[handle_type, handle].get_name())
 
         return ret
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='us', out_signature='u', sender_keyword='sender')
-    def RequestHandle(self, handle_type, name, sender):
+    @dbus.service.method(CONN_INTERFACE, in_signature='uas', out_signature='au', sender_keyword='sender')
+    def RequestHandles(self, handle_type, names, sender):
         """
-        Request a handle from the connection manager which represents a
-        contact, room or server-stored list on the service. The connection
-        manager should record that this handle is in use by the client who
-        invokes this method, and must not deallocate the handle until the
-        client disconnects from the bus or calls the ReleaseHandle method.
-        Where the name refers to an entity that already has a handle in this
-        connection manager, this handle should be returned instead. The handle
-        number 0 must not be returned by the connection manager.
+        Request several handles from the connection manager which represent a
+        number of contacts, rooms or server-stored lists on the service. The
+        connection manager should record that these handles are in use by the
+        client who invokes this method, and must not deallocate the handles
+        until the client disconnects from the bus or calls the ReleaseHandle
+        method. Where the name refers to an entity that already has a handle
+        in this connection manager, this handle should be returned instead.
+        The handle number 0 must not be returned by the connection manager.
 
         The type value may be one of the following:
         0 - CONNECTION_HANDLE_TYPE_NONE
@@ -266,10 +243,10 @@ class Connection(dbus.service.Object):
 
         Parameters:
         type - an integer handle type
-        name - the name of the entity to request a handle for
+        name - an array of names of entities to request handles for
 
         Returns:
-        a non-zero integer handle number
+        an array of integer handle numbers in the same order as given strings
 
         Potential Errors:
         Disconnected, InvalidArgument (the given type is not valid), NotAvailable (the given name is not a valid entity of the given type)
@@ -277,19 +254,22 @@ class Connection(dbus.service.Object):
         self.check_connected()
         self.check_handle_type(handle_type)
 
-        id = self.get_handle_id()
-        handle = Handle(id, handle_type, name)
-        self._handles[handle_type, id] = handle
-        self.add_client_handle(handle, sender)
+        ret = {}
+        for name in names:
+            id = self.get_handle_id()
+            handle = Handle(id, handle_type, name)
+            self._handles[handle_type, id] = handle
+            self.add_client_handle(handle, sender)
+            ret[name] = id
 
         return id
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='uu', out_signature='', sender_keyword='sender')
-    def HoldHandle(self, handle_type, handle, sender):
+    @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='', sender_keyword='sender')
+    def HoldHandles(self, handle_type, handles, sender):
         """
         Notify the connection manger that your client is holding a copy
-        of a handle which may not be in use in any existing channel or
-        list, and was not obtained by using the RequestHandle method. For
+        of handles which may not be in use in any existing channel or
+        list, and were not obtained by using the RequestHandles method. For
         example, a handle observed in an emitted signal, or displayed
         somewhere in the UI that is not associated with a channel. The
         connection manager must not deallocate a handle where any clients
@@ -298,7 +278,7 @@ class Connection(dbus.service.Object):
 
         Parameters:
         handle_type - an integer representing the handle type
-        handle - an integer handle to hold
+        handle - a array of integer handles to hold
 
         Potential Errors:
         Disconnected, InvalidArgument (the handle type is invalid),
@@ -306,22 +286,25 @@ class Connection(dbus.service.Object):
         """
         self.check_connected()
         self.check_handle_type(handle_type)
-        self.check_handle(handle_type, handle)
 
-        hand = self._handles[handle_type, handle]
-        self.add_client_handle(hand, sender)
+        for handle in handles:
+            self.check_handle(handle_type, handle)
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='uu', out_signature='')
-    def ReleaseHandle(self, handle_type, handle):
+        for handle in handles:
+            hand = self._handles[handle_type, handle]
+            self.add_client_handle(hand, sender)
+
+    @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='')
+    def ReleaseHandles(self, handle_type, handles):
         """
         Explicitly notify the connection manager that your client is no
-        longer holding any references to the given handle, and that it
-        may be deallocated if it is not held by any other clients or
+        longer holding any references to the given handles, and that they
+        may be deallocated if they are not held by any other clients or
         referenced by any existing channels.
 
         Parameters:
         handle_type - an integer representing the handle type
-        handle - an integer handle being held by the client
+        handle - an array of integer handles being held by the client
 
         Potential Errors:
         Disconnected, InvalidArgument (the given handle type is invalid),
@@ -330,16 +313,19 @@ class Connection(dbus.service.Object):
         """
         self.check_connected()
         self.check_handle_type(handle_type)
-        self.check_handle(handle_type, handle)
 
-        hand = self._handles[handle_type, handle]
-        if sender in self._client_handles:
-            if hand in self._client_handles[sender]:
-                self._client_handles[sender].remove(hand)
+        for handle in handles:
+            self.check_handle(handle_type, handle)
+            hand = self._handles[handle_type, handle]
+            if sender in self._client_handles:
+                if hand not in self._client_handles[sender]:
+                    raise NotAvailable('client is not holding handle %s' % handle)
             else:
-                raise NotAvailable('client is not holding handle %s' % handle)
-        else:
-            raise NotAvailable('client does not hold any handles')
+                raise NotAvailable('client does not hold any handles')
+
+        for handle in handles:
+            hand = self._handles[handle_type, handle]
+            self._client_handles[sender].remove(hand)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='u')
     def GetSelfHandle(self):
