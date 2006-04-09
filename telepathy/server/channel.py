@@ -1055,6 +1055,22 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         """
         return self._remote_pending
 
+    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='auauau')
+    def GetAllMembers(self):
+        """
+        Returns arrays all current, local and remote pending channel
+        members.
+
+        Returns:
+        array of handles of current members
+        array of handles of local pending members
+        array of handles of remote pending members
+
+        Possible Errors:
+        Disconnected, NetworkError
+        """
+        return (self._members, self._local_pending, self._remote_pending)
+
     @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sauauauauuu')
     def MembersChanged(self, message, added, removed, local_pending, remote_pending, actor, reason):
         """
