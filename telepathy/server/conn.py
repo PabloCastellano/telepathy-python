@@ -498,7 +498,7 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
 
     On connections where the user is allowed to set aliases for contacts and
     store them on the server, the GetAliasFlags method will have the
-    CONNECTION_ALIAS_FLAG_USER_SET flag set, and the SetAlias method
+    CONNECTION_ALIAS_FLAG_USER_SET flag set, and the SetAliases method
     may be called on contact handles other than the user themselves.
     """
 
@@ -523,18 +523,19 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
         """
         return 0
 
-    @dbus.service.signal(CONN_INTERFACE_ALIASING, signature='us')
-    def AliasUpdate(self, contact, alias):
+    @dbus.service.signal(CONN_INTERFACE_ALIASING, signature='a(us)')
+    def AliasesChanged(self, aliases):
         """
         Signal emitted when a contact's alias (or that of the user) is changed.
 
         Parameters:
-        contact - the handle representing the contact
-        alias - the new alias
+        aliases - an array containing structs of:
+            the handle representing the contact
+            the new alias
         """
         pass
 
-    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='au', out_signature='a{us}')
+    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='au', out_signature='as')
     def RequestAliases(self, contacts):
         """
         Request the value of several contacts' aliases at once.
@@ -543,15 +544,15 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
         contacts - an array of the handle representing contacts
 
         Returns:
-        a dictionary of contact handles to aliases
+        a dictionary of contact handles to aliases in the same order
 
         Possible Errors:
         Disconnected, NetworkError, NotAvailable, InvalidHandle
         """
         pass
 
-    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='us', out_signature='')
-    def SetAlias(self, contact, alias):
+    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='a{us}', out_signature='')
+    def SetAliases(self, aliases):
         """
         Request that the alias of the given contact be changed. Success will be
         indicated by emitting an AliasUpdate signal. On connections where the
@@ -560,8 +561,9 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
         GetSelfHandle on the Connection interface).
 
         Parameters:
-        contact - the handle of the contact whose alias to set
-        alias - the new alias to set
+        a dictionary mapping:
+            integer handles of contacts
+            strings of the new alias to set
 
         Possible Errors:
         Disconnected, NetworkError, InvalidArgument, NotAvailable, PermissionDenied
