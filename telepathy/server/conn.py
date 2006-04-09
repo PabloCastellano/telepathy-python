@@ -840,6 +840,8 @@ class ConnectionInterfacePresence(dbus.service.Interface):
     def GetStatuses(self):
         """
         Get a dictionary of the valid presence statuses for this connection.
+        This is only available when online because only some statuses will
+        be available on some servers.
 
         Returns:
         a dictionary of string identifiers mapped to a struct for each status, containing:
@@ -905,7 +907,13 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         """
         Request that the user's presence be changed to the given statuses and
         desired parameters. Changes will be reflected by PresenceUpdate
-        signals being emitted.
+        signals being emitted. On certain protocols, this method may be
+        called on a newly-created connection which is still in the
+        DISCONNECTED state, and will sign on with the requested status.
+        If the requested status is not available after signing on,
+        NotAvailable will be returned and the connection will remain
+        offline, or if the protocol does not support signing on with
+        a certain status, Disconnected will be returned.
 
         Parameters:
         a dictionary of status identifiers mapped to:
