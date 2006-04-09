@@ -765,6 +765,31 @@ class ChannelTypeText(Channel):
         """
         pass
 
+    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uuus')
+    def SendError(self, error, timestamp, type, text):
+        """
+        Signals that an outgoing message has failed to send. The error
+        will be one of the following values:
+        0 - CHANNEL_TEXT_SEND_ERROR_UNKNOWN
+            An unknown error occured.
+        1 - CHANNEL_TEXT_SEND_ERROR_OFFLINE
+            The requested contact was offline.
+        2 - CHANNEL_TEXT_SEND_ERROR_INVALID_CONTACT
+            The requested contact is not valid.
+        3 - CHANNEL_TEXT_SEND_ERROR_PERMISSION_DENIED
+            The user does not have permission to speak on this channel.
+        4 - CHANNEL_TEXT_SEND_ERROR_TOO_LONG
+            The outgoing message was too long and was rejected by the
+            server.
+
+        Parameters:
+        error - one of the above integer errors
+        timestamp - the unix timestamp indicating when the message was sent
+        type - the message the (normal, action, notice, etc)
+        text - the text of the message
+        """
+        pass
+
     @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uuuus')
     def Received(self, id, timestamp, sender, type, text):
         """
