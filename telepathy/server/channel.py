@@ -993,7 +993,6 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         CHANNEL_GROUP_FLAG_MESSAGE_RESCIND flags to see in which cases this
         message should be provided.
 
-
         Parameters:
         contacts - an array of contact handles to remove from the channel
         message - a string message, which can be blank if desired
