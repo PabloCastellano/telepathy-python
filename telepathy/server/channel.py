@@ -1055,8 +1055,8 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         """
         return self._remote_pending
 
-    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sauauauau')
-    def MembersChanged(self, message, added, removed, local_pending, remote_pending):
+    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sauauauauuu')
+    def MembersChanged(self, message, added, removed, local_pending, remote_pending, actor, reason):
         """
         Emitted when contacts join any of the three lists (members, local
         pending or remote pending).  Contacts are listed in the removed
@@ -1064,12 +1064,27 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         a message from the server regarding this change, which may be
         displayed to the user if desired.
 
+        The reason value will be one of the following:
+        0 - CHANNEL_GROUP_CHANGE_REASON_NONE
+            No reason was provided for this change.
+        1 - CHANNEL_GROUP_CHANGE_REASON_OFFLINE
+            The change is due to a user going offline.
+        2 - CHANNEL_GROUP_CHANGE_REASON_KICKED
+            The change is due to a kick operation.
+        3 - CHANNEL_GROUP_CHANGE_REASON_BUSY
+            The change is due to a busy indication.
+        4 - CHANNEL_GROUP_CHANGE_REASON_INVITED
+            The change is due to an invitation.
+
         Parameters:
         message - a string message from the server, or blank if not
         added - a list of members added to the channel
         removed - a list of members removed from the channel
         local_pending - a list of members who are pending local approval
         remote_pending - a list of members who are pending remote approval
+        actor - the contact handle of the person who made the change, or 0
+            if not known
+        reason - a reason for the change from one of the above values
         """
 
         self._members.update(added)
