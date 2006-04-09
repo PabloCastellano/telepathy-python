@@ -38,7 +38,7 @@ DEFAULT_SSL = True
 DEFAULT_USERNAME = "oleavr@jabber.no"
 DEFAULT_PASSWORD = ""
 
-DEFAULT_ROOM_ENTRY_TEXT = "tryggve@conference.jabber.no"
+DEFAULT_ROOM_ENTRY_TEXT = "tryggve@conference.jabber.belnet.be"
 
 class MainWindow(gtk.Window):
     def __init__(self):

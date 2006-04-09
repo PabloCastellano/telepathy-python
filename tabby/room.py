@@ -245,10 +245,11 @@ class Room(gobject.GObject):
             widget.set_sensitive(sensitive)
 
         if hasattr(widget, "set_active"):
-            widget.set_active(value)
+            if value is not None:
+                widget.set_active(value)
         elif hasattr(widget, "set_text"):
             if value is not None:
-                widget.set_text(value)
+                widget.set_text(str(value))
 
             if cn == "Label":
                 widget.set_text("N/A")
@@ -261,6 +262,7 @@ class Room(gobject.GObject):
             self.props[id][3] = new_flags
 
             if (new_flags & CHANNEL_ROOM_PROPERTY_FLAG_READ) != 0:
+                print "update_property_flags: requesting property id %d" % id
                 props = self._room_chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].GetProperties((id,))
                 value = props[id]
             else:
@@ -277,13 +279,13 @@ class Room(gobject.GObject):
             if (flags & CHANNEL_ROOM_PROPERTY_FLAG_WRITE) == 0:
                 continue
 
-            if value is None:
-                continue
-
             if type in ("s", "u"):
                 val = widget.get_text()
             elif type == "b":
                 val = widget.get_active()
+
+            if val == "" and value is None:
+                continue
 
             if val != value:
                 modified = True
@@ -299,18 +301,19 @@ class Room(gobject.GObject):
             if (flags & CHANNEL_ROOM_PROPERTY_FLAG_WRITE) == 0:
                 continue
 
-            if value is None:
-                continue
-
             if type in ("s", "u"):
                 val = widget.get_text()
             elif type == "b":
                 val = widget.get_active()
 
+            if val == "" and value is None:
+                continue
+
             if val != value:
                 info[2] = val
                 changed_props[id] = val
 
+        print "changing properties: '%s'" % changed_props
         self._room_chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].SetProperties(changed_props)
 
         button.set_sensitive(False)
