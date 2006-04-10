@@ -678,6 +678,12 @@ class ChannelTypeText(Channel):
     3 - CHANNEL_TEXT_MESSAGE_TYPE_AUTO_REPLY
         an automatically-generated reply message
 
+    Each message also has a flags value, which is a bitwise OR of the
+    following:
+    1 - CHANNEL_TEXT_MESSAGE_FLAG_TRUNCATED
+        The incoming message was truncated to a shorter length by the
+        server or the connection manager.
+
     Sending messages can be requested using the Send method, which will return
     and cause the Sent signal to be emitted when the message has been delivered
     to the server.
@@ -755,12 +761,13 @@ class ChannelTypeText(Channel):
             a unix timestamp indicating when the message was received
             an integer handle of the contact who sent the message
             an integer of the message type
+            a bitwise OR of the message flags
             a string of the text of the message
         """
         messages = []
         for id in self._pending_messages.keys():
-            (timestamp, sender, type, text) = self._pending_messages[id]
-            message = (id, timestamp, sender, type, text)
+            (timestamp, sender, type, flags, text) = self._pending_messages[id]
+            message = (id, timestamp, sender, type, flags, text)
             messages.append(message)
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
         return messages
@@ -802,8 +809,8 @@ class ChannelTypeText(Channel):
         """
         pass
 
-    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uuuus')
-    def Received(self, id, timestamp, sender, type, text):
+    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uuuuus')
+    def Received(self, id, timestamp, sender, type, flags, text):
         """
         Signals that a message with the given id, timestamp, sender, type
         and text has been received on this channel. Applications that catch
@@ -816,6 +823,7 @@ class ChannelTypeText(Channel):
         timestamp - a unix timestamp indicating when the message was received
         sender - the handle of the contact who sent the message
         type - the type of the message (normal, action, notice, etc)
+        flags - a bitwise OR of the message flags as defined above
         text - the text of the message
         """
         self._pending_messages[id] = (timestamp, sender, type, text)
