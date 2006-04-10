@@ -686,7 +686,7 @@ class ChannelTypeText(Channel):
 
     Sending messages can be requested using the Send method, which will return
     and cause the Sent signal to be emitted when the message has been delivered
-    to the server.
+    to the server, or SendError if there is a failure.
     """
 
     def __init__(self, connection, handle):
@@ -769,6 +769,8 @@ class ChannelTypeText(Channel):
             (timestamp, sender, type, flags, text) = self._pending_messages[id]
             message = (id, timestamp, sender, type, flags, text)
             messages.append(message)
+            if clear:
+                del self._pending_messages[id]
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
         return messages
 
@@ -831,9 +833,9 @@ class ChannelTypeText(Channel):
     @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='')
     def LostMessage(self):
         """
-        This signal is emitted to indicate that a message was not able
-        to be stored and forwarded by the connection manager due to lack
-        of memory.
+        This signal is emitted to indicate that an incoming message was
+        not able to be stored and forwarded by the connection manager
+        due to lack of memory.
         """
         pass
 
