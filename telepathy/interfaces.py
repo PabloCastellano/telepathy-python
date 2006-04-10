@@ -40,9 +40,9 @@ CHANNEL_INTERFACE_DTMF = 'org.freedesktop.Telepathy.Channel.Interface.DTMF'
 CHANNEL_INTERFACE_GROUP = 'org.freedesktop.Telepathy.Channel.Interface.Group'
 CHANNEL_INTERFACE_HOLD = 'org.freedesktop.Telepathy.Channel.Interface.Hold'
 CHANNEL_INTERFACE_PASSWORD = 'org.freedesktop.Telepathy.Channel.Interface.Password'
-CHANNEL_INTERFACE_ROOM_PROPERTIES = 'org.freedesktop.Telepathy.Channel.Interface.RoomProperties'
 CHANNEL_INTERFACE_TRANSFER = 'org.freedesktop.Telepathy.Channel.Interface.Transfer'
 
 MEDIA_SESSION_HANDLER = 'org.freedesktop.Telepathy.Media.SessionHandler'
 MEDIA_STREAM_HANDLER = 'org.freedesktop.Telepathy.Media.StreamHandler'
 
+PROPERTIES_INTERFACE = 'org.freedesktop.Telepathy.Properties'

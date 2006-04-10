@@ -17,10 +17,10 @@ org.freedesktop.Telepathy.Channel.Interface.DTMF
 org.freedesktop.Telepathy.Channel.Interface.Group
 org.freedesktop.Telepathy.Channel.Interface.Hold
 org.freedesktop.Telepathy.Channel.Interface.Password
-org.freedesktop.Telepathy.Channel.Interface.RoomProperties
 org.freedesktop.Telepathy.Channel.Interface.Transfer
 org.freedesktop.Telepathy.Media.SessionHandler
 org.freedesktop.Telepathy.Media.StreamHandler
+org.freedesktop.Telepathy.Properties
 org.freedesktop.Telepathy.Error.Disconnected
 org.freedesktop.Telepathy.Error.InvalidArgument
 org.freedesktop.Telepathy.Error.InvalidHandle

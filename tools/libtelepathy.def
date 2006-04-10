@@ -24,5 +24,6 @@ tp-chan-iface-dtmf.xml	TpChanIfaceDTMF	dbus.service.Object, ChannelInterfaceDTMF
 tp-chan-iface-group.xml	TpChanIfaceGroup	dbus.service.Object, ChannelInterfaceGroup
 tp-chan-iface-hold.xml	TpChanIfaceHold	dbus.service.Object, ChannelInterfaceHold
 tp-chan-iface-password.xml	TpChanIfacePassword	dbus.service.Object, ChannelInterfacePassword
-tp-chan-iface-room-properties.xml	TpChanIfaceRoomProperties	dbus.service.Object, ChannelInterfaceRoomProperties
 tp-chan-iface-transfer.xml	TpChanIfaceTransfer	dbus.service.Object, ChannelInterfaceTransfer
+
+tp-properties-iface.xml	TpPropertiesIface	dbus.service.Object, PropertiesInterface

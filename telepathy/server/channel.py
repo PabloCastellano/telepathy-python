@@ -41,8 +41,8 @@ class Channel(dbus.service.Object):
     functionality, such as Channel.Interface.Group if the channel contains
     a number of contacts, Channel.Interface.Password to indicate
     that a channel may have a password set to require entry, and
-    Channel.Interface.RoomProperties for extra data about channels which
-    represent chat rooms. The interfaces implemented may not vary after the
+    Properties for extra data about channels which represent chat
+    rooms or voice calls. The interfaces implemented may not vary after the
     channel's creation has been signalled to the bus (with the connection's
     NewChannel signal).
 
@@ -1164,136 +1164,6 @@ class ChannelInterfacePassword(dbus.service.Interface):
 
         Possible Errors:
         Disconnected, NetworkError, InvalidArgument
-        """
-        pass
-
-
-class ChannelInterfaceRoomProperties(dbus.service.Interface):
-    """
-    Interface for channels which represent a chat room, to allow querying and
-    setting properties. ListProperties returns which properties are valid for
-    the given channel, including their type, and an integer handle used to
-    refer to them in GetProperties, SetProperties, and the PropertiesChanged
-    signal. The values are represented by D-Bus variant types, and are
-    accompanied by flags indicating whether or not the property is readable or
-    writable.
-
-    The following property types and names should be used where appropriate,
-    but implementations may add extra properties to communicate data with
-    particular clients:
-      b:invite-only
-        true if people may not join the channel until they have been invited
-      u:limit
-        the limit to the number of members, if limited is true
-      b:limited
-        true if there is a limit to the number of channel members
-      b:moderated
-        true if channel membership is not sufficient to allow participation
-      s:name
-        a human-visible name for the channel, if it differs to the handle
-      s:password
-        the password required to enter the channel if password-required is true
-      b:password-required
-        true if a password must be provided to enter the channel
-      b:private
-        true if the channel is not visible to non-members
-      s:subject
-        a human-readable description of the channel
-      u:subject-timestamp
-        a unix timestamp indicating when the subject was last modified
-      u:subject-contact
-        a contact handle representing who last modified the subject
-
-    Each property also has a flags value to indicate what methods are
-    available. This is a bitwise OR of the following values:
-        1 - CHANNEL_ROOM_PROPERTY_FLAG_READ
-            the property can be read
-        2 - CHANNEL_ROOM_PROPERTY_FLAG_WRITE
-            the property can be written
-    """
-    def __init__(self):
-        self._interfaces.add(CHANNEL_INTERFACE_ROOM_PROPERTIES)
-
-    @dbus.service.method(CHANNEL_INTERFACE_ROOM_PROPERTIES, in_signature='',
-                                                            out_signature='a{u(ssu)}')
-    def ListProperties(self):
-        """
-        Returns a dictionary of the properties available on this channel.
-
-        Returns:
-        a dictionary mapping integer identifiers to:
-            structs containing:
-                a string property name
-                a string representing the D-Bus signature of this property
-                a bitwise OR of the flags applicable to this property
-        """
-        pass
-
-    @dbus.service.method(CHANNEL_INTERFACE_ROOM_PROPERTIES, in_signature='au',
-                                                            out_signature='a{uv}')
-    def GetProperties(self, properties):
-        """
-        Returns a dictionary of variants containing the current values of the
-        given properties.
-
-        If any given property identifiers are invalid, InvalidArgument will be
-        returned. All properties must have the CHANNEL_ROOM_PROPERTY_FLAG_READ
-        flag, or PermissionDenied will be returned.
-
-        Parameters:
-        properties - an array of property identifiers
-
-        Returns:
-        a dictionary mapping integer identifiers to:
-            variant boxed values
-
-        Potential Errors:
-        Disconnected, InvalidArgument, PermissionDenied
-        """
-        pass
-
-    @dbus.service.method(CHANNEL_INTERFACE_ROOM_PROPERTIES, in_signature='a{uv}',
-                                                            out_signature='')
-    def SetProperties(self, properties):
-        """
-        Takes a dictionary of variants containing desired values to set the given
-        properties. In the case of any errors, no properties will be changed.
-        When the changes have been acknowledged by the server, the
-        PropertiesChanged signal will be emitted.
-
-        All properties given must have the CHANNEL_ROOM_PROPERTY_FLAG_WRITE
-        flag, or PermissionDenied will be returned. If any variants are of the
-        wrong type, NotAvailable will be returned.  If any given property
-        identifiers are invalid, InvalidArgument will be returned.
-
-        Parameters:
-        properties - a dictionary mapping integer identifiers to:
-            variant boxed values
-
-        Potential Errors:
-        Disconnected, InvalidArgument, NotAvailable, PermissionDenied, NetworkError
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_INTERFACE_ROOM_PROPERTIES, signature='a{uv}')
-    def PropertiesChanged(self, properties):
-        """
-        Emitted when the value of readable properties has changed.
-
-        Parameters:
-        properties - a dictionary mapping integer identifiers to:
-            variant boxed values
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_INTERFACE_ROOM_PROPERTIES, signature='a{uu}')
-    def PropertyFlagsChanged(self, properties):
-        """
-        Emitted when the flags of some room properties have changed.
-
-        Parameters:
-        properties - a dictionary mapping integer identifiers to:
-            a bitwise OR of the current flags
         """
         pass
 
