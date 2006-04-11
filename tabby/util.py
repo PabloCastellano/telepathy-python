@@ -330,7 +330,7 @@ class RoomChannel(GroupChannel):
         GroupChannel.__init__(self, conn, obj_path, CONNECTION_HANDLE_TYPE_ROOM,
                               handle, CHANNEL_TYPE_TEXT)
 
-        self.get_valid_interfaces().add(CHANNEL_INTERFACE_ROOM_PROPERTIES)
+        self.get_valid_interfaces().add(PROPERTIES_INTERFACE)
 
         self._fetched_all = False
         self._messages = []

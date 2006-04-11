@@ -155,17 +155,17 @@ class Room(gobject.GObject):
         chan.connect("message-received", self._message_received_cb)
         chan.connect("password-flags-changed", self._password_flags_changed_cb)
 
-        chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].connect_to_signal("PropertyFlagsChanged",
+        chan[PROPERTIES_INTERFACE].connect_to_signal("PropertyFlagsChanged",
                 lambda *args: dbus_signal_cb(self.room_property_flags_changed_cb, *args))
-        chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].connect_to_signal("PropertiesChanged",
+        chan[PROPERTIES_INTERFACE].connect_to_signal("PropertiesChanged",
                 lambda *args: dbus_signal_cb(self.room_properties_changed_cb, *args))
 
-        props_new_flags = {}
+        props_new_flags = []
         props = {}
         i = 0
-        for id, info in chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].ListProperties().items():
-            name, type, flags = info
-            props_new_flags[id] = flags
+        print "foo: '%s'" % chan[PROPERTIES_INTERFACE].ListProperties()
+        for id, name, type, flags in chan[PROPERTIES_INTERFACE].ListProperties():
+            props_new_flags.append((id, flags))
 
             key_widget = gtk.Label("%s:" % name)
             key_widget.set_alignment(0.0, 0.5)
@@ -190,11 +190,11 @@ class Room(gobject.GObject):
     def room_properties_changed_cb(self, properties):
         print "room_properties_changed_cb: got '%s'" % properties
 
-        for id, value in properties.items():
+        for id, value in properties:
             cur_info = self.props[id]
 
-            if (cur_info[3] & CHANNEL_ROOM_PROPERTY_FLAG_READ) == 0:
-                cur_info[3] |= CHANNEL_ROOM_PROPERTY_FLAG_READ
+            if (cur_info[3] & PROPERTY_FLAG_READ) == 0:
+                cur_info[3] |= PROPERTY_FLAG_READ
 
             self.property_value_update(id, value)
 
@@ -241,7 +241,7 @@ class Room(gobject.GObject):
         cur_info[2] = value
 
         if cn != "Label":
-            sensitive = (cur_flags & CHANNEL_ROOM_PROPERTY_FLAG_WRITE) != 0
+            sensitive = (cur_flags & PROPERTY_FLAG_WRITE) != 0
             widget.set_sensitive(sensitive)
 
         if hasattr(widget, "set_active"):
@@ -256,15 +256,16 @@ class Room(gobject.GObject):
                 widget.set_alignment(0.0, 0.5)
 
     def update_property_flags(self, properties):
-        for id, new_flags in properties.items():
+        print "update_property_flags: '%s'" % properties
+        for id, new_flags in properties:
             cur_name, cur_type, cur_value, cur_flags, cur_row, cur_widget = self.props[id]
 
             self.props[id][3] = new_flags
 
-            if (new_flags & CHANNEL_ROOM_PROPERTY_FLAG_READ) != 0:
+            if (new_flags & PROPERTY_FLAG_READ) != 0:
                 print "update_property_flags: requesting property id %d" % id
-                props = self._room_chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].GetProperties((id,))
-                value = props[id]
+                props = self._room_chan[PROPERTIES_INTERFACE].GetProperties((id,))
+                value = props[0][1]
             else:
                 value = None
 
@@ -276,7 +277,7 @@ class Room(gobject.GObject):
         for id, info in self.props.items():
             name, type, value, flags, row, widget = info
 
-            if (flags & CHANNEL_ROOM_PROPERTY_FLAG_WRITE) == 0:
+            if (flags & PROPERTY_FLAG_WRITE) == 0:
                 continue
 
             if type in ("s", "u"):
@@ -294,11 +295,11 @@ class Room(gobject.GObject):
         self.prop_apply_btn.set_sensitive(modified)
 
     def prop_apply_btn_clicked_cb(self, button):
-        changed_props = {}
+        changed_props = []
         for id, info in self.props.items():
             name, type, value, flags, row, widget = info
 
-            if (flags & CHANNEL_ROOM_PROPERTY_FLAG_WRITE) == 0:
+            if (flags & PROPERTY_FLAG_WRITE) == 0:
                 continue
 
             if type in ("s", "u"):
@@ -311,10 +312,10 @@ class Room(gobject.GObject):
 
             if val != value:
                 info[2] = val
-                changed_props[id] = val
+                changed_props.append(dbus.Struct((id, dbus.Variant(val))))
 
         print "changing properties: '%s'" % changed_props
-        self._room_chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].SetProperties(changed_props)
+        self._room_chan[PROPERTIES_INTERFACE].SetProperties(changed_props)
 
         button.set_sensitive(False)
 
@@ -322,8 +323,26 @@ class Room(gobject.GObject):
         self.emit("closed", self._handle, self._page_index)
 
     def test_btn_clicked_cb(self, widget):
+        print "Members:"
+        for member in self._room_chan[CHANNEL_INTERFACE_GROUP].GetMembers():
+            print "  %d (%s)" % (member,
+                    self._conn[CONN_INTERFACE].InspectHandle(
+                        CONNECTION_HANDLE_TYPE_CONTACT, member))
+
+        print "Local pending:"
+        for member in self._room_chan[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers():
+            print "  %d (%s)" % (member,
+                    self._conn[CONN_INTERFACE].InspectHandle(
+                        CONNECTION_HANDLE_TYPE_CONTACT, member))
+
+        print "Remote pending:"
+        for member in self._room_chan[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers():
+            print "  %d (%s)" % (member,
+                    self._conn[CONN_INTERFACE].InspectHandle(
+                        CONNECTION_HANDLE_TYPE_CONTACT, member))
+
         print
-        for key, value in self._room_chan[CHANNEL_INTERFACE_ROOM_PROPERTIES].ListProperties().items():
+        for key, value in self._room_chan[PROPERTIES_INTERFACE].ListProperties().items():
             print "%s = %s" % (key, value)
         print
 

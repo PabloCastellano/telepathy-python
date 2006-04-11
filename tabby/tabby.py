@@ -218,7 +218,12 @@ class MainWindow(gtk.Window):
                 "old-ssl"  : DEFAULT_SSL,
                 "account"  : self._user_entry.get_text(),
                 "password" : self._pass_entry.get_text(),
+                "resource" : "Tabby",
         }
+
+        if False:
+            params["https-proxy-server"] = "127.0.0.1"
+            params["https-proxy-port"] = dbus.UInt32(8888)
 
         self._mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
 
