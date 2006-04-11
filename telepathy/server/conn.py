@@ -579,17 +579,17 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
     will ordinarily be able to create a channel when given a request with the
     given type and handle.
 
-    Capabilities can be pertaining to a certain contact handle, representing
+    Capabilities can pertain to a certain contact handle, representing
     activities such as having a text chat or a voice call with the user, or can
     be on the connection itself (where the handle will be zero), where they
-    represent the ability to create channels for chat rooms or activities
-    such as searching and room listing.
+    represent the ability to create channels for chat rooms or activities such
+    as searching and room listing.
 
-    The following capability types are defined:
-    0 - CONNECTION_CAPABILITY_TYPE_CREATE
+    The following capability flags are defined:
+    1 - CONNECTION_CAPABILITY_FLAG_CREATE
         The given channel type and handle can be given to RequestChannel to
         create a new channel of this type.
-    1 - CONNECTION_CAPABILITY_TYPE_INVITE
+    2 - CONNECTION_CAPABILITY_FLAG_INVITE
         The given contact can be invited to an existing channel of this type.
 
     This interface also provides for user interfaces notifying the connection
@@ -605,10 +605,10 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         self._own_caps = set()
         self._caps = {}
 
-    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='u', out_signature='a(su)')
-    def GetCapabilities(self, handle):
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='au', out_signature='a(usu)')
+    def GetCapabilities(self, handles):
         """
-        Returns an array of capabilities for the given contact handle, or
+        Returns an array of capabilities for the given contact handles, or
         the connection itself (where handle is zero).
 
         Parameters:
@@ -616,8 +616,9 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
 
         Returns:
         an array of structs containing:
+            an integer handle representing the contact
             a D-Bus interface name representing the channel type
-            an integer indicating the capability type
+            a bitwise OR of capability flags pertaining to this channel type
 
         Possible Errors:
         Disconnected, NetworkError, InvalidHandle (the handle does not represent a contact), PermissionDenied
@@ -629,16 +630,18 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         else:
             return []
 
-    @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='ua(su)a(su)')
-    def CapabilitiesChanged(self, handle, added, removed):
+    @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(usuu)')
+    def CapabilitiesChanged(self, caps):
         """
         Announce the availability or the removal of capabilities on the
         given handle, or on the connection itself if the handle is zero.
 
         Parameters:
-        handle - the handle of the contact with these capabilities, or zero if the capability is on the connection itself
-        added - an array of structs as returned by GetCapabilities
-        removed - an array of structs as returned by GetCapabilities
+        an array of structures containing:
+            an integer handle representing the contact
+            a string channel type
+            a bitwise OR of capability flags which have been added
+            a bitwise OR of capability flags which have been removed
         """
         if handle not in self._caps:
             self._caps[handle] = set()
@@ -646,7 +649,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         self._caps[handle].update(added)
         self._caps[handle].difference_update(removed)
 
-    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='asas', out_signature='')
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='asas', out_signature='as')
     def AdvertiseCapabilities(self, add, remove):
         """
         Used by user interfaces to indicate which channel types they are able
@@ -666,6 +669,9 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         Parameters:
         add - an array of D-Bus interface names of channel types to add
         remove - an array of D-Bus interface names of channel types to remove
+
+        Returns:
+        an array of the D-Bus interface names of currently supported channel types
 
         Potential Errors:
         NetworkError, Disconnected
