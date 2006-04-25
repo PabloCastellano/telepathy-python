@@ -569,6 +569,15 @@ class MediaStreamHandler(dbus.service.Object):
         """
         pass
 
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='b')
+    def SetStreamPlaying(self, playing):
+        """
+        Signal emitted when the connection manager wishes to set the
+        stream playing or stopped.
+        """
+        pass
+
+
 
 class ChannelTypeRoomList(Channel):
     """
