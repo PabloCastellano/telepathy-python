@@ -421,7 +421,7 @@ class MediaStreamHandler(dbus.service.Object):
         pass
 
 
-    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(usuussdiss)',
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(usuussduss)',
                                                out_signature='')
     def NewNativeCandidate(self, candidate_id, transports):
         """
