@@ -18,8 +18,11 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+import gobject
+import pango
 import gtk
 import scw
+from util import *
 
 class Conversation:
     def __init__(self, conn, notebook, handle, name):
@@ -134,7 +137,7 @@ class Conversation:
             return
 
     def _media_flags_changed_cb(self, chan):
-        flags = chan.get_flags()
+        flags = self._media_chan[CHANNEL_INTERFACE_GROUP].GetGroupFlags()
 
         print "new flags:", flags
 
@@ -145,7 +148,9 @@ class Conversation:
         self._mem_rem_btn.set_sensitive(can_rem)
 
     def _media_update_members(self, chan):
-        members, local, remote = chan.get_members()
+        members = self._media_chan[CHANNEL_INTERFACE_GROUP].GetMembers()
+        local = self._media_chan[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers()
+        remote = self._media_chan[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers()
 
         self._members_lbl.set_text(str(members))
         self._local_lbl.set_text(str(local))
@@ -172,7 +177,7 @@ class Conversation:
                         error_handler=self._error_cb)
 
     def _media_request_channel_reply_cb(self, obj_path):
-        channel = StreamedMediaChannel(self._conn, obj_path, 0, 0)
+        channel = StreamedMediaChannel(self._conn, obj_path)
         self.take_media_channel(channel)
 
     def _error_cb(self, error):

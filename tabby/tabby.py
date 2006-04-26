@@ -32,10 +32,11 @@ from util import *
 
 DEFAULT_CONNECTION_MANAGER = "gabble"
 DEFAULT_PROTOCOL = "jabber"
-DEFAULT_SERVER = "jabber.no"
+DEFAULT_SERVER = "talk.google.com"
 DEFAULT_PORT = 5223
 DEFAULT_SSL = True
-DEFAULT_USERNAME = "oleavr@jabber.no"
+DEFAULT_REGISTER = False
+DEFAULT_USERNAME = "guaranteed.winning.notification@gmail.com"
 DEFAULT_PASSWORD = ""
 
 DEFAULT_ROOM_ENTRY_TEXT = "tryggve@conference.jabber.belnet.be"
@@ -145,6 +146,9 @@ class MainWindow(gtk.Window):
                         extra_args=(name,))
 
     def _request_room_handle_reply_cb(self, handle, name):
+        name = self._conn[CONN_INTERFACE].InspectHandle(
+                CONNECTION_HANDLE_TYPE_ROOM, handle)
+
         print "Got handle", handle, "requesting text channel with room '%s'" % name
 
         dbus_call_async(self._conn[CONN_INTERFACE].RequestChannel,
@@ -216,10 +220,13 @@ class MainWindow(gtk.Window):
                 "server"   : DEFAULT_SERVER,
                 "port"     : dbus.UInt32(DEFAULT_PORT),
                 "old-ssl"  : DEFAULT_SSL,
+        	"register" : DEFAULT_REGISTER,
                 "account"  : self._user_entry.get_text(),
                 "password" : self._pass_entry.get_text(),
                 "resource" : "Tabby",
+                "fallback-conference-server" : "conference.badger.no",
         }
+
 
         if False:
             params["https-proxy-server"] = "127.0.0.1"
