@@ -461,32 +461,18 @@ class Room(gobject.GObject):
         print "_message_received_cb: got message with id", id, "-- acknowledging"
         self._room_chan.ack_message(id)
 
-        self._pending_messages[id] = [timestamp, sender, str(sender), type, text]
+        print "type: %d" % type
+        print "text: '%s'" % text
 
-        self._lookups_left += 1
-        self._conn.lookup_handle(CONNECTION_HANDLE_TYPE_CONTACT, sender,
-                                 self._message_sender_lookup_cb, id)
+        name = self._conn[CONN_INTERFACE].InspectHandle(
+                CONNECTION_HANDLE_TYPE_CONTACT, sender)
 
-    def _message_sender_lookup_cb(self, handle_type, handle, name, id):
-        self._pending_messages[id][2] = name
-        self._lookups_left -= 1
-        if self._lookups_left > 0:
-            return
-
-        ids = self._pending_messages.keys()
-        ids.sort()
-
-        for id in ids:
-            timestamp, sender, sender_name, type, text = self._pending_messages[id]
-
-            model = self._chat_model
-            iter = model.append()
-            model.set(iter,
-                      0, timestamp,
-                      1, self._nick_from_jid(sender_name),
-                      2, text)
-
-        self._pending_messages = {}
+        model = self._chat_model
+        iter = model.append()
+        model.set(iter,
+                  0, timestamp,
+                  1, self._nick_from_jid(name),
+                  2, text)
 
     def _entry_activate_cb(self, entry):
         self._room_chan.send_message(CHANNEL_TEXT_MESSAGE_TYPE_NORMAL,
