@@ -23,8 +23,9 @@ def xml_pp(s):
     print indent(node.serialize(format=1)).rstrip()
 
 class JabberClient(pyxmpp.jabber.client.JabberClient):
-    def __init__(self, target_jid, **kw):
-        self.target_jid = target_jid
+    def __init__(self, query_jid, query_node, **kw):
+        self.query_jid = query_jid
+        self.query_node = query_node
         pyxmpp.jabber.client.JabberClient.__init__(self, **kw)
         gobject.idle_add(self.cb_connect)
         gobject.idle_add(self.cb_idle)
@@ -39,9 +40,14 @@ class JabberClient(pyxmpp.jabber.client.JabberClient):
     def cb_send_iq(self):
         iq = pyxmpp.iq.Iq(
             from_jid=self.stream.my_jid,
-            to_jid=self.target_jid,
+            to_jid=self.query_jid,
             stanza_type='get')
         iq.new_query('http://jabber.org/protocol/disco#info')
+
+        if self.query_node:
+            query = iq.get_query()
+            query.setProp('node', query_node)
+
         print 'sending:'
         xml_pp(iq.serialize())
         self.stream.set_response_handlers(
@@ -82,8 +88,15 @@ def read_config(path):
 if __name__ == '__main__':
     loop = gobject.MainLoop()
     jid, password = read_config('config')
+
+    if len(sys.argv) > 2:
+        query_node = sys.argv[2]
+    else:
+        query_node = None
+
     client = JabberClient(
-        target_jid=sys.argv[1],
+        query_jid=sys.argv[1],
+        query_node=query_node,
         jid=pyxmpp.jid.JID(jid),
         password=password)
     loop.run()
