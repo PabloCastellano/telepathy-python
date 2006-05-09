@@ -21,8 +21,11 @@
 import gobject
 import pango
 import gtk
+import pango
 import scw
 from util import *
+
+from util import dbus_call_async
 
 class Conversation:
     def __init__(self, conn, notebook, handle, name):
