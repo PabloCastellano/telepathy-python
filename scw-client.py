@@ -609,11 +609,16 @@ if __name__ == '__main__':
 
     for (name, (dbus_type, default)) in reg.GetParams(manager, protocol)[0].iteritems():
         if name in cmdline_params:
-            params[name] = dbus.Variant(cmdline_params[name],dbus_type)
+            params[name] = dbus.Variant(cmdline_params[name], signature=dbus_type)
         elif name == 'password':
-            params[name] = dbus.Variant(getpass.getpass(),dbus_type)
+            params[name] = dbus.Variant(getpass.getpass(), signature=dbus_type)
         else:
-            params[name] = dbus.Variant(raw_input(name+': '),dbus_type)
+            params[name] = dbus.Variant(raw_input(name+': '), signature=dbus_type)
+
+    for (name, (dbus_type, default)) in reg.GetParams(manager, protocol)[1].iteritems():
+        if name in cmdline_params:
+            params[name] = dbus.Variant(cmdline_params[name], signature=dbus_type)
+            print name, dbus_type, params[name], type(params[name])
 
     mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
     bus_name, object_path = mgr[CONN_MGR_INTERFACE].Connect(protocol, params)
