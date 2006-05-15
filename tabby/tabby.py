@@ -38,7 +38,7 @@ DEFAULT_SSL = True
 DEFAULT_REGISTER = False
 DEFAULT_USERNAME = "guaranteed.winning.notification@gmail.com"
 DEFAULT_PASSWORD = ""
-
+DEFAULT_CONFERENCE_SERVER = "conference.jabber.org"
 DEFAULT_ROOM_ENTRY_TEXT = "tryggve@conference.jabber.belnet.be"
 
 class MainWindow(gtk.Window):
@@ -233,7 +233,7 @@ class MainWindow(gtk.Window):
                 "account"  : self._user_entry.get_text(),
                 "password" : self._pass_entry.get_text(),
                 "resource" : "Tabby",
-                "fallback-conference-server" : "conference.badger.no",
+                "fallback-conference-server" : DEFAULT_CONFERENCE_SERVER,
         }
 
 
