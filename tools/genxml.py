@@ -1,4 +1,5 @@
 #!/usr/bin/python2.4
+from elementtree.ElementTree import fromstring, tostring
 from telepathy.server import *
 import sys
 
@@ -20,6 +21,14 @@ for line in defs:
                              '_name':name})
     instance = cls()
     xml = instance.Introspect()
+
+    # sort
+    root = fromstring(xml)
+    root[:] = sorted(root[:], key=lambda e: e.get('name'))
+
+    for interface in root:
+        interface[:] = sorted(interface[:], key=lambda e: e.get('name'))
+
     file = open(filename, 'w')
-    file.write(xml)
+    file.write(tostring(root))
     file.close()
