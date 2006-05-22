@@ -19,6 +19,7 @@ for (cname,val) in telepathy.errors.__dict__.items():
             if len(val.__name__) > max_name_length:
                 max_name_length = len(val.__name__)
 
+errors.sort(key=lambda x: x.__name__)
 
 for val in errors:
     line = "  "+val.__name__ + ","
