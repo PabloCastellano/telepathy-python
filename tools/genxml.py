@@ -1,7 +1,18 @@
 #!/usr/bin/python2.4
+
 from elementtree.ElementTree import fromstring, tostring
+from xml.dom.minidom import parseString
 from telepathy.server import *
+
 import sys
+
+def strip (element):
+    if element.text:
+        element.text = element.text.strip()
+    if element.tail:
+        element.tail = element.tail.strip()
+    for child in element:
+        strip (child)
 
 defs = file(sys.argv[1])
 for line in defs:
@@ -33,6 +44,11 @@ for line in defs:
     for interface in root:
         interface[:] = sorted(interface[:], key=lambda e: e.get('name'))
 
+    # pretty print
+    strip(root)
+    xml = tostring(root)
+    dom = parseString(xml)
+
     file = open(filename, 'w')
-    file.write(tostring(root))
+    file.write(dom.toprettyxml('  ', '\n'))
     file.close()
