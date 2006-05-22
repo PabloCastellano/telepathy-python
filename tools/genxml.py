@@ -24,6 +24,10 @@ for line in defs:
 
     # sort
     root = fromstring(xml)
+    for i, e in enumerate(root):
+        if e.get('name') == 'org.freedesktop.DBus.Introspectable':
+            del root[i]
+
     root[:] = sorted(root[:], key=lambda e: e.get('name'))
 
     for interface in root:
