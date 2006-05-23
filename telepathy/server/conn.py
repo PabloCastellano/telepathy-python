@@ -385,6 +385,31 @@ class Connection(dbus.service.Object):
             Someone is already connected to the server using the name
             you are trying to connect with.
 
+        6 - CONNECTION_STATUS_REASON_CERT_NOT_PROVIDED
+            The server did not provide a SSL certificate.
+
+        7 - CONNECTION_STATUS_REASON_CERT_UNTRUSTED
+            The server's SSL certificate could not be trusted.
+
+        8 - CONNECTION_STATUS_REASON_CERT_EXPIRED
+            The server's SSL certificate has expired.
+
+        9 - CONNECTION_STATUS_REASON_CERT_NOT_ACTIVATED
+            The server's SSL certificate is not yet valid.
+
+        10 - CONNECTION_STATUS_REASON_CERT_HOSTNAME_MISMATCH
+            The server's SSL certificate did not match its hostname.
+
+        11 - CONNECTION_STATUS_REASON_CERT_FINGERPRINT_MISMATCH
+            The server's SSL certificate does not have the expected
+            fingerprint.
+
+        12 - CONNECTION_STATUS_REASON_CERT_SELF_SIGNED
+            The server's SSL certificate is self-signed.
+
+        13 - CONNECTION_STATUS_REASON_CERT_OTHER_ERROR
+            There was some other error validating the server's SSL certificate.
+
         Parameters:
         status - an integer indicating the new status
         reason - an integer indicating the reason for the status change
