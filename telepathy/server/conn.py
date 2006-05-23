@@ -535,9 +535,9 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
     def GetAliasFlags(self):
         """
         Return a logical OR of flags detailing the behaviour of aliases on this
-        server. Valid flags are:
+        connection. Valid flags are:
         1 - CONNECTION_ALIAS_FLAG_USER_SET
-            The aliases of contacts on this server are specified by the user
+            The aliases of contacts on this connection are specified by the user
             of the service, not the contacts themselves. This is the case on
             eg Jabber.
 
