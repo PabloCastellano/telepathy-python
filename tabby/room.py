@@ -323,28 +323,19 @@ class Room(gobject.GObject):
         self.emit("closed", self._handle, self._page_index)
 
     def test_btn_clicked_cb(self, widget):
-        print "Members:"
-        for member in self._room_chan[CHANNEL_INTERFACE_GROUP].GetMembers():
-            print "  %d (%s)" % (member,
-                    self._conn[CONN_INTERFACE].InspectHandle(
-                        CONNECTION_HANDLE_TYPE_CONTACT, member))
+        local_handles = self._room_chan[CHANNEL_INTERFACE_GROUP].GetMembers()
+        owner_handles = self._room_chan[CHANNEL_INTERFACE_GROUP].GetHandleOwners(local_handles)
 
-        print "Local pending:"
-        for member in self._room_chan[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers():
-            print "  %d (%s)" % (member,
-                    self._conn[CONN_INTERFACE].InspectHandle(
-                        CONNECTION_HANDLE_TYPE_CONTACT, member))
+        for i in xrange(len(local_handles)):
+            local_jid = self._conn[CONN_INTERFACE].InspectHandle(
+                CONNECTION_HANDLE_TYPE_CONTACT, local_handles[i])
+            if owner_handles[i] != 0:
+                owner_jid = self._conn[CONN_INTERFACE].InspectHandle(
+                    CONNECTION_HANDLE_TYPE_CONTACT, owner_handles[i])
+            else:
+                owner_jid = "[unknown]"
 
-        print "Remote pending:"
-        for member in self._room_chan[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers():
-            print "  %d (%s)" % (member,
-                    self._conn[CONN_INTERFACE].InspectHandle(
-                        CONNECTION_HANDLE_TYPE_CONTACT, member))
-
-        print
-        for key, value in self._room_chan[PROPERTIES_INTERFACE].ListProperties().items():
-            print "%s = %s" % (key, value)
-        print
+            print "%s -> %s" % (local_jid, owner_jid)
 
     def _flags_changed_cb(self, chan):
         flags = chan.get_flags()

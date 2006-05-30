@@ -30,6 +30,8 @@ from conversation import *
 from widgets import *
 from util import *
 
+VOIP_ENABLED = True
+
 DEFAULT_CONNECTION_MANAGER = "gabble"
 DEFAULT_PROTOCOL = "jabber"
 DEFAULT_SERVER = "jabber.org"
@@ -208,16 +210,17 @@ class MainWindow(gtk.Window):
 
         button.set_sensitive(False)
 
-        bus = dbus.Bus()
-        voip_obj = bus.get_object("org.freedesktop.Telepathy.VoipEngine",
-                                  "/org/freedesktop/Telepathy/VoipEngine")
-        self._voip_chandler = dbus.Interface(voip_obj, "org.freedesktop.Telepathy.ChannelHandler")
+        if VOIP_ENABLED:
+            bus = dbus.Bus()
+            voip_obj = bus.get_object("org.freedesktop.Telepathy.VoipEngine",
+                                      "/org/freedesktop/Telepathy/VoipEngine")
+            self._voip_chandler = dbus.Interface(voip_obj, "org.freedesktop.Telepathy.ChannelHandler")
 
-        bus.add_signal_receiver(self._conn_handle_new_channel,
-                                "NewChannel",
-                                CONN_INTERFACE,
-                                sender_keyword="connection_sender",
-                                path_keyword="connection_path")
+            bus.add_signal_receiver(self._conn_handle_new_channel,
+                                    "NewChannel",
+                                    CONN_INTERFACE,
+                                    sender_keyword="connection_sender",
+                                    path_keyword="connection_path")
 
         reg = telepathy.client.ManagerRegistry()
         reg.LoadManagers()
