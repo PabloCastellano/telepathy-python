@@ -1,6 +1,13 @@
 #!/usr/bin/python2.4
 
-from elementtree.ElementTree import fromstring, tostring
+import sys
+
+try:
+    from elementtree.ElementTree import fromstring, tostring
+except ImportError:
+    print "You need to install ElementTree (http://effbot.org/zone/element-index.htm)"
+    sys.exit(1)
+
 from xml.dom.minidom import parseString
 from telepathy.server import *
 
