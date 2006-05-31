@@ -44,6 +44,7 @@ class ContactListChannel(telepathy.client.Channel):
         self._name = handle
 
     def got_interfaces(self):
+        self[CHANNEL_INTERFACE_GROUP].AddMembers([],"")
         self._conn[CONN_INTERFACE].InspectHandle(self._handle_type, self._handle, reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)
@@ -137,6 +138,7 @@ class StreamedMediaChannel(telepathy.client.Channel):
 
     def get_local_pending_members_reply_cb(self, members):
         print "Channel has local pending members", members
+        print "get_local_pending_members_reply_cb calling GetInterfaces"
         print self[CHANNEL_INTERFACE].GetInterfaces()
         if members:
            if "SIPDEBUG" in os.environ and os.environ["SIPDEBUG"] == "transfer":
@@ -247,7 +249,7 @@ class TestConnection(telepathy.client.Connection):
         elif "SIPDEBUG" in os.environ and os.environ["SIPDEBUG"][:8] == "forward:":
             handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, os.environ["SIPDEBUG"][8:])
             print "got handle %d for %s" % (handle, os.environ["SIPDEBUG"][8:])
-            #print self[CONN_INTERFACE_PRESENCE].GetStatuses()
+            print self[CONN_INTERFACE_PRESENCE].GetStatuses()
             self[CONN_INTERFACE_FORWARDING].SetForwardingHandle(handle)
         return False
 
@@ -256,8 +258,12 @@ class TestConnection(telepathy.client.Connection):
 
     def get_interfaces_reply_cb(self, interfaces):
         self.get_valid_interfaces().update(interfaces)
+        print self.get_valid_interfaces()
         self[CONN_INTERFACE].ListChannels(reply_handler=self.list_channels_reply_cb, error_handler=self.error_cb)
         #self[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
+        if CONN_INTERFACE_PRESENCE in self.get_valid_interfaces():
+            print "got ", CONN_INTERFACE_PRESENCE
+            print self[CONN_INTERFACE_PRESENCE].GetStatuses()
         gobject.idle_add(self.connected_cb)
 
     def status_changed_signal_cb(self, status, reason):
@@ -270,6 +276,7 @@ class TestConnection(telepathy.client.Connection):
 
         if status == CONNECTION_STATUS_CONNECTED:
             print "connection connected"
+            print "status_changed_signal_cb calling GetInterfaces"
             self[CONN_INTERFACE].GetInterfaces(reply_handler=self.get_interfaces_reply_cb, error_handler=self.error_cb)
         if status == CONNECTION_STATUS_DISCONNECTED:
             print "connection terminated"

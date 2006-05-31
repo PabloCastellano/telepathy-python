@@ -32,7 +32,7 @@ from util import *
 
 DEFAULT_CONNECTION_MANAGER = "gabble"
 DEFAULT_PROTOCOL = "jabber"
-DEFAULT_SERVER = "talk.google.com"
+DEFAULT_SERVER = "jabber.org"
 DEFAULT_PORT = 5223
 DEFAULT_SSL = True
 DEFAULT_REGISTER = False
@@ -109,6 +109,15 @@ class MainWindow(gtk.Window):
         btn = gtk.Button("Request room")
         btn.connect("clicked", self._request_room_btn_clicked)
         input_hbox.pack_start(btn, expand=False)
+
+        rlbtn = gtk.Button("Request Roomlist")
+        rlbtn.connect ("clicked", self._request_roomlist_btn_clicked)
+        input_hbox.pack_start(rlbtn, expand=False)
+
+        rlbtn = gtk.Button("Close Roomlist")
+        rlbtn.connect ("clicked", self._close_roomlist_btn_clicked)
+        input_hbox.pack_start(rlbtn, expand=False)
+
 
         # initialize
         nb.set_current_page(0)
@@ -284,6 +293,8 @@ class MainWindow(gtk.Window):
                         error_handler=self._conn_error_cb)
         self._conn[CONN_INTERFACE_PRESENCE].connect_to_signal("PresenceUpdate",
                 lambda *args: dbus_signal_cb(self._presence_update_cb, *args))
+        self._conn[CONN_INTERFACE_CONTACT_INFO].connect_to_signal("GotContactInfo",
+                lambda *args: dbus_signal_cb(self._contact_info_cb, *args))
         self._process_presence_queue()
 
     def _conn_list_channels_reply_cb(self, channels):
@@ -397,6 +408,11 @@ class MainWindow(gtk.Window):
 
         self._pending_presence_lookups.append(handle)
         self._process_presence_queue()
+        dbus_call_async(self._conn[CONN_INTERFACE_CONTACT_INFO].RequestContactInfo,
+                        handle,
+                        reply_handler=lambda: None,
+                        error_handler=self._conn_error_cb)
+
 
     def _process_presence_queue(self):
         if CONN_INTERFACE_PRESENCE in self._conn.get_valid_interfaces():
@@ -427,6 +443,9 @@ class MainWindow(gtk.Window):
                 status = self._get_status_message(name, params)
                 self._model.set_value(iter, 2, status)
                 break
+
+    def _contact_info_cb (self, handle, vcard):
+        print handle, vcard
 
     def _get_status_message(self, name, parameters):
         if name == 'available':
@@ -466,6 +485,27 @@ class MainWindow(gtk.Window):
                                           handle_type,
                                           handle)
 
+
+    def _request_roomlist_btn_clicked(self, button):
+        print "Requesting roomlist channel."
+
+        dbus_call_async(self._conn[CONN_INTERFACE].RequestChannel,
+                        CHANNEL_TYPE_ROOM_LIST, 0,
+                        0, True,
+                        reply_handler=self._roomlist_cb,
+                        error_handler=self._conn_error_cb)
+
+    def _roomlist_cb(self, obj_path):
+        channel = RoomListChannel(self._conn, obj_path)
+        self._channels[obj_path] = channel
+        self._roomlist_channel = channel;
+        channel.list_rooms()
+
+    def _close_roomlist_btn_clicked(self, button):
+        print "Closing roomlist channel."
+        if (self._roomlist_channel):
+            self._roomlist_channel.close();
+            self._roomlist_channel = None;
 
 win = MainWindow()
 win.connect("destroy", gtk.main_quit)

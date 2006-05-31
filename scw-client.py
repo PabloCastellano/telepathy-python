@@ -73,6 +73,7 @@ class ContactWindow:
         self._model_rows = {}
 
         self._view = scw.View()
+        print "connecting up activate"
         self._view.connect("activate", self.gtk_view_activate_cb)
         self._view.set_property("model", self._model)
         self._view.set_column_foldable(2)
@@ -95,8 +96,10 @@ class ContactWindow:
 
     def get_statuses_reply_cb(self, statuses):
         self._statuses = statuses
+        print "GetStatuses replied", statuses
 
     def presence_update_signal_cb(self, presences):
+        print "Got PresenceUpdate:", presences
         for (handle, presence) in presences.iteritems():
             self.update_contact(handle, presence)
 
