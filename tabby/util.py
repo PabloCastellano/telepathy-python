@@ -380,29 +380,6 @@ class ContactListChannel(GroupChannel):
         GroupChannel.__init__(self, conn, obj_path, CONNECTION_HANDLE_TYPE_LIST,
                               handle, CHANNEL_TYPE_CONTACT_LIST)
 
-class RoomListChannel(BaseChannel):
-    def __init__(self, conn, obj_path):
-        BaseChannel.__init__(self, conn, obj_path, 0,
-                              0, CHANNEL_TYPE_ROOM_LIST)
-        self[CHANNEL_TYPE_ROOM_LIST].connect_to_signal("GotRooms",
-                lambda *args: dbus_signal_cb(self._got_rooms_cb, *args))
-        self[CHANNEL_TYPE_ROOM_LIST].connect_to_signal("ListingRooms",
-                lambda *args: dbus_signal_cb(self._listing_rooms_cb, *args))
-
-    def list_rooms(self):
-        dbus_call_async(self[CHANNEL_TYPE_ROOM_LIST].ListRooms,
-                        reply_handler=lambda: None,
-                        error_handler=self.__error_cb)
-
-    def _got_rooms_cb (self, rooms):
-        print "Got rooms:\n", rooms
-
-    def _listing_rooms_cb (self, listing_rooms):
-        print "Listing rooms:", listing_rooms
-
-    def __error_cb(self, exception):
-        print "RoomListChannel.__error_cb: got exception", exception
-
 
 class RoomChannel(GroupChannel):
     __gsignals__ = {
