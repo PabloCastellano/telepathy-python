@@ -884,13 +884,6 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         128 - CHANNEL_GROUP_FLAG_MESSAGE_RESCIND
             A message may be sent to the server when calling RemoveMembers on
             contacts who are remote pending.
-        256 - CHANNEL_GROUP_FLAG_CHANNEL_SPECIFIC_HANDLES
-            The members of this group have handles which are specific to
-            this channel, and are not valid as general-purpose handles on
-            the connection. Depending on the channel, it may be possible to
-            call GetHandleOwners to find the owners of these handles, which
-            should be done if you wish to eg subscribe to the contact's
-            presence.
 
         Returns:
         an integer of flags or'd together
