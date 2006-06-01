@@ -1023,34 +1023,8 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         """
         return (self._members, self._local_pending, self._remote_pending)
 
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='au',
-                                                  out_signature='au')
-    def GetHandleOwners(self, handles):
-        """
-        If the CHANNEL_GROUP_FLAG_CHANNEL_SPECIFIC_HANDLES flag is set on
-        the channel, then the handles of the group members are specific
-        to this channel, and are not meaningful in a connection-wide
-        context such as contact lists. This method allows you to find
-        the owner of the handle if it can be discovered in this channel,
-        or 0 if the owner is not available.
-
-        Parameters:
-        handles - a list of integer handles representing members of the
-            channel
-
-        Returns:
-        an array of integer handles representing the owner handle of
-            the the given room members, in the same order, or 0 if the
-            owner is not available
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidHandle, InvalidArgument (one
-        of the given handles is not a member)
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sauauauauuu')
-    def MembersChanged(self, message, added, removed, local_pending, remote_pending, actor, reason):
+    @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sauauauau')
+    def MembersChanged(self, message, added, removed, local_pending, remote_pending):
         """
         Emitted when contacts join any of the three lists (members, local
         pending or remote pending).  Contacts are listed in the removed
