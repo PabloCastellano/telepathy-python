@@ -40,31 +40,39 @@ where:
 
 Then any number of proctol support declarators of the form:
 
-[Proto (name of supported protocol)]
-MandatoryParams = list of values
-OptionalParams = list of values
+[Protocol (name of supported protocol)]
+param-(parameter name) = signature flags
 default-(paramater name) = value
 
 Where:
-MandatoryParams is a comma-seperated list of mandatory parameters that must be passed to Connections created by this ConnectionManager for this protocol. Each should be of the form dbus type signature:name, eg s:password, indicating a paramater called 'password' of type string.
-OptionalParams is a comma-separated list of optional params, of same form as MandatoryParams.
-default-(paramater name) sets the default value for that parameter. e.g. default-port=522 sets te default value of the 'port' parameter to 522.
+'signature' is a single complete DBus type signature.
+'flags' is a space-delimited list of flags; valid flags are 'required' and
+'register'.
+default-(paramater name) sets the default value for that parameter. e.g.
+default-port=522 sets te default value of the 'port' parameter to 522.
  
-All connection managers should register as activatable dbus services. They should also close themselves down after an idle time with no open connections.
+All connection managers should register as activatable dbus services. They
+should also close themselves down after an idle time with no open connections.
 
-Clients should use the Proto sections to query the user for necessary informatoin.
+Clients should use the Protocol sections to query the user for necessary
+information.
 
 Telepathy defines a common subset of paramter names to facilitate GUI design.
 
-s:server - a fully qualified domain name or numeric IPv4 or IPv6 address. Using the fully-qualified domain name form is RECOMMENDED whenever possible. If this paramter is specified and the user id for that service also specifies a server, this parameter should override that in the user id.
+s:server - a fully qualified domain name or numeric IPv4 or IPv6 address.
+Using the fully-qualified domain name form is RECOMMENDED whenever possible.
+If this paramter is specified and the user id for that service also specifies
+a server, this parameter should override that in the user id.
 
-q:port - a TCP or UDP port number. If this paramter is specified and the user id for that service also specifies a port, this parameter should override that in the user id.
+q:port - a TCP or UDP port number. If this paramter is specified and the user
+id for that service also specifies a port, this parameter should override that
+in the user id.
 
-s:password - A password associated with the user. 
+s:password - A password associated with the user.
 
 s:proxy-server - a uri for a proxyserver to use for this connection
 
-b:require-encryption - require encryption for this connection. A connection 
+b:require-encryption - require encryption for this connection. A connection
 should fail if require-encryption is set and encryption is not possible.
 
 UIs should display any default values, but should *not* store them.
@@ -74,31 +82,47 @@ class ManagerRegistry:
     def __init__(self):
         self.services = {}
 
+    def LoadManager(self, path):
+        config = ConfigParser.SafeConfigParser()
+        config.read(path)
+        connection_manager = dict(config.items("ConnectionManager"))
+
+        if "name" not in connection_manager.keys():
+            raise ConfigParser.NoOptionError("name", "ConnectionManager")
+
+        cm_name = connection_manager["name"]
+        self.services[cm_name] = connection_manager
+        protocols = {}
+
+        for section in set(config.sections()) - set(["ConnectionManager"]):
+            if section.startswith('Protocol '):
+                proto_name = section[len('Protocol '):]
+                protocols[proto_name] = dict(config.items(section))
+
+        if not protocols:
+            raise ConfigParser.NoSectionError("no protocols found (%s)" % path)
+
+        self.services[cm_name]["protos"] = protocols
+
     def LoadManagers(self):
         """
         Searches local and system wide configurations
-    
+
         Can raise all ConfigParser errors. Generally filename member will be
         set to the name of the erronous file.
         """
-        all_services=[]
-        if os.path.exists("/usr/share/telepathy/services/"):
-            all_services += map( lambda dir: "/usr/share/telepathy/services/"+dir, dircache.listdir("/usr/share/telepathy/services/"))
-        local_path=os.path.expanduser("~/.telepathy")
-        if os.path.exists(local_path):
-            all_services += map( lambda dir: local_path +'/'+dir, dircache.listdir(local_path))
-        for service in all_services:
-            config = ConfigParser.SafeConfigParser()
-            config.read(service)
-            connection_manager =dict(config.items("ConnectionManager"))
-            if "name" not in connection_manager.keys():
-                raise ConfigParser.NoOptionError("name","ConnectionManager")
-            self.services[connection_manager["name"]]=connection_manager
-            self.services[connection_manager["name"]]["protos"] = {}
-            for section in set(config.sections()) - set(["ConnectionManager"]):
-                if section[:6]=="Proto ":
-                    self.services[connection_manager["name"]]["protos"][section[6:]] = dict(config.items(section))
-            del config
+
+        all_paths = (
+            '/usr/share/telepathy/managers/',
+            '/usr/local/share/telepathy/managers/',
+            os.path.expanduser('~/.telepathy'),
+            )
+
+        for path in all_paths:
+            if os.path.exists(path):
+                for name in dircache.listdir(path):
+                    if name.endswith('.manager'):
+                        self.LoadManager(os.path.join(path, name))
 
     def GetProtos(self):
         """
@@ -139,24 +163,27 @@ class ManagerRegistry:
         (dbus type, default value). If no default value is specified, the second
         item in the tuple will be None.
         """
-        ret=[]
-       
-        for field in ["mandatoryparams","optionalparams"]:
-            params={}
-            for item in self.services[manager]["protos"][proto][field].split(','):
-                if item.strip() != '':
-                    type, name = item.strip().split(':')
-                    default=None
-                    for key in self.services[manager]["protos"][proto].keys():
-                        key.strip()
-                        if key=="default-"+name:
-                            default=key[8:]
-                            break
-                    if default:
-                        params[name]=(type, dbus.Variant(default,signature=type))
-                    else:
-                        params[name]=(type, None)
-            ret.append(params)
-        
-        return ret
+        params={}
+        for key, val in self.services[manager]["protos"][proto].items():
+            if key.startswith("default-"):
+                continue
+                
+            values = val.split(" ")
+            type = values[0]
+            flags = FLAG_NONE
+            if "register" in values:
+                flags = flags|FLAG_REGISTER
+            if "required" in values:
+                flags = flags|FLAG_REQUIRED
+            name = key[6:]
+            default=None
+            for key, val in self.services[manager]["protos"][proto].items():
+                if key.strip().startswith("default-"+name):
+                    default = val.strip()
 
+            if default:
+               params[name]=(type, dbus.Variant(default,signature=type), flags)
+            else:
+               params[name]=(type, None, flags)
+
+        return params
