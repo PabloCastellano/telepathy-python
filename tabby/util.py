@@ -316,11 +316,70 @@ class GroupChannel(BaseChannel):
 
         del self._members_changed_queue
 
+class ImChannel(GroupChannel):
+    __gsignals__ = {
+        "message-received": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                             (gobject.TYPE_UINT, gobject.TYPE_UINT,
+                              gobject.TYPE_UINT, gobject.TYPE_UINT,
+                              gobject.TYPE_STRING)),
+    }
+
+    def __init__(self, conn, obj_path, handle):
+        BaseChannel.__init__(self, conn, obj_path, CONNECTION_HANDLE_TYPE_CONTACT,
+                              handle, CHANNEL_TYPE_TEXT)
+
+        self.get_valid_interfaces().add(PROPERTIES_INTERFACE)
+
+        self._fetched_all = False
+        self._messages = []
+        self._pw_flags = None
+
+        self.connect("ready", self.__ready_cb)
+
+    def __ready_cb(self, channel):
+        self[CHANNEL_TYPE_TEXT].connect_to_signal("Received",
+                lambda *args: dbus_signal_cb(self._message_received_cb, *args))
+
+        dbus_call_async(self[CHANNEL_TYPE_TEXT].ListPendingMessages,
+                        reply_handler=self._list_pending_messages_reply_cb,
+                        error_handler=self.__error_cb)
+
+    def ack_message(self, message_id):
+        dbus_call_async(self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessage,
+                        message_id,
+                        reply_handler=lambda: None,
+                        error_handler=self.__error_cb)
+
+    def send_message(self, type, text):
+        dbus_call_async(self[CHANNEL_TYPE_TEXT].Send,
+                        type, text,
+                        reply_handler=lambda: None,
+                        error_handler=self.__error_cb)
+
+    def _message_received_cb(self, *args):
+        if self._fetched_all:
+            self.emit("message-received", *args)
+        else:
+            self._messages.append(args)
+
+    def _list_pending_messages_reply_cb(self, messages):
+        self._messages += messages
+        self._fetched_all = True
+
+        for message in self._messages:
+            self.emit("message-received", *message)
+
+        del self._messages
+
+    def __error_cb(self, exception):
+        print "ImChannel.__error_cb: got exception", exception
+
 
 class ContactListChannel(GroupChannel):
     def __init__(self, conn, obj_path, handle):
         GroupChannel.__init__(self, conn, obj_path, CONNECTION_HANDLE_TYPE_LIST,
                               handle, CHANNEL_TYPE_CONTACT_LIST)
+
 class RoomListChannel(BaseChannel):
     def __init__(self, conn, obj_path):
         BaseChannel.__init__(self, conn, obj_path, 0,
@@ -343,7 +402,6 @@ class RoomListChannel(BaseChannel):
 
     def __error_cb(self, exception):
         print "RoomListChannel.__error_cb: got exception", exception
-
 
 
 class RoomChannel(GroupChannel):

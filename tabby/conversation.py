@@ -79,7 +79,7 @@ class Conversation:
 
         # Entry widget
         self._entry = scw.Entry()
-        #self._entry.connect("activate", self._entry_activate_cb)
+        self._entry.connect("activate", self._entry_activate_cb)
         self._entry.set_property("history-size", 100)
         vbox.pack_end(self._entry, False, True, 2)
 
@@ -98,10 +98,43 @@ class Conversation:
         self._name = name
         self._media_chan = None
 
+        self._im_chan = None
+
+        dbus_call_async(self._conn[CONN_INTERFACE].RequestChannel,
+            CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_CONTACT,
+            handle, True,
+            reply_handler=self._request_im_channel_reply_cb,
+            error_handler=None,
+            extra_args=(handle, name,))
+
         # Show the widgets created by us
         image.show()
         self._view.show()
         self._entry.show()
+
+    def _message_received_cb(self, chan, id, timestamp, sender, type, text):
+        print "_message_received_cb: got message with id", id, "-- acknowledging"
+        self._im_chan.ack_message(id)
+
+        print "type: %d" % type
+        print "text: '%s'" % text
+
+        name = self._conn[CONN_INTERFACE].InspectHandle(
+                CONNECTION_HANDLE_TYPE_CONTACT, sender)
+
+        model = self._model
+        iter = model.append()
+        model.set(iter, 2, text)
+
+    def _request_im_channel_reply_cb(self, obj_path, handle, name):
+        print "Got IM channel with '%s' [%d]" % (name, handle)
+        self._im_chan = ImChannel(self._conn, obj_path, handle)
+        self._im_chan.connect("message-received", self._message_received_cb)
+        self._im_chan.connect("closed", lambda chan: self.close())
+
+    def _entry_activate_cb(self, entry):
+        self._im_chan.send_message(CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, entry.get_text())
+        entry.set_text("")
 
     def show(self):
         self._notebook.set_current_page(self._page_index)
