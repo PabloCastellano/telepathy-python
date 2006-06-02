@@ -296,7 +296,8 @@ class MainWindow(gtk.Window):
                         error_handler=self._conn_error_cb)
         self._conn[CONN_INTERFACE_PRESENCE].connect_to_signal("PresenceUpdate",
                 lambda *args: dbus_signal_cb(self._presence_update_cb, *args))
-        self._conn[CONN_INTERFACE_CONTACT_INFO].connect_to_signal("GotContactInfo",
+        if CONN_INTERFACE_CONTACT_INFO in self._conn:
+            self._conn[CONN_INTERFACE_CONTACT_INFO].connect_to_signal("GotContactInfo",
                 lambda *args: dbus_signal_cb(self._contact_info_cb, *args))
         self._process_presence_queue()
 
