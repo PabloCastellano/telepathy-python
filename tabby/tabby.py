@@ -34,9 +34,10 @@ VOIP_ENABLED = True
 
 DEFAULT_CONNECTION_MANAGER = "gabble"
 DEFAULT_PROTOCOL = "jabber"
-DEFAULT_SERVER = "jabber.org"
+DEFAULT_SERVER = "talk.google.com"
 DEFAULT_PORT = 5223
-DEFAULT_SSL = True
+DEFAULT_OLD_SSL = True
+DEFAULT_IGNORE_SSL_ERRORS = True
 DEFAULT_REGISTER = False
 DEFAULT_USERNAME = "guaranteed.winning.notification@gmail.com"
 DEFAULT_PASSWORD = ""
@@ -229,13 +230,14 @@ class MainWindow(gtk.Window):
         mgr_object_path = reg.GetObjectPath(DEFAULT_CONNECTION_MANAGER)
 
         params = {
-                "server"   : DEFAULT_SERVER,
-                "port"     : dbus.UInt32(DEFAULT_PORT),
-                "old-ssl"  : DEFAULT_SSL,
-        	"register" : DEFAULT_REGISTER,
                 "account"  : self._user_entry.get_text(),
                 "password" : self._pass_entry.get_text(),
                 "resource" : "Tabby",
+                "server"   : DEFAULT_SERVER,
+                "port"     : dbus.UInt32(DEFAULT_PORT),
+                "old-ssl"  : DEFAULT_OLD_SSL,
+                "register" : DEFAULT_REGISTER,
+                "ignore-ssl-errors": DEFAULT_IGNORE_SSL_ERRORS,
                 "fallback-conference-server" : DEFAULT_CONFERENCE_SERVER,
         }
 
