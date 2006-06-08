@@ -77,6 +77,7 @@ UIs should display any default values, but should *not* store them.
 import ConfigParser, os
 import dircache
 import dbus
+import telepathy
 
 class ManagerRegistry:
     def __init__(self):
@@ -157,33 +158,35 @@ class ManagerRegistry:
 
     def GetParams(self, manager, proto):
         """
-        Returns two dicts of paramters for the given proto on the given manager.
-        One dict of mandatory parameters, one of optional.
-        The keys will be the parameters names, and the values a tuple of 
-        (dbus type, default value). If no default value is specified, the second
-        item in the tuple will be None.
+        Returns a dict of paramters for the given proto on the given manager.
+        The keys will be the parameters names, and the values a tuple of (dbus
+        type, default value, flags). If no default value is specified, the
+        second item in the tuple will be None.
         """
-        params={}
-        for key, val in self.services[manager]["protos"][proto].items():
-            if key.startswith("default-"):
-                continue
-                
-            values = val.split(" ")
-            type = values[0]
-            flags = FLAG_NONE
-            if "register" in values:
-                flags = flags|FLAG_REGISTER
-            if "required" in values:
-                flags = flags|FLAG_REQUIRED
-            name = key[6:]
-            default=None
-            for key, val in self.services[manager]["protos"][proto].items():
-                if key.strip().startswith("default-"+name):
-                    default = val.strip()
 
-            if default:
-               params[name]=(type, dbus.Variant(default,signature=type), flags)
-            else:
-               params[name]=(type, None, flags)
+        params = {}
+        config = self.services[manager]["protos"][proto]
+
+        for key, val in config.iteritems():
+            if not key.startswith('param-'):
+                continue
+
+            name = key[len('param-'):]
+            values = val.split()
+            type = values[0]
+            flags = 0
+            default = None
+
+            if "register" in values:
+                flags |= telepathy.CONN_MGR_PARAM_FLAG_REGISTER
+
+            if "required" in values:
+                flags |= telepathy.CONN_MGR_PARAM_FLAG_REQUIRED
+
+            for key, val in config.iteritems():
+                if key.strip().startswith("default-"+name):
+                    default = dbus.Variant(val.strip(), signature=type)
+
+            params[name] = (type, default, flags)
 
         return params
