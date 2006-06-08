@@ -17,10 +17,6 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import ConfigParser, os
-import dircache
-import dbus
-
 """
 The registry of managers takes the form of any number of .manager files, which
 are searched for in /usr/share/telepathy/services or in ~/.telepathy.
@@ -77,6 +73,10 @@ should fail if require-encryption is set and encryption is not possible.
 
 UIs should display any default values, but should *not* store them.
 """
+
+import ConfigParser, os
+import dircache
+import dbus
 
 class ManagerRegistry:
     def __init__(self):
