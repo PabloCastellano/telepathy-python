@@ -20,6 +20,7 @@
 import dbus
 import dbus.service
 
+import telepathy
 from telepathy import *
 
 class ConnectionManager(dbus.service.Object):
