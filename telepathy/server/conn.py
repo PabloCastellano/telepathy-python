@@ -255,15 +255,15 @@ class Connection(dbus.service.Object):
         self.check_connected()
         self.check_handle_type(handle_type)
 
-        ret = {}
+        ret = []
         for name in names:
             id = self.get_handle_id()
             handle = Handle(id, handle_type, name)
             self._handles[handle_type, id] = handle
             self.add_client_handle(handle, sender)
-            ret[name] = id
+            ret.append(id)
 
-        return id
+        return ret
 
     @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='', sender_keyword='sender')
     def HoldHandles(self, handle_type, handles, sender):
