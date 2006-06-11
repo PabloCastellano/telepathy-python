@@ -1,3 +1,4 @@
+#!/usr/bin/python
 
 import sys
 
@@ -50,9 +51,47 @@ def get_parameters(name):
 
         stanzas.append(stanza)
 
-    return '\n'.join(
+    return ''.join(
         ''.join(line + '\n' for line in stanza)
         for stanza in stanzas)
+
+def get_connections(name):
+    full_name = '%s.%s' % (telepathy.CONN_INTERFACE, name)
+    return [
+        x[len(full_name) + 1:].split('.')
+        for x in get_names()
+        if x.startswith(full_name)]
+
+def inspect_connection(manager, protocol, name):
+    full_name = '.'.join((telepathy.CONN_INTERFACE, manager, protocol, name))
+    conn_path = '/'.join((
+        '/org/freedesktop/Telepathy/Connection', manager, protocol, name))
+    bus_obj = bus.get_object(full_name, conn_path)
+    iface = dbus.Interface(bus_obj, telepathy.CONN_INTERFACE)
+
+    stanza = []
+    stanza.append("Connection '%s'" % name)
+    stanza.append("  Protocol: %s" % protocol)
+
+    for path, type, handle_type, handle in iface.ListChannels():
+        name = path[len(conn_path) + 1:]
+        stanza.append("  Channel '%s'" % name)
+        stanza.append("     Type: %s" % type)
+
+    return ''.join(line + '\n' for line in stanza)
+
+def inspect_manager(manager):
+    stanzas = []
+
+    for protocol, name in get_connections(manager):
+        stanzas.append([inspect_connection(manager, protocol, name)])
+
+    return ''.join(
+        ''.join(line + '\n' for line in stanza)
+        for stanza in stanzas)
+
+def indent(n, s):
+    return ''.join(' ' * n + line + '\n' for line in s.splitlines())
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -72,6 +111,7 @@ if __name__ == '__main__':
 
             for manager in managers:
                 print '  %s' % manager
+                print indent(4, inspect_manager(manager))
         else:
             print 'No connection managers found'
 
