@@ -2,6 +2,7 @@
 #
 # Copyright (C) 2005 Collabora Limited
 # Copyright (C) 2005 Nokia Corporation
+# Copyright (C) 2006 INdT
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -596,6 +597,132 @@ class ConnectionInterfaceAliasing(dbus.service.Interface):
         """
         pass
 
+class ConnectionInterfaceAvatars(dbus.service.Interface):
+    """
+    An interface for requesting avatars for contacts on a given connection,
+    receiving notification when avatars are changed, and publishing your own
+    avatar.
+
+    Avatars are identified by a unique (per contact) token which represents a
+    hash or timestamp (depending on the protocol) of the contacts' avatar data.
+    An empty token means that an avatar has not been set for this contact, and
+    a changed token implies the contact's avatar has changed, but the strings
+    should otherwise be considered opaque by clients.
+
+    A client should use GetAvatarTokens to request the tokens for the avatars
+    of all the contacts it is interested in when it connects. The avatars can
+    then be retreived using RequestAvatar for the corresponding contact.
+    Clients should bind to the AvatarChanged signal and request a new copy of
+    the avatar when a contacts' avatar token changes. Clients should cache the
+    token and data of each contact's avatar between connections, to avoid
+    repeatedly retrieving the same avatar.
+
+    To publish an avatar, a client should use SetAvatar to provide an image
+    which meets the requirements returned by the GetAvatarRequirements
+    function. On some protocols the avatar is stored on the server, so setting
+    the avatar is persistent, but on others it is transferred via a peer to
+    peer mechanism, so needs to be set every connection. Hence, on every
+    connection, clients should inspect the avatar token of the connection's
+    self handle, and set the avatar if it is an empty string (and may
+    optionally replace it if the token corresponds to a different avatar).
+    """
+    def __init__(self):
+        self._interfaces.add(CONN_INTERFACE_AVATARS)
+
+    @dbus.service.method(CONN_INTERFACE_AVATARS,
+                         in_signature='',
+                         out_signature='asqqqqu')
+    def GetAvatarRequirements(self):
+        """
+        Get the required format of avatars on this connection.
+
+        Returns:
+        an array of supported MIME types (eg image/jpeg)
+        the minimum image width in pixels
+        the minimum image height in pixels
+        the maximum image width in pixels
+        the maximum image height in pixels
+        the maximum image size in bytes
+
+        Possible Errors:
+        Disconnected, NetworkError, PermissionDenied, NotAvailable
+        """
+
+    @dbus.service.method(CONN_INTERFACE_AVATARS,
+                         in_signature='au',
+                         out_signature='as')
+    def GetAvatarTokens(self, contacts):
+        """
+        Get the unique tokens for the given contacts' avatars. These tokens
+        can be persisted across connections, and should be used by the client
+        to check whether the avatars have been updated. A empty token means
+        that no avatar is set for the given contact.
+
+        Parameters:
+        contacts - an array of handles representing contacts
+
+        Returns:
+        an array of avatar tokens or empty strings (if no avatar is set) in the
+            same order as the given array of contact handles
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidArgument, PermissionDenied,
+        NotAvailable
+        """
+
+    @dbus.service.method(CONN_INTERFACE_AVATARS,
+                         in_signature='u',
+                         out_signature='ays')
+    def RequestAvatar(self, contact):
+        """
+        Request the avatar for a given contact.
+
+        Parameters:
+        contact - an integer handle for the contact to request the avatar for
+
+        Returns:
+        an array of bytes containing the image data
+        a string containing the image MIME type (eg image/jpeg), or empty if
+            unknown
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidHandle, PermissionDenied,
+        NotAvailable
+        """
+
+    @dbus.service.method(CONN_INTERFACE_AVATARS,
+                         in_signature='ays',
+                         out_signature='s')
+    def SetAvatar(self, avatar, mime_type):
+        """
+        Set a new avatar image for this connection. The avatar image must
+        respect the requirements obtained by GetAvatarRequirements.
+
+        Parameters:
+        avatar - an array of bytes representing the avatar image data
+        mime_type - a string representing the image MIME type
+
+        Returns:
+        the string token of the new avatar
+
+        Possible Errors:
+        Disconnected, NetworkError, InvalidArgument, PermissionDenied,
+        NotAvailable
+        """
+
+    @dbus.service.signal(CONN_INTERFACE_AVATARS, signature='us')
+    def AvatarUpdated(self, contact, new_avatar_token):
+        """
+        Emitted when the avatar for a contact has been updated, or first
+        discovered on this connection. If the token differs from the token
+        associated with the client's cached avatar for this contact, the new
+        avatar should be requested with RequestAvatar.
+
+        Parameters:
+        contact - an integer handle for the contact whose avatar has changed
+        new_avatar_token - unique token for their new avatar
+        """
+        pass
 
 class ConnectionInterfaceCapabilities(dbus.service.Interface):
     """

@@ -1,6 +1,7 @@
 org.freedesktop.Telepathy.ConnectionManager
 org.freedesktop.Telepathy.Connection
 org.freedesktop.Telepathy.Connection.Interface.Aliasing
+org.freedesktop.Telepathy.Connection.Interface.Avatars
 org.freedesktop.Telepathy.Connection.Interface.Capabilities
 org.freedesktop.Telepathy.Connection.Interface.ContactInfo
 org.freedesktop.Telepathy.Connection.Interface.Forwarding

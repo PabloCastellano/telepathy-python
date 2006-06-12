@@ -22,6 +22,7 @@ CONN_MGR_INTERFACE = 'org.freedesktop.Telepathy.ConnectionManager'
 CONN_INTERFACE = 'org.freedesktop.Telepathy.Connection'
 
 CONN_INTERFACE_ALIASING = 'org.freedesktop.Telepathy.Connection.Interface.Aliasing'
+CONN_INTERFACE_AVATARS = 'org.freedesktop.Telepathy.Connection.Interface.Avatars'
 CONN_INTERFACE_CAPABILITIES = 'org.freedesktop.Telepathy.Connection.Interface.Capabilities'
 CONN_INTERFACE_CONTACT_INFO = 'org.freedesktop.Telepathy.Connection.Interface.ContactInfo'
 CONN_INTERFACE_FORWARDING = 'org.freedesktop.Telepathy.Connection.Interface.Forwarding'
