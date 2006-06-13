@@ -36,3 +36,6 @@ class InterfaceFactory(object):
             self._interfaces[name] = dbus.Interface(self._dbus_object, name)
 
         return self._interfaces[name]
+
+    def __contains__(self, name):
+        return name in self._interfaces or name in self._valid_interfaces
