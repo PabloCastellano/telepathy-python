@@ -414,10 +414,12 @@ class MainWindow(gtk.Window):
 
         self._pending_presence_lookups.append(handle)
         self._process_presence_queue()
-        dbus_call_async(self._conn[CONN_INTERFACE_CONTACT_INFO].RequestContactInfo,
-                        handle,
-                        reply_handler=lambda: None,
-                        error_handler=self._conn_error_cb)
+
+        if CONN_INTERFACE_CONTACT_INFO in self._conn:
+            dbus_call_async(self._conn[CONN_INTERFACE_CONTACT_INFO].RequestContactInfo,
+                            handle,
+                            reply_handler=lambda: None,
+                            error_handler=self._conn_error_cb)
 
 
     def _process_presence_queue(self):
