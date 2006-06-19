@@ -19,9 +19,10 @@
 
 version = (0, 13, 1)
 
-import client
-import server
-
 from constants import *
 from errors import *
 from interfaces import *
+
+import client
+import server
+
