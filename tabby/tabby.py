@@ -394,7 +394,7 @@ class MainWindow(gtk.Window):
         elif name == "publish":
             self._publish = channel
         else:
-            print "_set_contact_list: got unknown list"
+            print "_set_contact_list: got unknown list '%s'" % name
 
     def _cl_get_members_reply_cb(self, members):
         for member in members:
