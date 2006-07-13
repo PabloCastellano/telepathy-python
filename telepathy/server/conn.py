@@ -849,6 +849,9 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
 
 class ConnectionInterfaceContactInfo(dbus.service.Interface):
     """
+    THIS INTERFACE IS DEPRECATED AND SHOULD NOT BE USED. A new version
+    will be proposed in the 0.13 specification branch.
+
     An interface for requesting information about a contact on a given
     connection. Information is returned as a vCard represented as an XML
     string, in the format defined by JEP-0054: vcard-temp specifiation
