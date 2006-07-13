@@ -204,9 +204,6 @@ class Connection(dbus.service.Object):
 
         Returns:
         a string identifier for the protocol
-
-        Potential Errors:
-        Disconnected
         """
         return self._proto
 
