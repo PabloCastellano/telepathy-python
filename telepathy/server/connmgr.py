@@ -195,6 +195,13 @@ class ConnectionManager(dbus.service.Object):
         s:fullname - the user's full name if the service requires this
         when authenticating or registering.
 
+        Every successful RequestConnection call will cause the emission of a
+        NewConnection signal for the same newly created connection. The
+        requester can use the returned object path and service name
+        independently of the emission of that signal. In that case this signal
+        emission is most useful for, e.g. other processes that are monitoring
+        the creation of new connections.
+
         Parameters:
         proto - the protocol identifier
         parameters - a dictionary mapping parameter name to the variant boxed value
