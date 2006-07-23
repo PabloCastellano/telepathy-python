@@ -63,10 +63,7 @@ if __name__ == '__main__':
     del account['manager']
     del account['protocol']
 
-    mgr_bus_name = reg.GetBusName(manager)
-    mgr_object_path = reg.GetObjectPath(manager)
-
-    mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
+    mgr = reg.GetManager(manager)
     conn_bus_name, conn_object_path = mgr[CONN_MGR_INTERFACE].Connect(
         protocol, account)
     conn = telepathy.client.Connection(conn_bus_name, conn_object_path)
