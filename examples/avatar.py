@@ -1,4 +1,9 @@
 
+"""
+Telepathy example which requests the avatar for the user's own handle and
+displays it in a Gtk window.
+"""
+
 import base64
 import dbus.glib
 import gtk
