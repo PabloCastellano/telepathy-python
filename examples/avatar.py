@@ -62,5 +62,7 @@ if __name__ == '__main__':
         'jabber', account)
     conn = telepathy.client.Connection(conn_bus_name, conn_object_path)
     conn[CONN_INTERFACE].connect_to_signal('StatusChanged', status_changed_cb)
+
     gtk.main()
+    conn[CONN_INTERFACE].Disconnect()
 
