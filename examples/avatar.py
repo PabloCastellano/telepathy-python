@@ -8,7 +8,7 @@ from telepathy.interfaces import (
     CONN_MGR_INTERFACE, CONN_INTERFACE, CONN_INTERFACE_AVATARS)
 import telepathy.client
 
-def parse_parameters(s):
+def parse_account(s):
     lines = s.splitlines()
     pairs = []
 
@@ -49,11 +49,11 @@ if __name__ == '__main__':
     mgr_bus_name = reg.GetBusName('gabble')
     mgr_object_path = reg.GetObjectPath('gabble')
 
-    parameters = parse_parameters(file('parameters').read())
+    account = parse_account(file('account').read())
 
     mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
     conn_bus_name, conn_object_path = mgr[CONN_MGR_INTERFACE].Connect(
-        'jabber', parameters)
+        'jabber', account)
     conn = telepathy.client.Connection(conn_bus_name, conn_object_path)
     conn[CONN_INTERFACE].connect_to_signal('StatusChanged', status_changed_cb)
     gtk.main()
