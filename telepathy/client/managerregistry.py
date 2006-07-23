@@ -156,6 +156,11 @@ class ManagerRegistry:
         assert('objectpath' in self.services[manager])
         return self.services[manager]['objectpath']
 
+    def GetManager(self, manager):
+        return telepathy.client.ConnectionManager(
+            self.services[manager]['busname'],
+            self.services[manager]['objectpath'])
+
     def GetParams(self, manager, proto):
         """
         Returns a dict of paramters for the given proto on the given manager.
