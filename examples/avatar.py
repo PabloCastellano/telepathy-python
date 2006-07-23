@@ -46,6 +46,7 @@ def status_changed_cb(state, reason):
     image.set_from_pixbuf(loader.get_pixbuf())
     window.add(image)
     window.show_all()
+    window.connect('destroy', gtk.main_quit)
 
 if __name__ == '__main__':
     reg = telepathy.client.ManagerRegistry()
