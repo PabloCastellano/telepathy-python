@@ -7,6 +7,7 @@ displays it in a Gtk window.
 import base64
 import dbus.glib
 import gtk
+import sys
 
 from telepathy.constants import CONNECTION_STATUS_CONNECTED
 from telepathy.interfaces import (
@@ -49,17 +50,26 @@ def status_changed_cb(state, reason):
     window.connect('destroy', gtk.main_quit)
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        account_file = sys.argv[1]
+    else:
+        account_file = 'account'
+
     reg = telepathy.client.ManagerRegistry()
     reg.LoadManagers()
 
-    mgr_bus_name = reg.GetBusName('gabble')
-    mgr_object_path = reg.GetObjectPath('gabble')
+    account = parse_account(file(account_file).read())
+    manager = account['manager']
+    protocol = account['protocol']
+    del account['manager']
+    del account['protocol']
 
-    account = parse_account(file('account').read())
+    mgr_bus_name = reg.GetBusName(manager)
+    mgr_object_path = reg.GetObjectPath(manager)
 
     mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
     conn_bus_name, conn_object_path = mgr[CONN_MGR_INTERFACE].Connect(
-        'jabber', account)
+        protocol, account)
     conn = telepathy.client.Connection(conn_bus_name, conn_object_path)
     conn[CONN_INTERFACE].connect_to_signal('StatusChanged', status_changed_cb)
 
