@@ -97,10 +97,7 @@ class ConnectionManager(dbus.service.Object):
          zephyr - Zephyr
 
         Returns:
-        an dictionary mapping parameter identifiers to type signatures
-
-        Potential Errors:
-        NotImplemented (the requested protocol is not supported by this manager)
+        an array of string protocol identifiers supported by this manager
         """
         return self._protos.keys()
 
