@@ -1059,11 +1059,12 @@ class ChannelInterfaceGroup(dbus.service.Interface):
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='u')
     def GetSelfHandle(self):
         """
-        Returns the handle for the user on this channel if they are pending
-        (local or remote) or a current member, and 0 if not. Note that this
-        is different from the connection GetSelfHandle on some protocols,
-        so the value of this handle should always be used with the methods
-        of this interface.
+        Returns the handle for the user on this channel (which can also be a
+        local or remote pending member) or 0 if the user not a member at all
+        (which is likely to be the case, for instance, on Type.ContactList
+        channels). Note that this is different from the connection
+        GetSelfHandle on some protocols, so the value of this handle should
+        always be used with the methods of this interface.
 
         Possible Errors:
         Disconnected, NetworkError
