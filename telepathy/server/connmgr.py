@@ -118,13 +118,17 @@ class ConnectionManager(dbus.service.Object):
         2 - CONN_MGR_PARAM_FLAG_REGISTER
             This parameter is required for registering an account on the
             server.
+        4 - CONN_MGR_PARAM_FLAG_HAS_DEFAULT
+            This parameter has a default value, which is returned; not
+            providing this parameter is equivalent to providing the default.
 
         Returns:
         an array of structs containing:
             a string parameter name
             a bitwise OR of the parameter flags (as defined above)
             a string D-Bus type signature
-            a variant boxed default value
+            a variant boxed default value (only relevant if the
+                HAS_DEFAULT flag is present)
 
         Potential Errors:
         NotImplemented (the requested protocol is not supported by this manager)
