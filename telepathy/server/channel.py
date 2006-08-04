@@ -670,7 +670,7 @@ class ChannelTypeText(Channel):
 
     When a message is received, an identifier is assigned and a Received signal
     emitted, and the message placed in a pending queue which can be inspected
-    with GetPendingMessages. A client which has handled the message by showing
+    with ListPendingMessages. A client which has handled the message by showing
     it to the user (or equivalent) should acknowledge the receipt using the
     AcknowledgePendingMessage method, and the message will then be removed from
     the pending queue. Numeric identifiers for received messages may be reused
@@ -755,7 +755,7 @@ class ChannelTypeText(Channel):
         for id in ids:
             del self._pending_messages[id]
 
-    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='b', out_signature='a(uuuus)')
+    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='b', out_signature='a(uuuuus)')
     def ListPendingMessages(self, clear):
         """
         List the messages currently in the pending queue, and optionally
