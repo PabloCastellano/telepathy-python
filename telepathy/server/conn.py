@@ -60,14 +60,16 @@ class Connection(dbus.service.Object):
     immutable handles, which are unsigned non-zero integers which are valid
     only for the lifetime of the connection object, and are used throughout the
     protocol where these entities are represented, allowing simple testing of
-    equality within clients. Connection manager implementations should
-    reference count these handles to determine if they are in use either by any
-    active clients or any open channels, and may deallocate them when this
-    ceases to be true. Clients may request handles of a given type and name
-    with the RequestHandles method, inspect the entity name of handles
-    with the InspectHandles method, keep handles from being released with
-    HoldHandles, and notify that they are no longer storing handles with
-    ReleaseHandles.
+    equality within clients. Handles have per-type uniqueness, meaning that
+    every (handle type, handle number) tuple is guaranteed to be unique within
+    a connection and that a handle alone (without its type) is meaningless or
+    ambiguous. Connection manager implementations should reference count these
+    handles to determine if they are in use either by any active clients or any
+    open channels, and may deallocate them when this ceases to be true. Clients
+    may request handles of a given type and name with the RequestHandles
+    method, inspect the entity name of handles with the InspectHandles method,
+    keep handles from being released with HoldHandles, and notify that they are
+    no longer storing handles with ReleaseHandles.
     """
     def __init__(self, proto, account):
         """
