@@ -384,14 +384,15 @@ class MediaSessionHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='ouu')
-    def NewMediaStreamHandler(self, stream_handler, media_type, direction):
+    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='ouuu')
+    def NewMediaStreamHandler(self, stream_handler, id, media_type, direction):
         """
         Emitted when a new media stream handler has been created for this
         session.
 
         Parameters:
         stream_handler - an object path to a new MediaStreamHandler
+        id - the unique ID of the new stream
         media_type - enum for type of media that this stream should handle
           MEDIA_STREAM_TYPE_AUDIO = 0
           MEDIA_STREAM_TYPE_VIDEO = 1
