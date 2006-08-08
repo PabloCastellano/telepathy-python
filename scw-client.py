@@ -76,7 +76,7 @@ class ContactWindow:
         print "connecting up activate"
         self._view.connect("activate", self.gtk_view_activate_cb)
         self._view.set_property("model", self._model)
-        self._view.set_column_foldable(2)
+        self._view.set_column_foldable(2, True)
         self._view.set_column_visible(3, False)
         self._swin.add(self._view)
 
