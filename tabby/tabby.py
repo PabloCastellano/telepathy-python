@@ -250,12 +250,12 @@ class MainWindow(gtk.Window):
 
         self._mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
 
-        dbus_call_async(self._mgr[CONN_MGR_INTERFACE].Connect,
+        dbus_call_async(self._mgr[CONN_MGR_INTERFACE].RequestConnection,
                         DEFAULT_PROTOCOL, params,
-                        reply_handler=self._connect_reply_cb,
+                        reply_handler=self._request_connection_reply_cb,
                         error_handler=self._conn_error_cb)
 
-    def _connect_reply_cb(self, bus_name, obj_path):
+    def _request_connection_reply_cb(self, bus_name, obj_path):
         conn = Connection(bus_name, obj_path)
         conn.bus_name = bus_name
         conn.obj_path = obj_path
@@ -265,8 +265,8 @@ class MainWindow(gtk.Window):
         conn[CONN_INTERFACE].connect_to_signal("NewChannel",
                 lambda *args: dbus_signal_cb(self._conn_new_channel_cb, *args))
 
-        dbus_call_async(conn[CONN_INTERFACE].GetStatus,
-                        reply_handler=self._conn_get_status_reply_cb,
+        dbus_call_async(conn[CONN_INTERFACE].Connect,
+                        reply_handler=(lambda: None),
                         error_handler=self._conn_error_cb)
 
         self._conn = conn
