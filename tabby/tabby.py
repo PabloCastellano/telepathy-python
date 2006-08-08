@@ -19,6 +19,8 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+from itertools import izip
+
 import dbus
 import dbus.glib
 import gtk
@@ -151,24 +153,24 @@ class MainWindow(gtk.Window):
             return
 
         print "Requesting room '%s'" % name
-        dbus_call_async(self._conn[CONN_INTERFACE].RequestHandle,
-                        CONNECTION_HANDLE_TYPE_ROOM, name,
+        dbus_call_async(self._conn[CONN_INTERFACE].RequestHandles,
+                        CONNECTION_HANDLE_TYPE_ROOM, [name],
                         reply_handler=self._request_room_handle_reply_cb,
-                        error_handler=self._conn_error_cb,
-                        extra_args=(name,))
+                        error_handler=self._conn_error_cb)
 
-    def _request_room_handle_reply_cb(self, handle, name):
-        name = self._conn[CONN_INTERFACE].InspectHandle(
-                CONNECTION_HANDLE_TYPE_ROOM, handle)
+    def _request_room_handle_reply_cb(self, handles):
+        names = self._conn[CONN_INTERFACE].InspectHandles(
+                CONNECTION_HANDLE_TYPE_ROOM, handles)
+        for name, handle in izip(names, handles):
 
-        print "Got handle", handle, "requesting text channel with room '%s'" % name
+            print "Got handle", handle, "requesting text channel with room '%s'" % name
 
-        dbus_call_async(self._conn[CONN_INTERFACE].RequestChannel,
-                        CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_ROOM,
-                        handle, True,
-                        reply_handler=self._request_room_channel_reply_cb,
-                        error_handler=self._conn_error_cb,
-                        extra_args=(handle, name,))
+            dbus_call_async(self._conn[CONN_INTERFACE].RequestChannel,
+                            CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_ROOM,
+                            handle, True,
+                            reply_handler=self._request_room_channel_reply_cb,
+                            error_handler=self._conn_error_cb,
+                            extra_args=(handle, name,))
 
     def _request_room_channel_reply_cb(self, obj_path, handle, name):
         print "Got room channel with '%s' [%d]" % (name, handle)
@@ -325,9 +327,9 @@ class MainWindow(gtk.Window):
 
             # find out who invited us
             inviter_handle = channel[CHANNEL_INTERFACE_GROUP].GetMembers()[0]
-            inviter_name = self._conn[CONN_INTERFACE].InspectHandle(
+            inviter_name = self._conn[CONN_INTERFACE].InspectHandles(
                     CONNECTION_HANDLE_TYPE_CONTACT,
-                    inviter_handle)
+                    [inviter_handle])[0]
 
             # and check if there's a message
             pending = channel[CHANNEL_TYPE_TEXT].ListPendingMessages(False)
@@ -337,7 +339,7 @@ class MainWindow(gtk.Window):
 
                 msg_text = " with the reason '%s'" % msg_text
 
-            name = self._conn[CONN_INTERFACE].InspectHandle(handle_type, handle)
+            name = self._conn[CONN_INTERFACE].InspectHandles(handle_type, [handle])[0]
             dlg = gtk.MessageDialog(parent=self,
                                     flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
                                     type=gtk.MESSAGE_QUESTION,

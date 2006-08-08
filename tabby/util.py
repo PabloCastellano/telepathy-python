@@ -122,9 +122,9 @@ class Connection(telepathy.client.Connection):
             func(handle_id, *func_args)
         else:
             if not handle_id in self._handle_callbacks:
-                dbus_call_async(self[CONN_INTERFACE].InspectHandle,
-                                handle_type, handle_id,
-                                reply_handler=lambda name: self._inspect_handle_reply_cb(handle_type, handle_id, name),
+                dbus_call_async(self[CONN_INTERFACE].InspectHandles,
+                                handle_type, [handle_id],
+                                reply_handler=lambda names: self._inspect_handle_reply_cb(handle_type, handle_id, names[0]),
                                 error_handler=self.__error_cb)
                 self._handle_callbacks[handle_id] = []
 
@@ -347,8 +347,8 @@ class ImChannel(GroupChannel):
                         error_handler=self.__error_cb)
 
     def ack_message(self, message_id):
-        dbus_call_async(self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessage,
-                        message_id,
+        dbus_call_async(self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessages,
+                        [message_id],
                         reply_handler=lambda: None,
                         error_handler=self.__error_cb)
 
@@ -412,8 +412,8 @@ class ImChannel(GroupChannel):
                         error_handler=self.__error_cb)
 
     def ack_message(self, message_id):
-        dbus_call_async(self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessage,
-                        message_id,
+        dbus_call_async(self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessages,
+                        [message_id],
                         reply_handler=lambda: None,
                         error_handler=self.__error_cb)
 
@@ -503,8 +503,8 @@ class RoomChannel(GroupChannel):
                         error_handler=self.__error_cb)
 
     def ack_message(self, message_id):
-        dbus_call_async(self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessage,
-                        message_id,
+        dbus_call_async(self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessages,
+                        [message_id],
                         reply_handler=lambda: None,
                         error_handler=self.__error_cb)
 

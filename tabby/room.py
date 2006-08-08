@@ -18,6 +18,8 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+from itertools import izip
+
 import gobject
 import pango
 import gtk
@@ -326,15 +328,23 @@ class Room(gobject.GObject):
         local_handles = self._room_chan[CHANNEL_INTERFACE_GROUP].GetMembers()
         owner_handles = self._room_chan[CHANNEL_INTERFACE_GROUP].GetHandleOwners(local_handles)
 
-        for i in xrange(len(local_handles)):
-            local_jid = self._conn[CONN_INTERFACE].InspectHandle(
-                CONNECTION_HANDLE_TYPE_CONTACT, local_handles[i])
-            if owner_handles[i] != 0:
-                owner_jid = self._conn[CONN_INTERFACE].InspectHandle(
-                    CONNECTION_HANDLE_TYPE_CONTACT, owner_handles[i])
-            else:
-                owner_jid = "[unknown]"
+        local_jids = self._conn[CONN_INTERFACE].InspectHandles(
+            CONNECTION_HANDLE_TYPE_CONTACT, local_handles)
 
+        known_owner_local_jids = []
+        known_owner_handles = []
+        for i in xrange(len(local_handles)):
+            if owner_handles[i] == 0:
+                print "%s -> [unknown]" % local_jids[i]
+            else:
+                known_owner_local_jids.append(local_jids[i])
+                known_owner_handles.append(owner_handles[i])
+
+        known_owner_jids = self._conn[CONN_INTERFACE].InspectHandles(
+                    CONNECTION_HANDLE_TYPE_CONTACT, known_owner_handles)
+
+        for (local_jid, owner_jid) in izip(known_owner_local_jids,
+                                           known_owner_jids):
             print "%s -> %s" % (local_jid, owner_jid)
 
     def _flags_changed_cb(self, chan):
@@ -372,10 +382,11 @@ class Room(gobject.GObject):
                 if msg_dlg.run() == gtk.RESPONSE_ACCEPT:
                     message = msg_dlg.get_text()
 
-                    handle = self._conn[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT,
-                                                                      username)
-                    if handle != 0:
-                        self._room_chan.add_member(handle, message)
+                    handles = self._conn[CONN_INTERFACE].RequestHandles(CONNECTION_HANDLE_TYPE_CONTACT,
+                                                                      [username])
+                    for handle in handles:
+                        if handle != 0:
+                            self._room_chan.add_member(handle, message)
 
                 msg_dlg.destroy()
 
@@ -458,8 +469,8 @@ class Room(gobject.GObject):
         print "type: %d" % type
         print "text: '%s'" % text
 
-        name = self._conn[CONN_INTERFACE].InspectHandle(
-                CONNECTION_HANDLE_TYPE_CONTACT, sender)
+        name = self._conn[CONN_INTERFACE].InspectHandles(
+                CONNECTION_HANDLE_TYPE_CONTACT, [sender])[0]
 
         model = self._chat_model
         iter = model.append()
