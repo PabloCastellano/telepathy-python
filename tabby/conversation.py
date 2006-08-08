@@ -112,10 +112,12 @@ class Conversation:
         self._view.show()
         self._entry.show()
 
-    def _message_received_cb(self, chan, id, timestamp, sender, type, text):
+    def _message_received_cb(self, chan, id, timestamp, sender, type, flags, text):
         print "_message_received_cb: got message with id", id, "-- acknowledging"
         self._im_chan.ack_message(id)
 
+        if flags & 1:
+            print "Message was truncated!"
         print "type: %d" % type
         print "text: '%s'" % text
 

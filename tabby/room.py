@@ -448,9 +448,12 @@ class Room(gobject.GObject):
 
         self._members_lbl.set_text("%d member%s" % (count, suffix))
 
-    def _message_received_cb(self, chan, id, timestamp, sender, type, text):
+    def _message_received_cb(self, chan, id, timestamp, sender, type, flags, text):
         print "_message_received_cb: got message with id", id, "-- acknowledging"
         self._room_chan.ack_message(id)
+
+        if flags & 1:
+            print "Message truncated!"
 
         print "type: %d" % type
         print "text: '%s'" % text

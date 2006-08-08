@@ -321,7 +321,7 @@ class ImChannel(GroupChannel):
         "message-received": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                              (gobject.TYPE_UINT, gobject.TYPE_UINT,
                               gobject.TYPE_UINT, gobject.TYPE_UINT,
-                              gobject.TYPE_STRING)),
+                              gobject.TYPE_UINT, gobject.TYPE_STRING)),
     }
 
     def __init__(self, conn, obj_path, handle):
@@ -385,7 +385,7 @@ class ImChannel(GroupChannel):
         "message-received": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                              (gobject.TYPE_UINT, gobject.TYPE_UINT,
                               gobject.TYPE_UINT, gobject.TYPE_UINT,
-                              gobject.TYPE_STRING)),
+                              gobject.TYPE_UINT, gobject.TYPE_STRING)),
     }
 
     def __init__(self, conn, obj_path, handle):
@@ -535,7 +535,7 @@ class RoomChannel(GroupChannel):
         for message in self._messages:
             self.emit("message-received", *message)
 
-        del self._messages
+        del self._messages[:]
 
     def _password_flags_changed_cb(self, added, removed):
         if self._pw_flags is None:
