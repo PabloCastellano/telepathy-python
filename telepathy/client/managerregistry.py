@@ -186,6 +186,7 @@ class ManagerRegistry:
             for key, val in config.iteritems():
                 if key.strip().startswith("default-"+name):
                     default = dbus.Variant(val.strip(), signature=type)
+                    flags |= telepathy.CONN_MGR_PARAM_FLAG_HAS_DEFAULT
 
             params[name] = (type, default, flags)
 
