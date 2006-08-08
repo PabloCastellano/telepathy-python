@@ -171,7 +171,7 @@ class ContactWindow:
             print "subscribe_get_members_reply_cb, adding contact:", member
             self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self.add_contact)
 
-    def subscribe_members_changed_signal_cb(self, reason, added, removed, local_pending, remote_pending):
+    def subscribe_members_changed_signal_cb(self, reason, added, removed, local_pending, remote_pending, actor, reason_code):
         for member in added:
             print "subscribe_members_changed_signal_cb, adding contact:", member
             self._conn.call_with_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self.add_contact)
@@ -210,14 +210,16 @@ class ContactListChannel(telepathy.client.Channel):
         self._name = handle
 
     def got_interfaces(self):
-        self._conn[CONN_INTERFACE].InspectHandle(self._handle_type, self._handle,
+        self._conn[CONN_INTERFACE].InspectHandles(self._handle_type, [self._handle],
             reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetRemotePendingMembers(reply_handler=self.get_remote_pending_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged', self.members_changed_signal_cb)
 
-    def inspect_handle_reply_cb(self, name):
+    def inspect_handle_reply_cb(self, names):
+        assert len(names) == 1
+        name = names[0]
         print "CLC", self._name, "is", name
         self._name = name
         if name == 'subscribe':
@@ -226,14 +228,14 @@ class ContactListChannel(telepathy.client.Channel):
             gobject.idle_add(self.publish_list_idle_cb)
 
     def subscribe_list_idle_cb(self):
-#        handle = self._conn[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
+#        handle = self._conn[CONN_INTERFACE].RequestHandles(CONNECTION_HANDLE_TYPE_CONTACT, ['test2@localhost'])[0]
 #        self[CHANNEL_INTERFACE_GROUP].AddMembers([handle])
         return False
 
     def publish_list_idle_cb(self):
         return False
 
-    def members_changed_signal_cb(self, message, added, removed, local_p, remote_p):
+    def members_changed_signal_cb(self, message, added, removed, local_p, remote_p, actor, reason):
         print "MembersChanged on CLC", self._name
         print "Message: ", message
         print "Added: ", added
@@ -333,7 +335,7 @@ class TextChannel(telepathy.client.Channel):
 
         # asynchronously retrieve messages that have not been acknowledged
         self._handled_pending_message = None
-        self[CHANNEL_TYPE_TEXT].ListPendingMessages(reply_handler=self.list_pending_messages_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_TYPE_TEXT].ListPendingMessages(False, reply_handler=self.list_pending_messages_reply_cb, error_handler=self.error_cb)
 
         # kick off a request for the user's handle number
         self._self_handle = None
@@ -343,9 +345,9 @@ class TextChannel(telepathy.client.Channel):
     def list_pending_messages_reply_cb(self, pending_messages):
         print "got pending messages", pending_messages
         for msg in pending_messages:
-            (id, timestamp, sender, message_type, message) = msg
+            (id, timestamp, sender, message_type, flags, message) = msg
             print "Handling pending message", id
-            self.received_signal_cb(id, timestamp, sender, message_type, message)
+            self.received_signal_cb(id, timestamp, sender, message_type, flags, message)
             self._handled_pending_message = id
 
     def gtk_delete_event_cb(self, window, event):
@@ -387,9 +389,9 @@ class TextChannel(telepathy.client.Channel):
                         0, timestamp,
                         1, "<b>%s</b>" % sender,
                         2, message)
-        self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessage(id, reply_handler=(lambda: None), error_handler=self.error_cb)
+        self[CHANNEL_TYPE_TEXT].AcknowledgePendingMessages([id], reply_handler=(lambda: None), error_handler=self.error_cb)
 
-    def received_signal_cb(self, id, timestamp, sender, message_type, message):
+    def received_signal_cb(self, id, timestamp, sender, message_type, flags, message):
         if self._handled_pending_message != None:
             if id > self._handled_pending_message:
                 print "Now handling messages directly"
@@ -470,16 +472,11 @@ class TestConnection(telepathy.client.Connection):
         self[CONN_INTERFACE].connect_to_signal('StatusChanged', self.status_changed_signal_cb)
         self[CONN_INTERFACE].connect_to_signal('NewChannel', self.new_channel_signal_cb)
 
-        # handle race condition when connecting completes
-        # before the signal handlers are registered
-        self[CONN_INTERFACE].GetStatus(reply_handler=self.get_status_reply_cb, error_handler=self.error_cb)
+        self[CONN_INTERFACE].Connect(reply_handler=(lambda: None), error_handler=self.error_cb)
 
     def error_cb(self, exception):
         print "Exception received from asynchronous method call:"
         print exception
-
-    def get_status_reply_cb(self, status):
-        self.status_changed_signal_cb(status, CONNECTION_STATUS_REASON_NONE_SPECIFIED)
 
     def list_channels_reply_cb(self, channels):
         for (obj_path, channel_type, handle_type, handle) in channels:
@@ -519,7 +516,7 @@ class TestConnection(telepathy.client.Connection):
         print "Connected!"
         if CONN_INTERFACE_PRESENCE in self.get_valid_interfaces():
             self[CONN_INTERFACE_PRESENCE].connect_to_signal('PresenceUpdate', self.presence_update_signal_cb)
-#        handle = self[CONN_INTERFACE].RequestHandle(CONNECTION_HANDLE_TYPE_CONTACT, 'test2@localhost')
+#        handle = self[CONN_INTERFACE].RequestHandles(CONNECTION_HANDLE_TYPE_CONTACT, ['test2@localhost'])[0]
 #        self[CONN_INTERFACE].RequestChannel(CHANNEL_TYPE_TEXT, handle, True)
 #        print self[CONN_INTERFACE_PRESENCE].GetStatuses()
         self._contact_window = ContactWindow(self)
@@ -552,7 +549,10 @@ class TestConnection(telepathy.client.Connection):
         if status == CONNECTION_STATUS_DISCONNECTED:
             self._mainloop.quit()
 
-    def inspect_handle_reply_cb(self, id, handle_type, name):
+    def inspect_handle_reply_cb(self, id, handle_type, names):
+        assert len(names) == 1
+        name = names[0]
+
         self._handle_cache[id] = (handle_type, name)
 
         for func in self._handle_callbacks[id]:
@@ -565,7 +565,7 @@ class TestConnection(telepathy.client.Connection):
             func(handle_id, *self._handle_cache[handle_id])
         else:
             if handle_id not in self._handle_callbacks:
-                self[CONN_INTERFACE].InspectHandle(handle_type, handle_id, reply_handler=(lambda *args: self.inspect_handle_reply_cb(handle_id, handle_type, *args)), error_handler=self.error_cb)
+                self[CONN_INTERFACE].InspectHandles(handle_type, [handle_id], reply_handler=(lambda args: self.inspect_handle_reply_cb(handle_id, handle_type, args)), error_handler=self.error_cb)
                 self._handle_callbacks[handle_id] = set()
 
             self._handle_callbacks[handle_id].add(func)
@@ -607,21 +607,18 @@ if __name__ == '__main__':
     cmdline_params = dict((p.split('=') for p in sys.argv[3:]))
     params={}
 
-    for (name, (dbus_type, default)) in reg.GetParams(manager, protocol)[0].iteritems():
+    for (name, (dbus_type, default, flags)) in reg.GetParams(manager, protocol).iteritems():
         if name in cmdline_params:
             params[name] = dbus.Variant(cmdline_params[name], signature=dbus_type)
+        elif flags & CONN_MGR_PARAM_FLAG_HAS_DEFAULT:
+            params[name] = dbus.Variant(default, signature=dbus_type)
         elif name == 'password':
             params[name] = dbus.Variant(getpass.getpass(), signature=dbus_type)
         else:
             params[name] = dbus.Variant(raw_input(name+': '), signature=dbus_type)
 
-    for (name, (dbus_type, default)) in reg.GetParams(manager, protocol)[1].iteritems():
-        if name in cmdline_params:
-            params[name] = dbus.Variant(cmdline_params[name], signature=dbus_type)
-            print name, dbus_type, params[name], type(params[name])
-
     mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
-    bus_name, object_path = mgr[CONN_MGR_INTERFACE].Connect(protocol, params)
+    bus_name, object_path = mgr[CONN_MGR_INTERFACE].RequestConnection(protocol, params)
 
     mainloop = gobject.MainLoop()
     connection = TestConnection(bus_name, object_path, mainloop)
