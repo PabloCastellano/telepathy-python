@@ -86,7 +86,7 @@ class ContactWindow:
         self._window.set_title("Contacts")
         self._window.show_all()
 
-        self._icon = gtk.gdk.pixbuf_new_from_file_at_size("face-surprise.png", 22, 22)
+        self._icon = gtk.gdk.pixbuf_new_from_file_at_size("tabby/data/images/face-surprise.png", 22, 22)
 
     def set_window_title_cb(self, handle, handle_type, name):
         self._window.set_title("Contacts for %s" % name)
@@ -289,7 +289,7 @@ class TextChannel(telepathy.client.Channel):
 
         self._toolbar = gtk.Toolbar()
         image = gtk.Image()
-        image.set_from_file("call.png")
+        image.set_from_file("tabby/data/images/call.png")
 
         item = gtk.ToolButton(icon_widget=image, label="Call")
         item.connect("clicked", self.on_call_button_clicked)
