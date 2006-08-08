@@ -300,7 +300,6 @@ class ChannelTypeStreamedMedia(Channel):
         self._media_parameters = {}
 
     @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uos')
-
     def NewMediaSessionHandler(self, member, session_handler, type):
         """
         Signal that a session handler object has been created for a member
@@ -311,9 +310,6 @@ class ChannelTypeStreamedMedia(Channel):
         member - member that the MediaSessionHandler is created for
         session_handler - object path of the MediaSessionHandler object
         type - string indicating type of session, eg "rtp"
-
-        Possible Errors:
-        Disconnected, InvalidHandle, NotAvailable (if the contact has sent nothing to us on this channel)
         """
         pass
 
@@ -328,33 +324,87 @@ class ChannelTypeStreamedMedia(Channel):
 
     @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='',
                                                       out_signature='a(uuuu)')
-    def GetStreams(self):
+    def ListStreams(self):
         """
-        Returns an array of structs of contact handles, stream identifiers
-        accompanying stream types and the current state of the stream.
-        Stream identifiers are unsigned integers and are unique for 
-        each contact.
+        Returns an array of structs representing the streams currently being
+        signalled in this channel. Each stream is identified by an unsigned
+        integer which is unique for each stream within the channel.
 
         Stream types are identified by the following values:
           MEDIA_STREAM_TYPE_AUDIO = 0
           MEDIA_STREAM_TYPE_VIDEO = 1
-        Stream states are identified by
-          MEDIA_STREAM_STATE_STOPPED =0
+
+        Stream states are identified by one of the following values:
+          MEDIA_STREAM_STATE_STOPPED = 0
           MEDIA_STREAM_STATE_PLAYING = 1
           MEDIA_STREAM_STATE_CONNECTING = 2
           MEDIA_STREAM_STATE_CONNECTED = 3
+
+        Returns:
+        an array of structs containing:
+            the stream identifier
+            the contact handle who the stream is with (or 0 if the stream
+                represents more than a single member)
+            the type of the stream
+            the current stream state
+        """
+        pass
+
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='uau',
+                                                      out_signature='au')
+    def RequestStreams(self, contact_handle, types):
+        """
+        Request that the given types of streams be established with the given
+        member. Streams will be created in the STOPPED state, and will emit a
+        StreamStateChanged signal to the CONNECTING when accepted by the remote
+        parties, or if they are rejected then a StreamRemoved signal will be
+        emitted.
+
+        Parameters:
+        contact_handle - a contact handle with whom to establish the streams
+        types - an array of stream types (as defined in ListStreams)
+
+        Returns:
+        an array of newly created stream identifiers (as defined in ListStreams)
+            in the same order as the given stream types
+
+        Possible Errors:
+        InvalidHandle, InvalidArgument (invalid stream type), NotAvailable (if
+        the contact is not able to do this stream type)
+        """
+        pass
+
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uu')
+    def StreamAdded(self, stream_id, contact_handle, stream_type):
+        """
+        Emitted when a new stream has been added to this channel.
+
+        Parameters:
+        stream_id - the stream identifier (as defined in ListStreams)
+        contact_handle - the contact handle who the stream is with (or 0 if it
+            represents more than a single member)
+        stream_type - the stream type (as defined in ListStreams)
+        """
+        pass
+
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='')
+    def StreamRemoved(self, stream_id):
+        """
+        Emitted when a stream has been removed from this channel.
+
+        Parameters:
+        stream_id - the stream identifier (as defined in ListStreams)
         """
         pass
 
     @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uuu')
-    def StreamStateChanged(self, contact_handle, stream_id, stream_state):
+    def StreamStateChanged(self, stream_id, stream_state):
         """
-        Signal emitted when a memeber's stream's state changes, as defined
-        in GetStreams
+        Emitted when a member's stream's state changes.
 
         Parameters:
-        stream_id - stream ID as returned by GetStreams
-        stream_state - new stream state
+        stream_id - the stream identifier (as defined in ListStreams)
+        stream_state - the new stream state (as defined in ListStreams)
         """
         pass
 
@@ -374,7 +424,7 @@ class MediaSessionHandler(dbus.service.Object):
         Inform the connection manager that a client is ready to handle
         this SessionHandler.
         """
-        pass;
+        pass
 
     @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='us',
                                                 out_signature='')
@@ -552,7 +602,7 @@ class MediaStreamHandler(dbus.service.Object):
     def StreamState(self, state):
         """
         Informs the connection manager of the stream's current state
-        State is as specified in ChannelTypeStreamedMedia::GetStreams.
+        State is as specified in Channel.Type.StreamedMedia::ListStreams.
         """
         pass
 
