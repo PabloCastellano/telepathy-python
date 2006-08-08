@@ -323,16 +323,22 @@ class ChannelTypeStreamedMedia(Channel):
         pass
 
     @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='',
-                                                      out_signature='a(uuuu)')
+                                                      out_signature='a(uuuuu)')
     def ListStreams(self):
         """
-        Returns an array of structs representing the streams currently being
-        signalled in this channel. Each stream is identified by an unsigned
-        integer which is unique for each stream within the channel.
+        Returns an array of structs representing the streams currently active
+        within this channel. Each stream is identified by an unsigned integer
+        which is unique for each stream within the channel.
 
         Stream types are identified by the following values:
           MEDIA_STREAM_TYPE_AUDIO = 0
           MEDIA_STREAM_TYPE_VIDEO = 1
+
+        Stream directions are identified by one of the following values:
+          MEDIA_STREAM_DIRECTION_NONE = 0
+          MEDIA_STREAM_DIRECTION_SEND = 1
+          MEDIA_STREAM_DIRECTION_RECEIVE = 2
+          MEDIA_STREAM_DIRECTION_BIDIRECTIONAL = 3
 
         Stream states are identified by one of the following values:
           MEDIA_STREAM_STATE_STOPPED = 0
@@ -346,6 +352,7 @@ class ChannelTypeStreamedMedia(Channel):
             the contact handle who the stream is with (or 0 if the stream
                 represents more than a single member)
             the type of the stream
+            the direction of the stream
             the current stream state
         """
         pass
@@ -354,7 +361,8 @@ class ChannelTypeStreamedMedia(Channel):
                                                       out_signature='au')
     def RequestStreams(self, contact_handle, types):
         """
-        Request that the given types of streams be established with the given
+        Request that the given types of streams be established to send media to
+        (and depending on the protocol, possibly also receive from) the given
         member. Streams will be created in the STOPPED state, and will emit a
         StreamStateChanged signal to the CONNECTING when accepted by the remote
         parties, or if they are rejected then a StreamRemoved signal will be
@@ -384,6 +392,7 @@ class ChannelTypeStreamedMedia(Channel):
         contact_handle - the contact handle who the stream is with (or 0 if it
             represents more than a single member)
         stream_type - the stream type (as defined in ListStreams)
+        stream_direction - the stream direction (as defined in ListStreams)
         """
         pass
 
