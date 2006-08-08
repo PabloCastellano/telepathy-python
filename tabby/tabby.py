@@ -400,7 +400,7 @@ class MainWindow(gtk.Window):
         for member in members:
             self._conn.lookup_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self._cl_add_contact)
 
-    def _cl_subscribe_members_changed_cb(self, reason, added, removed, local_pending, remote_pending):
+    def _cl_subscribe_members_changed_cb(self, reason, added, removed, local_pending, remote_pending, actor, reason_code):
         for member in added:
             self._conn.lookup_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self._cl_add_contact)
 

@@ -264,7 +264,8 @@ class GroupChannel(BaseChannel):
         if self.__is_ready():
             self.emit("flags-changed")
 
-    def _members_changed_cb(self, message, added, removed, local_p, remote_p):
+    def _members_changed_cb(self, message, added, removed, local_p, remote_p,
+                            actor, reason):
         if self.__is_ready():
             for member in added:
                 self._members.append(member)
