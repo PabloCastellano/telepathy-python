@@ -342,6 +342,7 @@ class ImChannel(GroupChannel):
                 lambda *args: dbus_signal_cb(self._message_received_cb, *args))
 
         dbus_call_async(self[CHANNEL_TYPE_TEXT].ListPendingMessages,
+                        False,
                         reply_handler=self._list_pending_messages_reply_cb,
                         error_handler=self.__error_cb)
 
@@ -406,6 +407,7 @@ class ImChannel(GroupChannel):
                 lambda *args: dbus_signal_cb(self._message_received_cb, *args))
 
         dbus_call_async(self[CHANNEL_TYPE_TEXT].ListPendingMessages,
+                        False,
                         reply_handler=self._list_pending_messages_reply_cb,
                         error_handler=self.__error_cb)
 
@@ -489,6 +491,7 @@ class RoomChannel(GroupChannel):
                 lambda *args: dbus_signal_cb(self._message_received_cb, *args))
 
         dbus_call_async(self[CHANNEL_TYPE_TEXT].ListPendingMessages,
+                        False,
                         reply_handler=self._list_pending_messages_reply_cb,
                         error_handler=self.__error_cb)
 

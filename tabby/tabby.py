@@ -330,10 +330,10 @@ class MainWindow(gtk.Window):
                     inviter_handle)
 
             # and check if there's a message
-            pending = channel[CHANNEL_TYPE_TEXT].ListPendingMessages()
+            pending = channel[CHANNEL_TYPE_TEXT].ListPendingMessages(False)
             msg_text = ""
             if pending:
-                msg_id, msg_stamp, msg_sender, msg_type, msg_text = pending[0]
+                msg_id, msg_stamp, msg_sender, msg_type, msg_flags, msg_text = pending[0]
 
                 msg_text = " with the reason '%s'" % msg_text
 
