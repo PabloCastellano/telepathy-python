@@ -609,9 +609,11 @@ if __name__ == '__main__':
 
     for (name, (dbus_type, default, flags)) in reg.GetParams(manager, protocol).iteritems():
         if name in cmdline_params:
+            print "Using cmd-line value: %s=%r" % (name, cmdline_params[name])
             params[name] = dbus.Variant(cmdline_params[name], signature=dbus_type)
-        elif flags & CONN_MGR_PARAM_FLAG_HAS_DEFAULT:
-            params[name] = dbus.Variant(default, signature=dbus_type)
+        elif (flags & (CONN_MGR_PARAM_FLAG_REQUIRED)) == 0:
+            # it's not mandatory, so let's skip it
+            print "Not providing %s" % name
         elif name == 'password':
             params[name] = dbus.Variant(getpass.getpass(), signature=dbus_type)
         else:
@@ -632,10 +634,12 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGTERM, sigterm_cb)
 
-    while mainloop.is_running():
+    while 1:
         try:
             mainloop.run()
         except KeyboardInterrupt:
             quit_cb()
         except e:
             print e, e.Message
+        if not mainloop.is_running():
+            break
