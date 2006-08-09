@@ -115,14 +115,13 @@ class Call:
             added, removed, local_pending, remote_pending)
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        account_file = sys.argv[1]
-    else:
-        account_file = 'account'
+    assert len(sys.argv) == 3
+    account_file = sys.argv[1]
+    contact = sys.argv[2]
 
     manager, protocol, account = read_account(account_file)
     conn = connect(manager, protocol, account)
-    call = Call(conn, 'dafydd.harries@gmail.com')
+    call = Call(conn, contact)
     call.run()
     conn[CONN_INTERFACE].Disconnect()
 
