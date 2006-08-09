@@ -469,7 +469,7 @@ class RoomChannel(GroupChannel):
         "message-received": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                              (gobject.TYPE_UINT, gobject.TYPE_UINT,
                               gobject.TYPE_UINT, gobject.TYPE_UINT,
-                              gobject.TYPE_STRING)),
+                              gobject.TYPE_UINT, gobject.TYPE_STRING)),
         "password-flags-changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                                    (gobject.TYPE_UINT, gobject.TYPE_UINT)),
     }
