@@ -57,7 +57,7 @@ class Call:
 
             # hack
             import time
-            time.sleep(2)
+            time.sleep(5)
 
             conn[CONN_INTERFACE].RequestChannel(
                 CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_CONTACT,
