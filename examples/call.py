@@ -14,11 +14,12 @@ from telepathy.interfaces import (
     CONN_INTERFACE)
 
 class StreamedMediaChannel(Channel):
-    def __init__(self, *stuff):
-        Channel.__init__(self, *stuff)
-        self.get_valid_interfaces().update([
-            CHANNEL_INTERFACE_GROUP,
-            CHANNEL_TYPE_STREAMED_MEDIA])
+    def __init__(self, ready_callback, bus_name, object_path):
+        self.ready_callback = ready_callback
+        Channel.__init__(self, bus_name, object_path)
+
+    def got_interfaces(self):
+        self.ready_callback(self)
 
 class Call:
     def __init__(self, conn, contact):
@@ -76,9 +77,16 @@ class Call:
         if channel_type != CHANNEL_TYPE_STREAMED_MEDIA:
             return
 
+        self.chan_handle_type = handle_type
+        self.chan_handle = handle
+
         print "new streamed media channel"
         channel = StreamedMediaChannel(
-            self.conn._dbus_object._named_service, object_path)
+            self.channel_ready_cb, self.conn._dbus_object._named_service,
+            object_path)
+
+    def channel_ready_cb(self, channel):
+        print "channel ready"
         channel[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
         channel[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged',
             self.members_changed_cb)
@@ -92,7 +100,10 @@ class Call:
         handler.HandleChannel(
             self.conn._dbus_object._named_service,
             self.conn._dbus_object._object_path,
-            CHANNEL_TYPE_STREAMED_MEDIA, object_path, handle_type, handle)
+            CHANNEL_TYPE_STREAMED_MEDIA,
+            channel._dbus_object._object_path,
+            self.chan_handle_type,
+            self.chan_handle)
 
     def closed_cb(self):
         print "channel closed"
