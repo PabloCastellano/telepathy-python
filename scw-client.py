@@ -39,6 +39,36 @@ from telepathy import *
 
 import telepathy.client
 
+_dbus_int_types = {
+    'y': dbus.Byte,
+    'n': dbus.Int16,
+    'q': dbus.UInt16,
+    'i': dbus.Int32,
+    'u': dbus.UInt32,
+    'x': dbus.Int64,
+    't': dbus.UInt64,
+}
+_dbus_stringy_types = {
+    's': dbus.String,
+    'o': dbus.ObjectPath,
+    'g': dbus.Signature,
+}
+
+def _coerce_string_to_dbus(s, sig):
+    if sig == 'b':
+        s = s.upper().strip()
+        if s in ('0', 'FALSE'):
+            return False
+        elif s in ('1', 'TRUE'):
+            return True
+        raise ValueError('Unable to translate into DBUS bool: %r' % s)
+    elif sig in _dbus_stringy_types:
+        return _dbus_stringy_types[sig](s)
+    elif sig in _dbus_int_types:
+        return _dbus_int_types[sig](s)
+    else:
+        raise TypeError('Unhandled DBUS signature %s')
+
 class ContactWindow:
     def __init__(self, conn):
         self._conn = conn
@@ -606,19 +636,22 @@ if __name__ == '__main__':
     mgr_object_path = reg.GetObjectPath(manager)
 
     cmdline_params = dict((p.split('=') for p in sys.argv[3:]))
-    params={}
+    params = {}
 
     for (name, (dbus_type, default, flags)) in reg.GetParams(manager, protocol).iteritems():
         if name in cmdline_params:
-            print "Using cmd-line value: %s=%r" % (name, cmdline_params[name])
-            params[name] = dbus.Variant(cmdline_params[name], signature=dbus_type)
+            print "Using cmd-line value: %s=%r (as %s)" % (name, cmdline_params[name], dbus_type)
+            params[name] = _coerce_string_to_dbus(cmdline_params[name], sig=dbus_type)
         elif (flags & (CONN_MGR_PARAM_FLAG_REQUIRED)) == 0:
             # it's not mandatory, so let's skip it
             print "Not providing %s" % name
         elif name == 'password':
-            params[name] = dbus.Variant(getpass.getpass(), signature=dbus_type)
+            print "Providing password as %s" % dbus_type
+            params[name] = _coerce_string_to_dbus(getpass.getpass(), sig=dbus_type)
         else:
-            params[name] = dbus.Variant(raw_input(name+': '), signature=dbus_type)
+            print "Please specify %s (will send as %s)" % (name, dbus_type)
+            params[name] = _coerce_string_to_dbus(raw_input(name+': '), sig=dbus_type)
+    params = dbus.Dictionary(params, signature="sv")
 
     mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
     bus_name, object_path = mgr[CONN_MGR_INTERFACE].RequestConnection(protocol, params)
