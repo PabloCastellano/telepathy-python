@@ -44,8 +44,8 @@ CHANNEL_INTERFACE_ICE_SIGNALLING = 'org.freedesktop.Telepathy.Channel.Interface.
 CHANNEL_INTERFACE_PASSWORD = 'org.freedesktop.Telepathy.Channel.Interface.Password'
 CHANNEL_INTERFACE_TRANSFER = 'org.freedesktop.Telepathy.Channel.Interface.Transfer'
 
-MEDIA_SESSION_HANDLER = 'org.freedesktop.Telepathy.Media.SessionHandler'
-MEDIA_STREAM_HANDLER = 'org.freedesktop.Telepathy.Media.StreamHandler'
+ICE_SESSION_HANDLER = 'org.freedesktop.Telepathy.Ice.SessionHandler'
+ICE_STREAM_HANDLER = 'org.freedesktop.Telepathy.Ice.StreamHandler'
 
 PROPERTIES_INTERFACE = 'org.freedesktop.Telepathy.Properties'
 
