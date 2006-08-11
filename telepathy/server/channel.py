@@ -279,15 +279,17 @@ class ChannelTypeContactList(Channel):
 class ChannelTypeStreamedMedia(Channel):
     """
     A channel that can send and receive streamed media such as audio or video.
-    The negotiation interface is based off the Farsight project's API for
-    negotiating ICE-style connection candidates, but should be applicable
-    to most streaming media systems.
+    Provides a number of methods for listing and requesting new streams, and
+    signals to indicate when streams have been added, removed and changed
+    status.
 
-    When the negotiations are completed, the ReceivedMediaParameters signal is
-    emitted, containing the 'local' media parameters, which contain the SDP
-    information for the local user's media streams, and the 'remote' media
-    parameters which contains the same information for the remote user's
-    streams.
+    In general this should always be used in conjunction with the IceSignalling
+    interface to exchange connection candidates and codec choices with
+    whichever component is responsible for the streams. However, in certain
+    applications where no candidate exchange is necessary (eg the streams are
+    handled by specialised hardware which is controlled directly by the
+    connection manager), the signalling interface can be omitted and this
+    channel type used simply to control the streams.
     """
     def __init__(self, connection, handle):
         """
