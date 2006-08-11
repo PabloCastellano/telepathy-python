@@ -121,8 +121,8 @@ class Conversation:
         print "type: %d" % type
         print "text: '%s'" % text
 
-        name = self._conn[CONN_INTERFACE].InspectHandle(
-                CONNECTION_HANDLE_TYPE_CONTACT, sender)
+        name = self._conn[CONN_INTERFACE].InspectHandles(
+                CONNECTION_HANDLE_TYPE_CONTACT, [sender])[0]
 
         model = self._model
         iter = model.append()
