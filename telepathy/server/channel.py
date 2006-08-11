@@ -1413,6 +1413,10 @@ class ChannelInterfacePassword(dbus.service.Interface):
         pass
 
 
+class ChannelInterfaceIceSignalling(dbus.service.Interface):
+    pass
+
+
 class ChannelInterfaceTransfer(dbus.service.Interface):
     """
     An interface for channels where you may request that one of the members
