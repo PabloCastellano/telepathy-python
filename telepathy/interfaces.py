@@ -47,3 +47,5 @@ MEDIA_SESSION_HANDLER = 'org.freedesktop.Telepathy.Media.SessionHandler'
 MEDIA_STREAM_HANDLER = 'org.freedesktop.Telepathy.Media.StreamHandler'
 
 PROPERTIES_INTERFACE = 'org.freedesktop.Telepathy.Properties'
+
+CHANNEL_HANDLER_INTERFACE = 'org.freedesktop.Telepathy.ChannelHandler'
