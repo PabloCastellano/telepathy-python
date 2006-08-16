@@ -27,6 +27,8 @@ class Connection(InterfaceFactory):
         if not bus:
             bus = dbus.Bus()
 
+        self.service_name = service_name
+        self.object_path = object_path
         object = bus.get_object(service_name, object_path)
         InterfaceFactory.__init__(self, object)
         self.get_valid_interfaces().add(CONN_INTERFACE)
