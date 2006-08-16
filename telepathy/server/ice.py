@@ -76,7 +76,7 @@ class IceSessionHandler(dbus.service.Object):
         pass
 
     @dbus.service.signal(ICE_SESSION_HANDLER, signature='ouuu')
-    def NewMediaStreamHandler(self, stream_handler, id, media_type, direction):
+    def NewIceStreamHandler(self, stream_handler, id, media_type, direction):
         """
         Emitted when a new ICE stream handler has been created for this
         session.
