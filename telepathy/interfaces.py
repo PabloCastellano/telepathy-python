@@ -1,7 +1,7 @@
 # telepathy-python - Base classes defining the interfaces of the Telepathy framework
 #
-# Copyright (C) 2005 Collabora Limited
-# Copyright (C) 2005 Nokia Corporation
+# Copyright (C) 2005, 2006 Collabora Limited
+# Copyright (C) 2005, 2006 Nokia Corporation
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public

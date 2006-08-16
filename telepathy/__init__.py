@@ -1,7 +1,7 @@
 # telepathy-python - Base classes defining the interfaces of the Telepathy framework
 #
-# Copyright (C) 2005 Collabora Limited
-# Copyright (C) 2005 Nokia Corporation
+# Copyright (C) 2005, 2006 Collabora Limited
+# Copyright (C) 2005, 2006 Nokia Corporation
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -18,11 +18,11 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 version = (0, 13, 1)
+__version__ = '.'.join(str(x) for x in version)
 
-from constants import *
-from errors import *
-from interfaces import *
+from telepathy.constants import *
+from telepathy.errors import *
+from telepathy.interfaces import *
 
-import client
-import server
-
+import telepathy.client as client
+import telepathy.server as server

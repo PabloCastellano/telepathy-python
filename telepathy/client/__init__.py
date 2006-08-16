@@ -1,7 +1,7 @@
 # telepathy-python - Base classes defining the interfaces of the Telepathy framework
 #
-# Copyright (C) 2005 Collabora Limited
-# Copyright (C) 2005 Nokia Corporation
+# Copyright (C) 2005, 2006 Collabora Limited
+# Copyright (C) 2005, 2006 Nokia Corporation
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -17,10 +17,10 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-from interfacefactory import InterfaceFactory
-from managerregistry import ManagerRegistry
-from connmgr import ConnectionManager
-from conn import Connection
-from channel import Channel
+from telepathy.client.interfacefactory import InterfaceFactory
+from telepathy.client.managerregistry import ManagerRegistry
+from telepathy.client.connmgr import ConnectionManager
+from telepathy.client.conn import Connection
+from telepathy.client.channel import Channel
 
-version = (0, 0, 0)
+from telepathy import version, __version__

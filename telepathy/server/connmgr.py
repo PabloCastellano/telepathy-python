@@ -1,7 +1,7 @@
 # telepathy-python - Base classes defining the interfaces of the Telepathy framework
 #
-# Copyright (C) 2005 Collabora Limited
-# Copyright (C) 2005 Nokia Corporation
+# Copyright (C) 2005, 2006 Collabora Limited
+# Copyright (C) 2005, 2006 Nokia Corporation
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -20,8 +20,8 @@
 import dbus
 import dbus.service
 
-import telepathy
-from telepathy import *
+from telepathy.errors import NotImplemented
+from telepathy.interfaces import CONN_MGR_INTERFACE
 
 class ConnectionManager(dbus.service.Object):
     """
@@ -211,7 +211,7 @@ class ConnectionManager(dbus.service.Object):
             self.connected(conn)
             return (conn._name.get_name(), conn._object_path)
         else:
-            raise telepathy.NotImplemented('unknown protocol %s' % proto)
+            raise NotImplemented('unknown protocol %s' % proto)
 
     @dbus.service.signal(CONN_MGR_INTERFACE, signature='sos')
     def NewConnection(self, bus_name, object_path, proto):
