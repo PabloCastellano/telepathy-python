@@ -1,7 +1,7 @@
 # telepathy-python - Base classes defining the interfaces of the Telepathy framework
 #
-# Copyright (C) 2005 Collabora Limited
-# Copyright (C) 2005 Nokia Corporation
+# Copyright (C) 2005, 2006 Collabora Limited
+# Copyright (C) 2005, 2006 Nokia Corporation
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,25 @@
 
 import dbus.service
 
-from telepathy import *
+from telepathy.constants import (CONNECTION_HANDLE_TYPE_NONE,
+                                 CHANNEL_CONTACT_SEARCH_STATE_BEFORE,
+                                 CHANNEL_TEXT_MESSAGE_TYPE_NORMAL)
+
+from telepathy.errors import InvalidArgument
+
+from telepathy.interfaces import (CHANNEL_INTERFACE,
+                                  CHANNEL_INTERFACE_DTMF,
+                                  CHANNEL_INTERFACE_GROUP,
+                                  CHANNEL_INTERFACE_HOLD,
+                                  CHANNEL_INTERFACE_PASSWORD,
+                                  CHANNEL_INTERFACE_TRANSFER,
+                                  CHANNEL_TYPE_CONTACT_SEARCH,
+                                  CHANNEL_TYPE_CONTACT_LIST,
+                                  CHANNEL_TYPE_ROOM_LIST,
+                                  CHANNEL_TYPE_STREAMED_MEDIA,
+                                  CHANNEL_TYPE_TEXT,
+                                  MEDIA_SESSION_HANDLER,
+                                  MEDIA_STREAM_HANDLER)
 
 class Channel(dbus.service.Object):
     """
@@ -140,14 +158,14 @@ class ChannelTypeContactSearch(Channel):
     will be set to CHANNEL_CONTACT_SEARCH_STATE_DURING. When results are
     returned by the server, the SearchResultReceived signal is emitted for each
     contact found, and when the search is complete, the search status will be
-    set to CHANNEL_SEARCH_STATE_AFTER.
+    set to CHANNEL_CONTACT_SEARCH_STATE_AFTER.
     """
     def __init__(self, connection):
         """
         Initialise the contact search channel.
         """
-        Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_SEARCH)
-        self._search_state = CHANNEL_SEARCH_STATE_BEFORE
+        Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_SEARCH, 0)
+        self._search_state = CHANNEL_CONTACT_SEARCH_STATE_BEFORE
 
     @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='sa{s(bg)}')
     def GetSearchKeys(self):
@@ -600,7 +618,7 @@ class ChannelTypeRoomList(Channel):
         Parameters:
         connection - the parent Telepathy Connection object
         """
-        Channel.__init__(self, connection, CHANNEL_TYPE_ROOM_LIST)
+        Channel.__init__(self, connection, CHANNEL_TYPE_ROOM_LIST, 0)
         self._listing_rooms = False
         self._rooms = {}
 
@@ -750,7 +768,7 @@ class ChannelTypeText(Channel):
         """
         for id in ids:
             if id not in self._pending_messages:
-                raise telepathy.InvalidArgument("the given message ID was not found")
+                raise InvalidArgument("the given message ID was not found")
 
         for id in ids:
             del self._pending_messages[id]
