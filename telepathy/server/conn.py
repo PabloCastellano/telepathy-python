@@ -1,7 +1,7 @@
 # telepathy-python - Base classes defining the interfaces of the Telepathy framework
 #
-# Copyright (C) 2005 Collabora Limited
-# Copyright (C) 2005 Nokia Corporation
+# Copyright (C) 2005, 2006 Collabora Limited
+# Copyright (C) 2005, 2006 Nokia Corporation
 # Copyright (C) 2006 INdT
 #
 # This library is free software; you can redistribute it and/or
@@ -22,8 +22,9 @@ import dbus.service
 import re
 import weakref
 
+from telepathy.server.handle import Handle
+
 from telepathy import *
-from handle import Handle
 
 class Connection(dbus.service.Object):
     """
@@ -296,8 +297,8 @@ class Connection(dbus.service.Object):
             hand = self._handles[handle_type, handle]
             self.add_client_handle(hand, sender)
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='')
-    def ReleaseHandles(self, handle_type, handles):
+    @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='', sender_keyword='sender')
+    def ReleaseHandles(self, handle_type, handles, sender):
         """
         Explicitly notify the connection manager that your client is no
         longer holding any references to the given handles, and that they
