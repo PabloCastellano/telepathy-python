@@ -22,9 +22,22 @@ import dbus.service
 import re
 import weakref
 
+from telepathy.constants import (CONNECTION_STATUS_CONNECTING,
+                                 CONNECTION_STATUS_CONNECTED,
+                                 CONNECTION_HANDLE_TYPE_CONTACT,
+                                 CONNECTION_HANDLE_TYPE_LIST)
+from telepathy.errors import (Disconnected, InvalidArgument,
+                              InvalidHandle, NotAvailable)
+from telepathy.interfaces import (CONN_INTERFACE,
+                                  CONN_INTERFACE_ALIASING,
+                                  CONN_INTERFACE_AVATARS,
+                                  CONN_INTERFACE_CAPABILITIES,
+                                  CONN_INTERFACE_CONTACT_INFO,
+                                  CONN_INTERFACE_FORWARDING,
+                                  CONN_INTERFACE_PRESENCE,
+                                  CONN_INTERFACE_PRIVACY,
+                                  CONN_INTERFACE_RENAMING)
 from telepathy.server.handle import Handle
-
-from telepathy import *
 
 class Connection(dbus.service.Object):
     """
