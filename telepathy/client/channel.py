@@ -24,24 +24,26 @@ from telepathy.client.interfacefactory import InterfaceFactory
 from telepathy.interfaces import CHANNEL_INTERFACE
 
 class Channel(InterfaceFactory):
-    def __init__(self, service_name, object_path, bus=None):
+    def __init__(self, service_name, object_path, bus=None, ready_handler=None):
         if not bus:
             bus = dbus.Bus()
 
         self.service_name = service_name
         self.object_path = object_path
+        self._ready_handler = ready_handler
         object = bus.get_object(service_name, object_path)
         InterfaceFactory.__init__(self, object)
         self.get_valid_interfaces().add(CHANNEL_INTERFACE)
-        self[CHANNEL_INTERFACE].GetInterfaces(reply_handler=self.get_interfaces_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE].GetChannelType(reply_handler=self.get_channel_type_reply_cb, error_handler=self.error_cb)
 
     def error_cb(self, exception):
         print "Exception received from asynchronous method call:"
         print exception
 
+    def get_channel_type_reply_cb(self, interface):
+        self.get_valid_interfaces().add(interface)
+        self[CHANNEL_INTERFACE].GetInterfaces(reply_handler=self.get_interfaces_reply_cb, error_handler=self.error_cb)
+
     def get_interfaces_reply_cb(self, interfaces):
         self.get_valid_interfaces().update(interfaces)
-        gobject.idle_add(self.got_interfaces)
-
-    def got_interfaces(self):
-        pass
+        self._ready_handler()
