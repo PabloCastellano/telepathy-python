@@ -36,7 +36,8 @@ import telepathy.client
 
 class ContactListChannel(telepathy.client.Channel):
     def __init__(self, conn, object_path, handle_type, handle):
-        telepathy.client.Channel.__init__(self, conn._service_name, object_path)
+        telepathy.client.Channel.__init__(self, conn._service_name,
+                object_path, ready_handler=self.got_interfaces)
         self.get_valid_interfaces().add(CHANNEL_TYPE_CONTACT_LIST)
         self._conn = conn
         self._handle_type = handle_type
@@ -103,7 +104,8 @@ class ContactListChannel(telepathy.client.Channel):
 
 class StreamedMediaChannel(telepathy.client.Channel):
     def __init__(self, conn, object_path, handle_type, handle):
-        telepathy.client.Channel.__init__(self, conn._service_name, object_path)
+        telepathy.client.Channel.__init__(self, conn._service_name,
+                object_path, ready_handler=self.got_interfaces)
         self._conn = conn
         self.get_valid_interfaces().add(CHANNEL_TYPE_STREAMED_MEDIA)
         self[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal('ReceivedMediaParameters', self.received_media_params_cb)

@@ -13,14 +13,6 @@ from telepathy.interfaces import (
     CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_STREAMED_MEDIA,
     CONN_INTERFACE)
 
-class StreamedMediaChannel(Channel):
-    def __init__(self, ready_callback, bus_name, object_path):
-        self.ready_callback = ready_callback
-        Channel.__init__(self, bus_name, object_path)
-
-    def got_interfaces(self):
-        self.ready_callback(self)
-
 class Call:
     def __init__(self, conn, contact):
         self.conn = conn
@@ -81,9 +73,8 @@ class Call:
         self.chan_handle = handle
 
         print "new streamed media channel"
-        channel = StreamedMediaChannel(
-            self.channel_ready_cb, self.conn._dbus_object._named_service,
-            object_path)
+        channel = Channel(self.conn._dbus_object._named_service, object_path,
+                ready_handler=self.channel_ready_cb)
 
     def channel_ready_cb(self, channel):
         print "channel ready"

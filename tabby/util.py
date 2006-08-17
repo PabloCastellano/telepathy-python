@@ -152,7 +152,8 @@ class BaseChannel(gobject.GObject, telepathy.client.Channel):
 
     def __init__(self, conn, obj_path, handle_type, handle, type):
         self.__gobject_init__()
-        telepathy.client.Channel.__init__(self, conn.bus_name, obj_path)
+        telepathy.client.Channel.__init__(self, conn.bus_name, obj_path,
+                ready_handler=self.got_interfaces)
 
         self.get_valid_interfaces().add(type)
 
