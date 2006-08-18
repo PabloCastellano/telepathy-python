@@ -19,17 +19,27 @@
 
 import dbus
 
-from telepathy.client.interfacefactory import InterfaceFactory
+from telepathy.client.interfacefactory import (InterfaceFactory,
+                                               default_error_handler)
 from telepathy.interfaces import CONN_INTERFACE, CONN_INTERFACE_AVATARS
 
 class Connection(InterfaceFactory):
-    def __init__(self, service_name, object_path, bus=None):
+    def __init__(self, service_name, object_path, bus=None, ready_handler=None,
+                 error_handler=None):
         if not bus:
             bus = dbus.Bus()
+        if error_handler is None:
+            error_handler = default_error_handler
 
         self.service_name = service_name
         self.object_path = object_path
+        self._ready_handler = ready_handler
         object = bus.get_object(service_name, object_path)
         InterfaceFactory.__init__(self, object)
         self.get_valid_interfaces().add(CONN_INTERFACE)
-        self.get_valid_interfaces().add(CONN_INTERFACE_AVATARS)
+        self[CONN_INTERFACE].GetInterfaces(reply_handler=self.get_interfaces_reply_cb, error_handler=error_handler)
+
+    def get_interfaces_reply_cb(self, interfaces):
+        self.get_valid_interfaces().update(interfaces)
+        if self._ready_handler is not None:
+            self._ready_handler()
