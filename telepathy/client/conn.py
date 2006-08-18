@@ -25,11 +25,9 @@ from telepathy.interfaces import CONN_INTERFACE, CONN_INTERFACE_AVATARS
 
 class Connection(InterfaceFactory):
     def __init__(self, service_name, object_path, bus=None, ready_handler=None,
-                 error_handler=None):
+                 error_handler=default_error_handler):
         if not bus:
             bus = dbus.Bus()
-        if error_handler is None:
-            error_handler = default_error_handler
 
         self.service_name = service_name
         self.object_path = object_path
