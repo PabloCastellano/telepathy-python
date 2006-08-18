@@ -18,7 +18,6 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import dbus
-import gobject
 
 from telepathy.client.interfacefactory import (InterfaceFactory,
                                                default_error_handler)
