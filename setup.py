@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='telepathy-python',
-    version='0.13.2',
+    version='0.13.2.1',
     packages=[
         'telepathy',
         'telepathy.client',
