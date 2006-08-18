@@ -163,7 +163,7 @@ class BaseChannel(gobject.GObject, telepathy.client.Channel):
         self._handle = handle
         self._name = handle
 
-    def got_interfaces(self):
+    def got_interfaces(self, unused):
         self[CHANNEL_INTERFACE].connect_to_signal("Closed",
                 lambda *args: dbus_signal_cb(self._closed_cb, *args))
 

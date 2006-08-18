@@ -46,4 +46,4 @@ class Channel(InterfaceFactory):
     def get_interfaces_reply_cb(self, interfaces):
         self.get_valid_interfaces().update(interfaces)
         if self._ready_handler is not None:
-            self._ready_handler()
+            self._ready_handler(self)

@@ -66,8 +66,7 @@ if __name__ == '__main__':
     mgr = reg.GetManager(manager)
     conn_bus_name, conn_object_path = mgr[CONN_MGR_INTERFACE].Connect(
         protocol, account)
-    conn = None
-    def on_ready():
+    def on_ready(conn):
         conn[CONN_INTERFACE].connect_to_signal('StatusChanged', status_changed_cb)
     conn = telepathy.client.Connection(conn_bus_name, conn_object_path,
                                        ready_handler=on_ready)

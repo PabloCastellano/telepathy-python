@@ -44,7 +44,7 @@ class ContactListChannel(telepathy.client.Channel):
         self._handle = handle
         self._name = handle
 
-    def got_interfaces(self):
+    def got_interfaces(self, unused):
         self[CHANNEL_INTERFACE_GROUP].AddMembers([],"")
         self._conn[CONN_INTERFACE].InspectHandle(self._handle_type, self._handle, reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
@@ -111,7 +111,7 @@ class StreamedMediaChannel(telepathy.client.Channel):
         self[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal('ReceivedMediaParameters', self.received_media_params_cb)
         self[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
 
-    def got_interfaces(self):
+    def got_interfaces(self, unused):
         print "SMC got interfaces"
         self[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers(reply_handler=self.get_local_pending_members_reply_cb, error_handler=self.error_cb)

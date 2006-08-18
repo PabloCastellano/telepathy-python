@@ -210,7 +210,7 @@ class ContactListChannel(telepathy.client.Channel):
         self._handle = handle
         self._name = handle
 
-    def got_interfaces(self):
+    def got_interfaces(self, unused):
         self._conn[CONN_INTERFACE].InspectHandles(self._handle_type, [self._handle],
             reply_handler=self.inspect_handle_reply_cb, error_handler=self.error_cb)
         self[CHANNEL_INTERFACE_GROUP].GetMembers(reply_handler=self.get_members_reply_cb, error_handler=self.error_cb)
