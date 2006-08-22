@@ -110,11 +110,21 @@ def signal_to_marshal_type(signal):
     return mtype
 
 def signal_to_marshal_name(signal, prefix):
-    mtype=signal_to_marshal_type(signal)
+    glib_marshallers = set(['VOID', 'BOOLEAN', 'CHAR', 'UCHAR', 'INT',
+            'STRING', 'UINT', 'LONG', 'ULONG', 'ENUM', 'FLAGS', 'FLOAT',
+            'DOUBLE', 'STRING', 'PARAM', 'BOXED', 'POINTER', 'OBJECT',
+            'UINT_POINTER'])
+
+    mtype = signal_to_marshal_type(signal)
     if len(mtype):
-        return prefix+'_marshal_VOID__' + '_'.join(mtype)
+        name = '_'.join(mtype)
     else:
-        return prefix+'_marshal_VOID__VOID'
+        name = 'VOID'
+
+    if name in glib_marshallers:
+        return 'g_cclosure_marshal_VOID__' + name
+    else:
+        return prefix + '_marshal_VOID__' + name
 
 def signal_to_gtype_list(signal):
     gtype=[]
@@ -294,18 +304,13 @@ static void
   object_class->finalize = %(prefix)s_finalize;
 """ % {"prefix":prefix, "classname":classname, 'uprefix':prefix.upper()})
 
-    for signal in signals:
-        mtype = signal_to_marshal_type(signal)
-        if len(mtype):
-            signal_marshal.write("VOID:"+','.join(mtype)+"\n")
-        else:
-            signal_marshal.write("VOID:VOID\n")
-
     header.write("\n")
 
+    marshallers = set()
     for signal in signals:
         dbus_name = signal.getAttributeNode("name").nodeValue
-        gtypelist=signal_to_gtype_list(signal)
+        gtypelist = signal_to_gtype_list(signal)
+        marshal_name = signal_to_marshal_name(signal, prefix)
 
         body.write(
 """
@@ -319,8 +324,16 @@ static void
                   G_TYPE_NONE, %s);
 """ % (camelcase_to_upper(dbus_name),
             camelcase_to_lower(dbus_name).replace('_','-'),
-            prefix,
-            signal_to_marshal_name(signal,prefix), ', '.join([str(len(gtypelist))] + gtypelist)))
+            prefix, marshal_name,
+            ', '.join([str(len(gtypelist))] + gtypelist)))
+
+        if not marshal_name.startswith('g_cclosure_marshal_VOID__'):
+            mtype = signal_to_marshal_type(signal)
+            assert(len(mtype))
+            marshallers.add(','.join(mtype))
+
+    for marshaller in marshallers:
+        signal_marshal.write("VOID:"+marshaller+"\n")
 
     body.write(
 """
