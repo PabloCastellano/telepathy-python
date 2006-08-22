@@ -45,7 +45,7 @@ def type_to_gtype(s):
     elif s == 'i': #int32
         return ("gint", "G_TYPE_INT","INT", False)
     elif s == 'u': #uint32
-        return ("guint", "G_TYPE_UINT","INT", False)
+        return ("guint", "G_TYPE_UINT","UINT", False)
     elif s == 'x': #int64
         return ("gint", "G_TYPE_INT64","INT64", False)
     elif s == 't': #uint32
