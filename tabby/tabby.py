@@ -362,9 +362,10 @@ class MainWindow(gtk.Window):
                 return
         elif channel_type == CHANNEL_TYPE_STREAMED_MEDIA:
             channel = StreamedMediaChannel(self._conn, obj_path)
+            peer_handle = channel[CHANNEL_INTERFACE_GROUP].GetMembers()[0]
 
             if not handle in self._conversations:
-                self._conversations[handle] = Conversation(self._conn, self._convo_nb, handle, None)
+                self._conversations[handle] = Conversation(self._conn, self._convo_nb, peer_handle, None)
 
             self._conversations[handle].take_media_channel(channel)
             self._conversations[handle].show()
@@ -486,7 +487,7 @@ class MainWindow(gtk.Window):
         if not channel_type == CHANNEL_TYPE_STREAMED_MEDIA:
             return
 
-        print "Detected a CHANNEL_TYPE_STREAMED_MEDIA channel, giving it to voip-engine"
+        print "Detected a CHANNEL_TYPE_STREAMED_MEDIA channel, giving it to stream-engine"
 
         self._voip_chandler.HandleChannel(kwargs["connection_sender"],
                                           kwargs["connection_path"],

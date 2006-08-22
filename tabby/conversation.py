@@ -104,7 +104,7 @@ class Conversation:
             CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_CONTACT,
             handle, True,
             reply_handler=self._request_im_channel_reply_cb,
-            error_handler=None,
+            error_handler=self._error_cb,
             extra_args=(handle, name,))
 
         # Show the widgets created by us
@@ -144,6 +144,8 @@ class Conversation:
 
     def take_media_channel(self, chan):
         self._media_chan = chan
+        
+        self._media_update_members(chan)
 
         chan.connect("flags-changed", self._media_flags_changed_cb)
         chan.connect("members-changed", lambda chan, *args: self._media_update_members(chan))
