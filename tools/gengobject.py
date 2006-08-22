@@ -374,13 +374,19 @@ void
     for method in methods:
         dbus_method_name = method.getAttributeNode("name").nodeValue
         c_method_name = prefix + '_' + camelcase_to_lower(dbus_method_name)
-        c_decl = 'gboolean '+c_method_name+' ('+classname+' *obj'
         async=False
         ret_count=0
 
         for i in method.getElementsByTagName("annotation"):
             if i.getAttribute("name") == "org.freedesktop.DBus.GLib.Async":
                 async=True
+
+        if async:
+            c_decl = 'void '
+        else:
+            c_decl = 'gboolean '
+
+        c_decl += c_method_name+' ('+classname+' *obj'
 
         for i in method.getElementsByTagName("arg"):
             name =i.getAttribute("name")
@@ -404,6 +410,7 @@ void
                 if type_to_gtype(type)[3]:
                     gtype="const "+gtype
             c_decl +=", "+gtype+" "+name
+
         if async:
             c_decl += ", DBusGMethodInvocation *context)"
         else:
@@ -436,7 +443,11 @@ void
  * Returns: TRUE if successful, FALSE if an error was thrown.
  */
 """)
-        body.write(c_decl+"\n{\n  return TRUE;\n}\n\n")
+
+        if async:
+            body.write(c_decl+"\n{\n  return;\n}\n\n")
+        else:
+            body.write(c_decl+"\n{\n  return TRUE;\n}\n\n")
 
     header.write('\n')
 
