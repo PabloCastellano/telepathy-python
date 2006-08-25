@@ -32,3 +32,9 @@ class Handle(object):
 
     def get_name(self):
         return self._name
+
+    def __eq__(self, other):
+        return (int(self) == int(other) and self.get_type() == other.get_type())
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
