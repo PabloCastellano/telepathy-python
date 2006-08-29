@@ -42,8 +42,8 @@ class Call:
 
     def status_changed_cb(self, state, reason):
         if state == CONNECTION_STATUS_CONNECTED:
-            handle = conn[CONN_INTERFACE].RequestHandle(
-                CONNECTION_HANDLE_TYPE_CONTACT, self.contact)
+            handle = conn[CONN_INTERFACE].RequestHandles(
+                CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
 
             print 'got handle %d for %s' % (handle, self.contact)
 
@@ -73,11 +73,12 @@ class Call:
         self.chan_handle = handle
 
         print "new streamed media channel"
-        channel = Channel(self.conn._dbus_object._named_service, object_path,
+        self.channel = Channel(self.conn._dbus_object._named_service, object_path,
                 ready_handler=self.channel_ready_cb)
 
-    def channel_ready_cb(self, channel):
+    def channel_ready_cb(self):
         print "channel ready"
+        channel = self.channel
         channel[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
         channel[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged',
             self.members_changed_cb)
@@ -101,9 +102,9 @@ class Call:
         self.quit()
 
     def members_changed_cb(self, message, added, removed, local_pending,
-            remote_pending):
+            remote_pending, actor, reason):
         print 'MembersChanged', (
-            added, removed, local_pending, remote_pending)
+            added, removed, local_pending, remote_pending, actor, reason)
 
 if __name__ == '__main__':
     assert len(sys.argv) == 3
@@ -112,6 +113,7 @@ if __name__ == '__main__':
 
     manager, protocol, account = read_account(account_file)
     conn = connect(manager, protocol, account)
+    conn[CONN_INTERFACE].Connect()
     call = Call(conn, contact)
     call.run()
     conn[CONN_INTERFACE].Disconnect()

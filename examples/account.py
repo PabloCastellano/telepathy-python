@@ -32,7 +32,7 @@ def connect(manager, protocol, account):
     reg.LoadManagers()
 
     mgr = reg.GetManager(manager)
-    conn_bus_name, conn_object_path = mgr[CONN_MGR_INTERFACE].Connect(
-        protocol, account)
+    conn_bus_name, conn_object_path = mgr[CONN_MGR_INTERFACE].RequestConnection(protocol, account)
     return telepathy.client.Connection(conn_bus_name, conn_object_path)
+
 
