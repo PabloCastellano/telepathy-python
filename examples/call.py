@@ -90,8 +90,8 @@ class Call:
 
         bus = dbus.Bus()
         stream_engine = bus.get_object(
-            'org.freedesktop.Telepathy.StreamEngine',
-            '/org/freedesktop/Telepathy/StreamEngine')
+            'org.freedesktop.Telepathy.VoipEngine',
+            '/org/freedesktop/Telepathy/VoipEngine')
         handler = dbus.Interface(stream_engine,
             'org.freedesktop.Telepathy.ChannelHandler')
         handler.HandleChannel(
