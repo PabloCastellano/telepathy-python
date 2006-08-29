@@ -116,5 +116,10 @@ if __name__ == '__main__':
     conn[CONN_INTERFACE].Connect()
     call = Call(conn, contact)
     call.run()
-    conn[CONN_INTERFACE].Disconnect()
+
+    try:
+        conn[CONN_INTERFACE].Disconnect()
+    except dbus.DBusException:
+        pass
+
 
