@@ -33,7 +33,7 @@ class Call:
             print "killed"
 
             if self.channel:
-                self.channel.Close()
+                self.channel[CHANNEL_INTERFACE].Close()
 
     def quit(self):
         if self.loop:
