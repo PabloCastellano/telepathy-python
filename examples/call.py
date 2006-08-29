@@ -73,12 +73,11 @@ class Call:
         self.chan_handle = handle
 
         print "new streamed media channel"
-        self.channel = Channel(self.conn._dbus_object._named_service, object_path,
+        Channel(self.conn._dbus_object._named_service, object_path,
                 ready_handler=self.channel_ready_cb)
 
-    def channel_ready_cb(self):
+    def channel_ready_cb(self, channel):
         print "channel ready"
-        channel = self.channel
         channel[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
         channel[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged',
             self.members_changed_cb)
@@ -96,6 +95,8 @@ class Call:
             channel._dbus_object._object_path,
             self.chan_handle_type,
             self.chan_handle)
+
+        self.channel = channel
 
     def closed_cb(self):
         print "channel closed"
