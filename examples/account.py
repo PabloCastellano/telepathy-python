@@ -1,6 +1,7 @@
 
 import telepathy
 from telepathy.interfaces import CONN_MGR_INTERFACE
+import dbus
 
 def parse_account(s):
     lines = s.splitlines()
@@ -18,6 +19,14 @@ def parse_account(s):
         elif k == 'protocol':
             protocol = v
         else:
+            if k not in ("account", "password"):
+                if v.lower() in ("false", "true"):
+                    v = bool(v)
+                else:
+                    try:
+                        v = dbus.UInt32(int(v))
+                    except:
+                        pass
             pairs.append((k, v))
 
     assert manager
