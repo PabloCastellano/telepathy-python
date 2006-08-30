@@ -111,32 +111,39 @@ class Connection(telepathy.client.Connection):
         telepathy.client.Connection.__init__(self, bus_name, obj_path)
 
         self._handle_cache = {}
+        """Key: tuple (handle_type: int, handle_id: int)
+        Value: name: str
+        """
+
         self._handle_callbacks = {}
+        """Key: tuple (handle_type: int, handle_id: int)
+        Value: a list of tuples (callable, args)
+        """
 
     def got_interfaces(self):
         print "Connection::got_interfaces"
 
     def lookup_handle(self, handle_type, handle_id, func, *args):
-        if handle_id in self._handle_cache:
-            func_args = self._handle_cache[handle_id] + args
-            func(handle_id, *func_args)
+        if (handle_type, handle_id) in self._handle_cache:
+            func(handle_id, handle_type,
+                 self._handle_cache[(handle_type, handle_id)], *args)
         else:
-            if not handle_id in self._handle_callbacks:
+            if not (handle_type, handle_id) in self._handle_callbacks:
                 dbus_call_async(self[CONN_INTERFACE].InspectHandles,
                                 handle_type, [handle_id],
                                 reply_handler=lambda names: self._inspect_handle_reply_cb(handle_type, handle_id, names[0]),
                                 error_handler=self.__error_cb)
                 self._handle_callbacks[handle_id] = []
 
-            self._handle_callbacks[handle_id].append((func, args))
+            self._handle_callbacks[(handle_type, handle_id)].append((func, args))
 
     def _inspect_handle_reply_cb(self, handle_type, handle_id, name):
-        self._handle_cache[handle_id] = (handle_type, name)
+        self._handle_cache[(handle_type, handle_id)] = name
 
-        for func, args in self._handle_callbacks[handle_id]:
+        for func, args in self._handle_callbacks[(handle_type, handle_id)]:
             func(handle_type, handle_id, name, *args)
 
-        del self._handle_callbacks[handle_id]
+        del self._handle_callbacks[(handle_type, handle_id)]
 
     def __error_cb(self, exception):
         print "Connection.__error_cb: Exception received:", exception
