@@ -133,7 +133,7 @@ class Connection(telepathy.client.Connection):
                                 handle_type, [handle_id],
                                 reply_handler=lambda names: self._inspect_handle_reply_cb(handle_type, handle_id, names[0]),
                                 error_handler=self.__error_cb)
-                self._handle_callbacks[handle_id] = []
+                self._handle_callbacks[(handle_type, handle_id)] = []
 
             self._handle_callbacks[(handle_type, handle_id)].append((func, args))
 
