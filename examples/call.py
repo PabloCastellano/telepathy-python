@@ -42,6 +42,10 @@ class Call:
 
     def status_changed_cb(self, state, reason):
         if state == CONNECTION_STATUS_CONNECTED:
+            if self.contact == None:
+                print "Waiting for someone to call"
+                return
+
             handle = conn[CONN_INTERFACE].RequestHandles(
                 CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
 
@@ -98,6 +102,11 @@ class Call:
 
         self.channel = channel
 
+        if self.contact == None:
+            print "Accepting incoming call"
+            pending = channel[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers()
+            channel[CHANNEL_INTERFACE_GROUP].AddMembers(pending, "")
+
     def closed_cb(self):
         print "channel closed"
         self.quit()
@@ -108,9 +117,12 @@ class Call:
             added, removed, local_pending, remote_pending, actor, reason)
 
 if __name__ == '__main__':
-    assert len(sys.argv) == 3
+    assert len(sys.argv) >= 2
     account_file = sys.argv[1]
-    contact = sys.argv[2]
+    if len(sys.argv) > 2:
+        contact = sys.argv[2]
+    else:
+        contact = None
 
     manager, protocol, account = read_account(account_file)
     conn = connect(manager, protocol, account)
