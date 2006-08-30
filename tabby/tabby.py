@@ -215,8 +215,8 @@ class MainWindow(gtk.Window):
 
         if VOIP_ENABLED:
             bus = dbus.Bus()
-            voip_obj = bus.get_object("org.freedesktop.Telepathy.VoipEngine",
-                                      "/org/freedesktop/Telepathy/VoipEngine")
+            voip_obj = bus.get_object("org.freedesktop.Telepathy.StreamEngine",
+                                      "/org/freedesktop/Telepathy/StreamEngine")
             self._voip_chandler = dbus.Interface(voip_obj, "org.freedesktop.Telepathy.ChannelHandler")
 
             bus.add_signal_receiver(self._conn_handle_new_channel,
