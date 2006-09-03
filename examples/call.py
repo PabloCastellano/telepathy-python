@@ -8,7 +8,8 @@ from account import read_account, connect
 from telepathy.client.channel import Channel
 from telepathy.constants import (
     CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_STATUS_CONNECTED,
-    CONNECTION_STATUS_DISCONNECTED)
+    CONNECTION_STATUS_DISCONNECTED, MEDIA_STREAM_TYPE_AUDIO,
+    MEDIA_STREAM_TYPE_VIDEO)
 from telepathy.interfaces import (
     CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_STREAMED_MEDIA,
     CONN_INTERFACE)
@@ -48,6 +49,7 @@ class Call:
 
             handle = conn[CONN_INTERFACE].RequestHandles(
                 CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
+            self.handle = handle
 
             print 'got handle %d for %s' % (handle, self.contact)
 
@@ -106,6 +108,19 @@ class Call:
             print "Accepting incoming call"
             pending = channel[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers()
             channel[CHANNEL_INTERFACE_GROUP].AddMembers(pending, "")
+        else:
+            print "Requesting audio/video streams"
+            try:
+                channel[CHANNEL_TYPE_STREAMED_MEDIA].RequestStreams(
+                    self.handle,
+                    [MEDIA_STREAM_TYPE_AUDIO, MEDIA_STREAM_TYPE_VIDEO]);
+            except dbus.DBusException, e:
+                print "Failed:", e
+                print "Requesting audio stream"
+                channel[CHANNEL_TYPE_STREAMED_MEDIA].RequestStreams(
+                    self.handle, [MEDIA_STREAM_TYPE_AUDIO]);
+
+
 
     def closed_cb(self):
         print "channel closed"
