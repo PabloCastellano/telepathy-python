@@ -34,6 +34,7 @@ class Call:
             print "killed"
 
             if self.channel:
+                print "closing channel"
                 self.channel[CHANNEL_INTERFACE].Close()
 
     def quit(self):
@@ -44,7 +45,7 @@ class Call:
     def status_changed_cb(self, state, reason):
         if state == CONNECTION_STATUS_CONNECTED:
             if self.contact == None:
-                print "Waiting for someone to call"
+                print "waiting for incoming call"
                 return
 
             handle = conn[CONN_INTERFACE].RequestHandles(
@@ -105,7 +106,7 @@ class Call:
         self.channel = channel
 
         if self.contact == None:
-            print "Accepting incoming call"
+            print "accepting incoming call"
             pending = channel[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers()
             channel[CHANNEL_INTERFACE_GROUP].AddMembers(pending, "")
         else:
@@ -141,11 +142,13 @@ if __name__ == '__main__':
 
     manager, protocol, account = read_account(account_file)
     conn = connect(manager, protocol, account)
+    print "connecting"
     conn[CONN_INTERFACE].Connect()
     call = Call(conn, contact)
     call.run()
 
     try:
+        print "disconnecting"
         conn[CONN_INTERFACE].Disconnect()
     except dbus.DBusException:
         pass
