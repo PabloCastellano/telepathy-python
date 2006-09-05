@@ -133,7 +133,7 @@ class Call:
             added, removed, local_pending, remote_pending, actor, reason)
 
 if __name__ == '__main__':
-    assert len(sys.argv) >= 2
+    assert len(sys.argv) in (2, 3)
     account_file = sys.argv[1]
     if len(sys.argv) > 2:
         contact = sys.argv[2]
