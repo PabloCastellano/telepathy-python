@@ -14,6 +14,12 @@ from telepathy.interfaces import (
     CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_STREAMED_MEDIA,
     CONN_INTERFACE)
 
+def get_stream_engine():
+    bus = dbus.Bus()
+    return bus.get_object(
+        'org.freedesktop.Telepathy.StreamEngine',
+        '/org/freedesktop/Telepathy/StreamEngine')
+
 class Call:
     def __init__(self, conn, contact):
         self.conn = conn
@@ -89,10 +95,7 @@ class Call:
         channel[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged',
             self.members_changed_cb)
 
-        bus = dbus.Bus()
-        stream_engine = bus.get_object(
-            'org.freedesktop.Telepathy.VoipEngine',
-            '/org/freedesktop/Telepathy/VoipEngine')
+        stream_engine = get_stream_engine()
         handler = dbus.Interface(stream_engine,
             'org.freedesktop.Telepathy.ChannelHandler')
         handler.HandleChannel(
