@@ -364,13 +364,13 @@ class ChannelTypeStreamedMedia(Channel):
                                                       out_signature='')
     def RemoveStreams(self, streams):
         """
-        Request that the streams identified by the given ids are removed.
+        Request that the given streams are removed.
 
         Parameters:
-        streams - an array of stream ids (as defined in ListStreams)
+        streams - an array of stream identifiers (as defined in ListStreams)
 
         Possible Errors:
-        InvalidArgument (unknown stream id)
+        InvalidArgument (unknown stream identifier)
         """
         pass
 
