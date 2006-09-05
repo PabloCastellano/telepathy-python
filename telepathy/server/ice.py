@@ -287,3 +287,11 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='')
+    def Close(self):
+        """
+        Signal emitted when the connection manager wishes the stream to be
+        closed.
+        """
+        pass
+
