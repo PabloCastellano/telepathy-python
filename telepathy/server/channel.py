@@ -360,6 +360,20 @@ class ChannelTypeStreamedMedia(Channel):
         """
         pass
 
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='au',
+                                                      out_signature='')
+    def RemoveStreams(self, streams):
+        """
+        Request that the streams identified by the given ids are removed.
+
+        Parameters:
+        streams - an array of stream ids (as defined in ListStreams)
+
+        Possible Errors:
+        InvalidArgument (unknown stream id)
+        """
+        pass
+
     @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uuu')
     def StreamAdded(self, stream_id, contact_handle, stream_type):
         """
