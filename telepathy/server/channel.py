@@ -1028,6 +1028,9 @@ class ChannelInterfaceGroup(dbus.service.Interface):
 
 class ChannelInterfaceHold(dbus.service.Interface):
     """
+    THIS INTERFACE IS DEPRECATED AND SHOULD NOT BE USED. Hold functionality
+    should be added to the StreamedMedia channel in due course.
+
     Interface for channels where members may put you on hold, or you may put
     members on hold. This usually only makes sense for channels where you are
     streaming media to or from the members. Hold is defined as requesting
