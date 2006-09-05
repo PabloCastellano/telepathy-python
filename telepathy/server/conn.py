@@ -751,17 +751,21 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
     represent the ability to create channels for chat rooms or activities such
     as searching and room listing.
 
-    The following capability flags are defined:
+    The following generic capability flags are defined:
     1 - CONNECTION_CAPABILITY_FLAG_CREATE
         The given channel type and handle can be given to RequestChannel to
         create a new channel of this type.
     2 - CONNECTION_CAPABILITY_FLAG_INVITE
         The given contact can be invited to an existing channel of this type.
 
+    In addition, channel types may have channel type specific capability flags
+    of their own, which are described separately.
+
     This interface also provides for user interfaces notifying the connection
     manager of what capabilities to advertise for the user. This is done by
-    using the AdvertiseCapabilities method, and deals only with the interface
-    names of channel types which are implemented by available client processes.
+    using the AdvertiseCapabilities method, and deals with the interface names
+    of channel types and the channel type specific flags pertaining to them
+    which are implemented by available client processes.
     """
     def __init__(self):
         """
@@ -771,7 +775,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         self._own_caps = set()
         self._caps = {}
 
-    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='au', out_signature='a(usu)')
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='au', out_signature='a(usuu)')
     def GetCapabilities(self, handles):
         """
         Returns an array of capabilities for the given contact handles, or
@@ -781,10 +785,11 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         handle - a contact handle for this connection, or zero for channel types available on the connection itself
 
         Returns:
-        an array of structs containing:
+        an array of structures containing:
             an integer handle representing the contact
-            a D-Bus interface name representing the channel type
-            a bitwise OR of capability flags pertaining to this channel type
+            a string channel type
+            a bitwise OR of generic capability flags for the type
+            a bitwise OR of channel type specific capability flags for the type
 
         Possible Errors:
         Disconnected, NetworkError, InvalidHandle (the handle does not represent a contact), PermissionDenied
@@ -796,18 +801,20 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         else:
             return []
 
-    @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(usuu)')
-    def CapabilitiesChanged(self, caps):
+    @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(usuuuu)')
+    def CapabilitiesChanged(self, gen_caps, type_caps):
         """
-        Announce the availability or the removal of capabilities on the
+        Announce that there has been a change of capabilities on the
         given handle, or on the connection itself if the handle is zero.
 
         Parameters:
         an array of structures containing:
             an integer handle representing the contact
             a string channel type
-            a bitwise OR of capability flags which have been added
-            a bitwise OR of capability flags which have been removed
+            a bitwise OR of the contact's old generic capability flags
+            a bitwise OR of the contact's new generic capability flags
+            a bitwise OR of the contact's old type specific capability flags
+            a bitwise OR of the contact's new type specific capability flags
         """
         if handle not in self._caps:
             self._caps[handle] = set()
@@ -815,7 +822,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         self._caps[handle].update(added)
         self._caps[handle].difference_update(removed)
 
-    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='asas', out_signature='as')
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='a(su)as', out_signature='a(su)')
     def AdvertiseCapabilities(self, add, remove):
         """
         Used by user interfaces to indicate which channel types they are able
@@ -823,21 +830,29 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         different client processes, this method accepts channel types to add
         and remove from the set already advertised on this connection. The type
         of advertised capabilities (create versus invite) is protocol-dependent
-        and hence cannot be set by the this method.
+        and hence cannot be set by the this method. In the case of a client
+        adding an already advertised channel type but with new channel type
+        specific flags, the connection manager should simply add the new flags
+        to the set of advertised capabilities.
 
         Upon a successful invocation of this method, the CapabilitiesChanged
         signal will be emitted for the user's own handle (as returned by
         GetSelfHandle) the by the connection manager to indicate the changes
         that have been made.  This signal should also be monitored to ensure
         that the set is kept accurate - for example, a client may remove
-        capabilities when it exits which are still provided by another client.
+        capabilities or channel type specific capability flags when it exits
+        which are still provided by another client.
 
         Parameters:
-        add - an array of D-Bus interface names of channel types to add
+        add - an array of structures containing:
+            a string channel type D-BUS interface to advertise capability for
+            a bitwise OR of channel type specific capability flags
         remove - an array of D-Bus interface names of channel types to remove
 
         Returns:
-        an array of the D-Bus interface names of currently supported channel types
+        an array of structures describing the current capabilities containing:
+            a string channel type
+            a bitwise OR of channel type specific capability flags
 
         Potential Errors:
         NetworkError, Disconnected
