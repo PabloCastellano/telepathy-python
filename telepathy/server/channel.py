@@ -301,7 +301,7 @@ class ChannelTypeStreamedMedia(Channel):
         Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA, handle)
 
     @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='',
-                                                      out_signature='a(uuuuu)')
+                                                      out_signature='a(uuuuuu)')
     def ListStreams(self):
         """
         Returns an array of structs representing the streams currently active
@@ -312,17 +312,28 @@ class ChannelTypeStreamedMedia(Channel):
           MEDIA_STREAM_TYPE_AUDIO = 0
           MEDIA_STREAM_TYPE_VIDEO = 1
 
+        Stream states are identified by one of the following values:
+          MEDIA_STREAM_STATE_STOPPED = 0
+          MEDIA_STREAM_STATE_PLAYING = 1
+          MEDIA_STREAM_STATE_CONNECTING = 2
+          MEDIA_STREAM_STATE_CONNECTED = 3
+
         Stream directions are identified by one of the following values:
           MEDIA_STREAM_DIRECTION_NONE = 0
           MEDIA_STREAM_DIRECTION_SEND = 1
           MEDIA_STREAM_DIRECTION_RECEIVE = 2
           MEDIA_STREAM_DIRECTION_BIDIRECTIONAL = 3
 
-        Stream states are identified by one of the following values:
-          MEDIA_STREAM_STATE_STOPPED = 0
-          MEDIA_STREAM_STATE_PLAYING = 1
-          MEDIA_STREAM_STATE_CONNECTING = 2
-          MEDIA_STREAM_STATE_CONNECTED = 3
+        Pending directionality changes are indicated by a bitwise OR of the
+        following flags:
+          MEDIA_STREAM_PENDING_LOCAL_SEND = 1
+            The local user has been asked to send media by the remote user.
+            Call RequestStreamDirection to indicate whether or not this is
+            acceptable.
+          MEDIA_STREAM_PENDING_REMOTE_SEND = 2
+            The remote user has been asked to send media by the local user.
+            The StreamDirectionChanged signal will be emitted when the remote
+            user accepts or rejects this change.
 
         Returns:
         an array of structs containing:
@@ -330,8 +341,9 @@ class ChannelTypeStreamedMedia(Channel):
             the contact handle who the stream is with (or 0 if the stream
                 represents more than a single member)
             the type of the stream
-            the direction of the stream
             the current stream state
+            the current direction of the stream
+            the current pending send flags
         """
         pass
 
@@ -339,12 +351,14 @@ class ChannelTypeStreamedMedia(Channel):
                                                       out_signature='au')
     def RequestStreams(self, contact_handle, types):
         """
-        Request that the given types of streams be established to send media to
-        (and depending on the protocol, possibly also receive from) the given
-        member. Streams will be created in the STOPPED state, and will emit a
-        StreamStateChanged signal to the CONNECTING when accepted by the remote
-        parties, or if they are rejected then a StreamRemoved signal will be
-        emitted.
+        Request that requested types of streams be established to exchange the
+        given types of media with the given member. In general this will try
+        and establish a bidirectional stream, but on some protocols it may not
+        be possible to indicate to the peer that you would like to receive
+        media, so a send-only stream will be created initially. Streams will be
+        created in the STOPPED state, and will emit a StreamStateChanged signal
+        to the CONNECTING when accepted by the remote parties, or if they are
+        rejected then a StreamRemoved signal will be emitted.
 
         Parameters:
         contact_handle - a contact handle with whom to establish the streams
@@ -374,6 +388,36 @@ class ChannelTypeStreamedMedia(Channel):
         """
         pass
 
+    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='uu',
+                                                      out_signature='')
+    def RequestStreamDirection(self, stream_id, stream_direction):
+        """
+        Request a change in the direction of an existing stream. In particular,
+        this might be useful to stop sending media of a particular type,
+        or inform the peer that you are no longer using media that is being
+        sent to you.
+
+        Depending on the protocol, streams which are no longer sending in
+        either direction should be removed and a StreamRemoved signal emitted.
+        Some direction changes can be enforced locally (for example,
+        BIDIRECTIONAL -> RECEIVE can be achieved by merely stopping sending),
+        others may not be possible on some protocols, and some need agreement
+        from the remote end. In this case, the MEDIA_STREAM_PENDING_REMOTE_SEND
+        flag will be set in the StreamDirectionChanged signal, and the signal
+        emitted again without the flag to indicate the resulting direction when
+        the remote end has accepted or rejected the change.
+
+        Parameters:
+        stream_id - the stream identifier (as defined in ListStreams)
+        stream_direction - the desired stream direction (as defined in
+            ListStreams)
+
+        PossibleErrors:
+        InvalidArgument (unknown stream ID), NotAvailable (the requested
+        direction is not available on this stream)
+        """
+        pass
+
     @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uuu')
     def StreamAdded(self, stream_id, contact_handle, stream_type):
         """
@@ -395,6 +439,21 @@ class ChannelTypeStreamedMedia(Channel):
 
         Parameters:
         stream_id - the stream identifier (as defined in ListStreams)
+        """
+        pass
+
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uuu')
+    def StreamDirectionChanged(self, stream_id, stream_direction, pending_flags):
+        """
+        Emitted when the direction or pending flags of a stream are changed. If
+        the MEDIA_STREAM_PENDING_LOCAL_SEND flag is set, the remote user has
+        requested that we begin sending on this stream. RequestStreamDirection
+        should be called to indicate whether or not this change is acceptable.
+
+        Parameters:
+        stream_id - the stream identifier (as defined in ListStreams)
+        stream_direction - the new stream direction (as defined in ListStreams)
+        pending_flags - the new pending flags (as defined in ListStreams)
         """
         pass
 
