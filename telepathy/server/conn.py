@@ -749,7 +749,8 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
     activities such as having a text chat or a voice call with the user, or can
     be on the connection itself (where the handle will be zero), where they
     represent the ability to create channels for chat rooms or activities such
-    as searching and room listing.
+    as searching and room listing. The activities are represented by the D-Bus
+    interface name of the channel type for that activity.
 
     The following generic capability flags are defined:
     1 - CONNECTION_CAPABILITY_FLAG_CREATE
@@ -758,14 +759,14 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
     2 - CONNECTION_CAPABILITY_FLAG_INVITE
         The given contact can be invited to an existing channel of this type.
 
-    In addition, channel types may have channel type specific capability flags
-    of their own, which are described separately.
+    In addition, channel types may have type specific capability flags of their
+    own, which are described in the documentation for each channel type.
 
     This interface also provides for user interfaces notifying the connection
     manager of what capabilities to advertise for the user. This is done by
     using the AdvertiseCapabilities method, and deals with the interface names
-    of channel types and the channel type specific flags pertaining to them
-    which are implemented by available client processes.
+    of channel types and the type specific flags pertaining to them which are
+    implemented by available client processes.
     """
     def __init__(self):
         """
@@ -789,7 +790,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
             an integer handle representing the contact
             a string channel type
             a bitwise OR of generic capability flags for the type
-            a bitwise OR of channel type specific capability flags for the type
+            a bitwise OR of type specific capability flags for the type
 
         Possible Errors:
         Disconnected, NetworkError, InvalidHandle (the handle does not represent a contact), PermissionDenied
@@ -840,19 +841,19 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         GetSelfHandle) the by the connection manager to indicate the changes
         that have been made.  This signal should also be monitored to ensure
         that the set is kept accurate - for example, a client may remove
-        capabilities or channel type specific capability flags when it exits
+        capabilities or type specific capability flags when it exits
         which are still provided by another client.
 
         Parameters:
         add - an array of structures containing:
-            a string channel type D-BUS interface to advertise capability for
-            a bitwise OR of channel type specific capability flags
+            a string channel type
+            a bitwise OR of type specific capability flags
         remove - an array of D-Bus interface names of channel types to remove
 
         Returns:
         an array of structures describing the current capabilities containing:
             a string channel type
-            a bitwise OR of channel type specific capability flags
+            a bitwise OR of type specific capability flags
 
         Potential Errors:
         NetworkError, Disconnected
