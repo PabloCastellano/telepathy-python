@@ -295,3 +295,10 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
+    @dbus.service.signal(ICE_STREAM_HANDLER, signature='b')
+    def SetStreamSending(self, playing):
+        """
+        Signal emitted when the connection manager wishes to set whether or not
+        the stream sends to the remote end.
+        """
+        pass
