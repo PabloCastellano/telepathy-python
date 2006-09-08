@@ -802,7 +802,7 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
             return []
 
     @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(usuuuu)')
-    def CapabilitiesChanged(self, gen_caps, type_caps):
+    def CapabilitiesChanged(self, caps):
         """
         Announce that there has been a change of capabilities on the
         given handle, or on the connection itself if the handle is zero.
