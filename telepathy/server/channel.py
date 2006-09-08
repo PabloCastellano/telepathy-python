@@ -290,6 +290,13 @@ class ChannelTypeStreamedMedia(Channel):
     handled by specialised hardware which is controlled directly by the
     connection manager), the signalling interface can be omitted and this
     channel type used simply to control the streams.
+
+    This channel type defines two type-specific capability flags (as used in
+    Connection.Interface.Capabilities):
+      CHANNEL_MEDIA_CAPABILITY_AUDIO = 1
+        The handle is capable of using audio streams within a media channel.
+      CHANNEL_MEDIA_CAPABILITY_VIDEO = 2
+        The handle is capable of using video streams within a media channel.
     """
     def __init__(self, connection, handle):
         """
