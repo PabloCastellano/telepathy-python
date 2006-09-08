@@ -351,14 +351,15 @@ class ChannelTypeStreamedMedia(Channel):
                                                       out_signature='au')
     def RequestStreams(self, contact_handle, types):
         """
-        Request that requested types of streams be established to exchange the
-        given types of media with the given member. In general this will try
-        and establish a bidirectional stream, but on some protocols it may not
-        be possible to indicate to the peer that you would like to receive
-        media, so a send-only stream will be created initially. Streams will be
-        created in the STOPPED state, and will emit a StreamStateChanged signal
-        to the CONNECTING when accepted by the remote parties, or if they are
-        rejected then a StreamRemoved signal will be emitted.
+        Request that streams be established to exchange the given types of
+        media with the given member. In general this will try and establish a
+        bidirectional stream, but on some protocols it may not be possible to
+        indicate to the peer that you would like to receive media, so a
+        send-only stream will be created initially. In the cases where the
+        stream requires remote agreement (eg you wish to receive media from
+        them), the StreamDirectionChanged signal will be emitted with the
+        MEDIA_STREAM_PENDING_REMOTE_SEND flag set, and the signal emitted again
+        with the flag cleared when the remote end has replied.
 
         Parameters:
         contact_handle - a contact handle with whom to establish the streams
@@ -453,7 +454,7 @@ class ChannelTypeStreamedMedia(Channel):
         Parameters:
         stream_id - the stream identifier (as defined in ListStreams)
         stream_direction - the new stream direction (as defined in ListStreams)
-        pending_flags - the new pending flags (as defined in ListStreams)
+        pending_flags - the new pending send flags (as defined in ListStreams)
         """
         pass
 
