@@ -35,23 +35,23 @@ def camelcase_to_upper(s):
 
 def type_to_gtype(s):
     if s == 'y': #byte
-        return ("guchar", "G_TYPE_UCHAR","UCHAR", False)
+        return ("guchar ", "G_TYPE_UCHAR","UCHAR", False)
     elif s == 'b': #boolean
-        return ("gboolean", "G_TYPE_BOOLEAN","BOOLEAN", False)
+        return ("gboolean ", "G_TYPE_BOOLEAN","BOOLEAN", False)
     elif s == 'n': #int16
-        return ("gint", "G_TYPE_INT","INT", False)
+        return ("gint ", "G_TYPE_INT","INT", False)
     elif s == 'q': #uint16
-        return ("guint", "G_TYPE_UINT","UINT", False)
+        return ("guint ", "G_TYPE_UINT","UINT", False)
     elif s == 'i': #int32
-        return ("gint", "G_TYPE_INT","INT", False)
+        return ("gint ", "G_TYPE_INT","INT", False)
     elif s == 'u': #uint32
-        return ("guint", "G_TYPE_UINT","UINT", False)
+        return ("guint ", "G_TYPE_UINT","UINT", False)
     elif s == 'x': #int64
-        return ("gint", "G_TYPE_INT64","INT64", False)
+        return ("gint ", "G_TYPE_INT64","INT64", False)
     elif s == 't': #uint32
-        return ("guint", "G_TYPE_UINT64","UINT64", False)
+        return ("guint ", "G_TYPE_UINT64","UINT64", False)
     elif s == 'd': #double
-        return ("gdouble", "G_TYPE_DOUBLE","DOUBLE", False)
+        return ("gdouble ", "G_TYPE_DOUBLE","DOUBLE", False)
     elif s == 's': #string
         return ("gchar *", "G_TYPE_STRING", "STRING", True)
     elif s == 'o': #object path
@@ -411,7 +411,7 @@ void
             else:
                 if type_to_gtype(type)[3]:
                     gtype="const "+gtype
-            c_decl +=",\n"+pad+gtype+" "+name
+            c_decl +=",\n"+pad+gtype+name
 
         if async:
             c_decl += ",\n"+pad+"DBusGMethodInvocation *context)"
