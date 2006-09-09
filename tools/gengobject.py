@@ -382,9 +382,9 @@ void
                 async=True
 
         if async:
-            c_decl = 'void '
+            c_decl = "void\n"
         else:
-            c_decl = 'gboolean '
+            c_decl = "gboolean\n"
 
         c_decl += c_method_name+' ('+classname+' *obj'
 
