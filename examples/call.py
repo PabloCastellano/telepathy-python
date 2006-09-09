@@ -21,9 +21,8 @@ def get_stream_engine():
         '/org/freedesktop/Telepathy/StreamEngine')
 
 class Call:
-    def __init__(self, conn, contact):
+    def __init__(self, conn):
         self.conn = conn
-        self.contact = contact
         self.channel = None
 
         conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
@@ -49,27 +48,7 @@ class Call:
             self.loop = None
 
     def status_changed_cb(self, state, reason):
-        if state == CONNECTION_STATUS_CONNECTED:
-            if self.contact == None:
-                print "waiting for incoming call"
-                return
-
-            handle = conn[CONN_INTERFACE].RequestHandles(
-                CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
-            self.handle = handle
-
-            print 'got handle %d for %s' % (handle, self.contact)
-
-            # hack
-            import time
-            time.sleep(5)
-
-            conn[CONN_INTERFACE].RequestChannel(
-                CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_CONTACT,
-                handle, True,
-                reply_handler=lambda *stuff: None,
-                error_handler=self.request_channel_error_cb)
-        elif state == CONNECTION_STATUS_DISCONNECTED:
+        if state == CONNECTION_STATUS_DISCONNECTED:
             print 'connection closed'
             self.quit()
 
@@ -108,24 +87,6 @@ class Call:
 
         self.channel = channel
 
-        if self.contact == None:
-            print "accepting incoming call"
-            pending = channel[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers()
-            channel[CHANNEL_INTERFACE_GROUP].AddMembers(pending, "")
-        else:
-            print "Requesting audio/video streams"
-            try:
-                channel[CHANNEL_TYPE_STREAMED_MEDIA].RequestStreams(
-                    self.handle,
-                    [MEDIA_STREAM_TYPE_AUDIO, MEDIA_STREAM_TYPE_VIDEO]);
-            except dbus.DBusException, e:
-                print "Failed:", e
-                print "Requesting audio stream"
-                channel[CHANNEL_TYPE_STREAMED_MEDIA].RequestStreams(
-                    self.handle, [MEDIA_STREAM_TYPE_AUDIO]);
-
-
-
     def closed_cb(self):
         print "channel closed"
         self.quit()
@@ -135,19 +96,75 @@ class Call:
         print 'MembersChanged', (
             added, removed, local_pending, remote_pending, actor, reason)
 
+class OutgoingCall(Call):
+    def __init__(self, conn, contact):
+        Call.__init__(self, conn)
+        self.contact = contact
+
+    def status_changed_cb (self, state, reason):
+        if state == CONNECTION_STATUS_CONNECTED:
+            handle = conn[CONN_INTERFACE].RequestHandles(
+                CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
+            self.handle = handle
+
+            print 'got handle %d for %s' % (handle, self.contact)
+
+            # hack
+            import time
+            time.sleep(5)
+
+            conn[CONN_INTERFACE].RequestChannel(
+                CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_CONTACT,
+                handle, True,
+                reply_handler=lambda *stuff: None,
+                error_handler=self.request_channel_error_cb)
+
+        Call.status_changed_cb(self, state, reason)
+
+    def channel_ready_cb(self, channel):
+        Call.channel_ready_cb(self, channel)
+
+        print "requesting audio/video streams"
+
+        try:
+            channel[CHANNEL_TYPE_STREAMED_MEDIA].RequestStreams(
+                self.handle,
+                [MEDIA_STREAM_TYPE_AUDIO, MEDIA_STREAM_TYPE_VIDEO]);
+        except dbus.DBusException, e:
+            print "failed:", e
+            print "requesting audio stream"
+            channel[CHANNEL_TYPE_STREAMED_MEDIA].RequestStreams(
+                self.handle, [MEDIA_STREAM_TYPE_AUDIO]);
+
+class IncomingCall(Call):
+    def status_changed_cb (self, state, reason):
+        if state == CONNECTION_STATUS_CONNECTED:
+            print "waiting for incoming call"
+
+        Call.status_changed_cb(self, state, reason)
+
+    def channel_ready_cb(self, channel):
+        Call.channel_ready_cb(self, channel)
+
+        print "accepting incoming call"
+        pending = channel[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers()
+        channel[CHANNEL_INTERFACE_GROUP].AddMembers(pending, "")
+
 if __name__ == '__main__':
     assert len(sys.argv) in (2, 3)
     account_file = sys.argv[1]
-    if len(sys.argv) > 2:
-        contact = sys.argv[2]
-    else:
-        contact = None
 
     manager, protocol, account = read_account(account_file)
     conn = connect(manager, protocol, account)
+
+    if len(sys.argv) > 2:
+        contact = sys.argv[2]
+        call = OutgoingCall(conn, sys.argv[2])
+    else:
+        call = IncomingCall(conn)
+
     print "connecting"
     conn[CONN_INTERFACE].Connect()
-    call = Call(conn, contact)
     call.run()
 
     try:
@@ -155,5 +172,4 @@ if __name__ == '__main__':
         conn[CONN_INTERFACE].Disconnect()
     except dbus.DBusException:
         pass
-
 
