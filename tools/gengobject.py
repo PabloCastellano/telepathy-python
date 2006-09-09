@@ -386,7 +386,9 @@ void
         else:
             c_decl = "gboolean\n"
 
-        c_decl += c_method_name+' ('+classname+' *obj'
+        tmp = c_method_name+' ('
+        pad = ' ' * len(tmp)
+        c_decl += tmp+classname+' *obj'
 
         for i in method.getElementsByTagName("arg"):
             name =i.getAttribute("name")
@@ -409,15 +411,15 @@ void
             else:
                 if type_to_gtype(type)[3]:
                     gtype="const "+gtype
-            c_decl +=", "+gtype+" "+name
+            c_decl +=",\n"+pad+gtype+" "+name
 
         if async:
-            c_decl += ", DBusGMethodInvocation *context)"
+            c_decl += ",\n"+pad+"DBusGMethodInvocation *context)"
         else:
-            c_decl += ", GError **error)"
+            c_decl += ",\n"+pad+"GError **error)"
 
         interface = method.parentNode.getAttribute("name");
-        header.write(c_decl+";\n")
+        header.write(c_decl+";\n\n")
         body.write(
 """
 /**
