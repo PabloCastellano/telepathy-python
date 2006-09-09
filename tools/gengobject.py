@@ -388,7 +388,7 @@ void
 
         tmp = c_method_name+' ('
         pad = ' ' * len(tmp)
-        c_decl += tmp+classname+' *obj'
+        c_decl += tmp+classname+' *self'
 
         for i in method.getElementsByTagName("arg"):
             name =i.getAttribute("name")
