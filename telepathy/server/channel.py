@@ -320,10 +320,12 @@ class ChannelTypeStreamedMedia(Channel):
           MEDIA_STREAM_TYPE_VIDEO = 1
 
         Stream states are identified by one of the following values:
-          MEDIA_STREAM_STATE_STOPPED = 0
-          MEDIA_STREAM_STATE_PLAYING = 1
-          MEDIA_STREAM_STATE_CONNECTING = 2
-          MEDIA_STREAM_STATE_CONNECTED = 3
+          MEDIA_STREAM_STATE_DISCONNECTED = 0
+            The stream is disconnected.
+          MEDIA_STREAM_STATE_CONNECTING = 1
+            The stream is trying to connect.
+          MEDIA_STREAM_STATE_CONNECTED = 2
+            The stream is connected.
 
         Stream directions are identified by one of the following values:
           MEDIA_STREAM_DIRECTION_NONE = 0
