@@ -425,13 +425,13 @@ void
 /**
  * %(c_method_name)s
  *
- * Implements DBus method %(method)s
+ * Implements D-Bus method %(method)s
  * on interface %(interface)s
  *""" % {'c_method_name':c_method_name, 'method':dbus_method_name, 'interface':interface})
         if async:
             body.write(
 """
- * @context: The DBUS invocation context to use to return values
+ * @context: The D-Bus invocation context to use to return values
  *           or throw an error.
  */
 """)
@@ -439,8 +439,8 @@ void
             body.write(
 """
  * @error: Used to return a pointer to a GError detailing any error
- *         that occured, DBus will throw the error only if this
- *         function returns false.
+ *         that occured, D-Bus will throw the error only if this
+ *         function returns FALSE.
  *
  * Returns: TRUE if successful, FALSE if an error was thrown.
  */
