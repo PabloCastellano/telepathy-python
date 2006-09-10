@@ -7,9 +7,9 @@ from account import read_account, connect
 
 from telepathy.client.channel import Channel
 from telepathy.constants import (
-    CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_STATUS_CONNECTED,
-    CONNECTION_STATUS_DISCONNECTED, MEDIA_STREAM_TYPE_AUDIO,
-    MEDIA_STREAM_TYPE_VIDEO)
+    CONNECTION_HANDLE_TYPE_NONE, CONNECTION_HANDLE_TYPE_CONTACT,
+    CONNECTION_STATUS_CONNECTED, CONNECTION_STATUS_DISCONNECTED,
+    MEDIA_STREAM_TYPE_AUDIO, MEDIA_STREAM_TYPE_VIDEO)
 from telepathy.interfaces import (
     CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_STREAMED_MEDIA,
     CONN_INTERFACE)
@@ -151,7 +151,7 @@ class OutgoingCall(Call):
             time.sleep(5)
 
             conn[CONN_INTERFACE].RequestChannel(
-                CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_CONTACT,
+                CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
                 handle, True,
                 reply_handler=lambda *stuff: None,
                 error_handler=self.request_channel_error_cb)
@@ -160,6 +160,8 @@ class OutgoingCall(Call):
 
     def channel_ready_cb(self, channel):
         Call.channel_ready_cb(self, channel)
+
+        channel[CHANNEL_INTERFACE_GROUP].AddMembers([self.handle], "")
 
         print "requesting audio/video streams"
 
