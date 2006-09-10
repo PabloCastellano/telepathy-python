@@ -181,7 +181,8 @@ def print_simple_class_defn(stream, prefix, classname):
     stream.write ("};\n\n")
 
     stream.write ("struct _%s {\n" % classname)
-    stream.write ("    GObject parent;\n")
+    stream.write ("    GObject parent;\n\n")
+    stream.write ("    gpointer priv;\n")
     stream.write ("};\n")
 
     stream.write(
@@ -276,16 +277,19 @@ struct _%(classname)sPrivate
   gboolean dispose_has_run;
 };
 
-#define %(uprefix)s_GET_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), %(gtypename)s, %(classname)sPrivate))
+#define %(uprefix)s_GET_PRIVATE(obj) \\
+    ((%(classname)sPrivate *)obj->priv)
 """ % {'classname':classname, 'uprefix':prefix.upper(), 'gtypename':gtypename})
 
     body.write(
 """
 static void
-%(prefix)s_init (%(classname)s *obj)
+%(prefix)s_init (%(classname)s *self)
 {
-  %(classname)sPrivate *priv = %(uprefix)s_GET_PRIVATE (obj);
+  %(classname)sPrivate *priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
+      %(gtypename)s, %(classname)sPrivate);
+
+  self->priv = priv;
 
   /* allocate any data required by the object here */
 }
@@ -302,7 +306,7 @@ static void
 
   object_class->dispose = %(prefix)s_dispose;
   object_class->finalize = %(prefix)s_finalize;
-""" % {"prefix":prefix, "classname":classname, 'uprefix':prefix.upper()})
+""" % {'classname':classname, 'gtypename':gtypename, 'prefix':prefix, 'uprefix':prefix.upper()})
 
     header.write("\n")
 
