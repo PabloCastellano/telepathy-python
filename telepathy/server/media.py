@@ -21,26 +21,35 @@ import dbus.service
 
 from telepathy import *
 
-class ChannelInterfaceIceSignalling(dbus.service.Interface):
+class ChannelInterfaceMediaSignalling(dbus.service.Interface):
     """
+    An interface for signalling a channel containing synchronised media
+    sessions which can contain an arbitrary number of streams. The negotiation
+    interface is based closely around the API of the Farsight library
+    (http://farsight.sourceforge.net/). This in turn is based upon the IETF
+    MMusic ICE drafts where connections are established by signalling potential
+    connection candidates to the peer until a usable connection is found, and
+    codecs are negotiated with an SDP-style offer and answer. However, the
+    principles should be applicable to other media streaming methods and the
+    API re-used without difficulty.
     """
     def __init__(self):
-        self._interfaces.add(CHANNEL_INTERFACE_ICE_SIGNALLING)
+        self._interfaces.add(CHANNEL_INTERFACE_MEDIA_SIGNALLING)
 
-    @dbus.service.signal(CHANNEL_INTERFACE_ICE_SIGNALLING, signature='os')
-    def NewIceSessionHandler(self, session_handler, type):
+    @dbus.service.signal(CHANNEL_INTERFACE_MEDIA_SIGNALLING, signature='os')
+    def NewSessionHandler(self, session_handler, type):
         """
         Signal that a session handler object has been created. The client
         should create a session object and create streams for the streams
         within.
 
         Parameters:
-        session_handler - object path of the new IceSessionHandler object
+        session_handler - object path of the new MediaSessionHandler object
         type - string indicating type of session, eg "rtp"
         """
         pass
 
-    @dbus.service.method(CHANNEL_INTERFACE_ICE_SIGNALLING,
+    @dbus.service.method(CHANNEL_INTERFACE_MEDIA_SIGNALLING,
                          in_signature='', out_signature='a(os)')
     def GetSessionHandlers(self):
         """
@@ -50,24 +59,24 @@ class ChannelInterfaceIceSignalling(dbus.service.Interface):
         pass
 
 
-class IceSessionHandler(dbus.service.Object):
+class MediaSessionHandler(dbus.service.Object):
     """
-    An ICE session handler is an object that handles a number of synchronised
+    An media session handler is an object that handles a number of synchronised
     media streams.
     """
     def __init__(self, bus_name, object_path):
         dbus.service.Object.__init__(self, bus_name, object_path)
 
-    @dbus.service.method(ICE_SESSION_HANDLER, in_signature='',
+    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='',
                                               out_signature='')
     def Ready(self):
         """
         Inform the connection manager that a client is ready to handle
-        this SessionHandler.
+        this session handler.
         """
         pass
 
-    @dbus.service.method(ICE_SESSION_HANDLER, in_signature='us',
+    @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='us',
                                               out_signature='')
     def Error(self, errno, message):
         """
@@ -75,10 +84,10 @@ class IceSessionHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(ICE_SESSION_HANDLER, signature='ouuu')
-    def NewIceStreamHandler(self, stream_handler, id, media_type, direction):
+    @dbus.service.signal(MEDIA_SESSION_HANDLER, signature='ouuu')
+    def NewStreamHandler(self, stream_handler, id, media_type, direction):
         """
-        Emitted when a new ICE stream handler has been created for this
+        Emitted when a new stream handler has been created for this
         session.
 
         Parameters:
@@ -95,16 +104,16 @@ class IceSessionHandler(dbus.service.Object):
         """
         pass
 
-class IceStreamHandler(dbus.service.Object):
+class MediaStreamHandler(dbus.service.Object):
     """
-    Handles signalling the information pertaining to a specific ICE stream.
+    Handles signalling the information pertaining to a specific media stream.
     A client should provide information to this handler as and when it is
     available.
     """
     def __init__(self, bus_name, object_path):
         dbus.service.Object.__init__(self, bus_name, object_path)
 
-    @dbus.service.method(ICE_STREAM_HANDLER, in_signature='a(usuuua{ss})', 
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(usuuua{ss})', 
                                              out_signature='')
     def Ready(self, codecs):
         """
@@ -117,7 +126,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.method(ICE_STREAM_HANDLER, in_signature='us',
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='us',
                                              out_signature='')
     def Error(self, errno, message):
         """
@@ -131,7 +140,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.method(ICE_STREAM_HANDLER, in_signature='sa(usuussduss)',
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='sa(usuussduss)',
                                              out_signature='')
     def NewNativeCandidate(self, candidate_id, transports):
         """
@@ -166,7 +175,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.method(ICE_STREAM_HANDLER, in_signature='',
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='',
                                              out_signature='')
     def NativeCandidatesPrepared(self):
         """
@@ -175,7 +184,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.method(ICE_STREAM_HANDLER, in_signature='ss',
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='ss',
                                              out_signature='')
     def NewActiveCandidatePair(self, native_candidate_id, remote_candidate_id):
         """
@@ -184,7 +193,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(ICE_STREAM_HANDLER, signature='ss')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='ss')
     def SetActiveCandidatePair(self, native_candidate_id, remote_candidate_id):
         """
         Emitted by the connection manager to inform the client that a
@@ -193,7 +202,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(ICE_STREAM_HANDLER, signature='a(sa(usuussduss))')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(sa(usuussduss))')
     def SetRemoteCandidateList(self, remote_candidates):
         """
         Signal emitted when the connection manager wishes to inform the
@@ -205,7 +214,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(ICE_STREAM_HANDLER, signature='sa(usuussduss)')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='sa(usuussduss)')
     def AddRemoteCandidate(self, candidate_id, transports):
         """
         Signal emitted when the connection manager wishes to inform the
@@ -218,7 +227,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(ICE_STREAM_HANDLER, signature='s')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='s')
     def RemoveRemoteCandidate(self, candidate_id):
         """
         Signal emitted when the connection manager wishes to inform the
@@ -230,7 +239,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.method(ICE_STREAM_HANDLER, in_signature='u',
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='u',
                                              out_signature='')
     def CodecChoice(self, codec_id):
         """
@@ -238,7 +247,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.method(ICE_STREAM_HANDLER, in_signature='u',
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='u',
                                              out_signature='')
     def StreamState(self, state):
         """
@@ -247,7 +256,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.method(ICE_STREAM_HANDLER, in_signature='a(usuuua{ss})',
+    @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='a(usuuua{ss})',
                                              out_signature='')
     def SupportedCodecs(self, codecs):
         """
@@ -268,7 +277,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(ICE_STREAM_HANDLER, signature='a(usuuua{ss})')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='a(usuuua{ss})')
     def SetRemoteCodecs(self, codecs):
         """
         Signal emitted when the connectoin manager wishes to inform the
@@ -279,7 +288,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(ICE_STREAM_HANDLER, signature='b')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='b')
     def SetStreamPlaying(self, playing):
         """
         Signal emitted when the connection manager wishes to set the
@@ -295,7 +304,7 @@ class IceStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(ICE_STREAM_HANDLER, signature='b')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='b')
     def SetStreamSending(self, playing):
         """
         Signal emitted when the connection manager wishes to set whether or not

@@ -40,12 +40,12 @@ CHANNEL_TYPE_STREAMED_MEDIA = 'org.freedesktop.Telepathy.Channel.Type.StreamedMe
 CHANNEL_INTERFACE_DTMF = 'org.freedesktop.Telepathy.Channel.Interface.DTMF'
 CHANNEL_INTERFACE_GROUP = 'org.freedesktop.Telepathy.Channel.Interface.Group'
 CHANNEL_INTERFACE_HOLD = 'org.freedesktop.Telepathy.Channel.Interface.Hold'
-CHANNEL_INTERFACE_ICE_SIGNALLING = 'org.freedesktop.Telepathy.Channel.Interface.IceSignalling'
+CHANNEL_INTERFACE_MEDIA_SIGNALLING = 'org.freedesktop.Telepathy.Channel.Interface.MediaSignalling'
 CHANNEL_INTERFACE_PASSWORD = 'org.freedesktop.Telepathy.Channel.Interface.Password'
 CHANNEL_INTERFACE_TRANSFER = 'org.freedesktop.Telepathy.Channel.Interface.Transfer'
 
-ICE_SESSION_HANDLER = 'org.freedesktop.Telepathy.Ice.SessionHandler'
-ICE_STREAM_HANDLER = 'org.freedesktop.Telepathy.Ice.StreamHandler'
+MEDIA_SESSION_HANDLER = 'org.freedesktop.Telepathy.Media.SessionHandler'
+MEDIA_STREAM_HANDLER = 'org.freedesktop.Telepathy.Media.StreamHandler'
 
 PROPERTIES_INTERFACE = 'org.freedesktop.Telepathy.Properties'
 
