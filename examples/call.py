@@ -172,8 +172,14 @@ class OutgoingCall(Call):
         except dbus.DBusException, e:
             print "failed:", e
             print "requesting audio stream"
-            channel[CHANNEL_TYPE_STREAMED_MEDIA].RequestStreams(
-                self.handle, [MEDIA_STREAM_TYPE_AUDIO]);
+
+            try:
+                channel[CHANNEL_TYPE_STREAMED_MEDIA].RequestStreams(
+                    self.handle, [MEDIA_STREAM_TYPE_AUDIO]);
+            except dbus.DBusException, e:
+                print "failed:", e
+                print "giving up"
+                self.quit()
 
 class IncomingCall(Call):
     def status_changed_cb (self, state, reason):
