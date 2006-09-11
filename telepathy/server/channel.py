@@ -357,7 +357,7 @@ class ChannelTypeStreamedMedia(Channel):
         pass
 
     @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='uau',
-                                                      out_signature='au')
+                                                      out_signature='a(uuuuuu)')
     def RequestStreams(self, contact_handle, types):
         """
         Request that streams be established to exchange the given types of
@@ -375,8 +375,15 @@ class ChannelTypeStreamedMedia(Channel):
         types - an array of stream types (as defined in ListStreams)
 
         Returns:
-        an array of newly created stream identifiers (as defined in ListStreams)
-            in the same order as the given stream types
+        an array of structs (in the same order as the given stream types)
+        containing:
+            the stream identifier
+            the contact handle who the stream is with (or 0 if the stream
+                represents more than a single member)
+            the type of the stream
+            the current stream state
+            the current direction of the stream
+            the current pending send flags
 
         Possible Errors:
         InvalidHandle, InvalidArgument (invalid stream type), NotAvailable (if
