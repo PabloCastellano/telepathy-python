@@ -296,7 +296,7 @@ class MediaStreamHandler(dbus.service.Object):
         """
         pass
 
-    @dbus.service.signal(ICE_STREAM_HANDLER, signature='')
+    @dbus.service.signal(MEDIA_STREAM_HANDLER, signature='')
     def Close(self):
         """
         Signal emitted when the connection manager wishes the stream to be
