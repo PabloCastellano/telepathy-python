@@ -459,6 +459,22 @@ class ChannelTypeStreamedMedia(Channel):
         """
         pass
 
+    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uus')
+    def StreamError(self, stream_id, errno, message):
+        """
+        Emitted when a stream encounters an error.
+
+        Parameters:
+        stream_id - the stream identifier (as defined in ListStreams)
+        errno - a stream error number, one of the following:
+          MEDIA_STREAM_ERROR_UNKNOWN = 0
+            An unknown error occured.
+          MEDIA_STREAM_ERROR_EOS = 1
+            The end of the stream was reached.
+        message - a string describing the error (for debugging purposes only)
+        """
+        pass
+
     @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uuu')
     def StreamDirectionChanged(self, stream_id, stream_direction, pending_flags):
         """
