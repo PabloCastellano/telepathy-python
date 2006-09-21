@@ -132,10 +132,12 @@ class MediaStreamHandler(dbus.service.Object):
         pass
 
     @dbus.service.method(MEDIA_STREAM_HANDLER, in_signature='us',
-                                             out_signature='')
+                                               out_signature='')
     def Error(self, errno, message):
         """
-        Inform the connection manager that an error occured in this stream.
+        Inform the connection manager that an error occured in this stream. The
+        connection manager should emit the StreamError signal for the stream on
+        the relevant channel, and remove the stream from the session.
 
         Parameters:
         errno - id of error, one of the following:
