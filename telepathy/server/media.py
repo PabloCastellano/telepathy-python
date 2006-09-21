@@ -77,10 +77,15 @@ class MediaSessionHandler(dbus.service.Object):
         pass
 
     @dbus.service.method(MEDIA_SESSION_HANDLER, in_signature='us',
-                                              out_signature='')
+                                                out_signature='')
     def Error(self, errno, message):
         """
-        Inform the connection manager that an error occured in this session.
+        THIS METHOD IS DEPRECATED AND SHOULD NOT BE USED. Instead the Error
+        function should be used on the relevant MediaStreamHandler objects.
+        Informs the connection manager that an error occured in this session.
+        If used, the connection manager must terminate the session and all of
+        the streams within it, and may also emit a StreamError signal on the
+        channel for each stream within the session.
         """
         pass
 
