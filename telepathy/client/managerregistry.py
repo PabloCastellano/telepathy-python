@@ -21,20 +21,19 @@
 The registry of managers takes the form of any number of .manager files, which
 are searched for in /usr/share/telepathy/services or in ~/.telepathy.
 
-.manager files should have an initial stanza of the form:
+The name of a manager is the filename minus the .manager suffix
+For example a file named gabble.manager implies that:
+  The name of the connmgr is 'gabble'
+  The object path is /org/freedesktop/Telepathy/ConnectionManager/gabble
+  The bus name is org.freedesktop.Telepathy.ConnectionManager.gabble
 
-[ConnectionManager]
-Name = value
-BusName = value
-ObjectPath = value
+The object path and bus names are formed by replacing $name with the connmgr
+name in the following templates:
+  Object path: /org/freedesktop/Telepathy/ConnectionManager/$name
+  Bus name: org.freedesktop.Telepathy.ConnectionManager.$name
 
-
-where:
-'Name' field sets the name of connection manager.
-'BusName' sets the D-Bus bus name of this connection manager.
-'ObjectPath' sets the D-Bus object path to the ConnectionManager object under this service.
-
-Then any number of proctol support declarators of the form:
+.manager files should contain any number of proctol support declarators
+of the form:
 
 [Protocol (name of supported protocol)]
 param-(parameter name) = signature flags
@@ -86,16 +85,16 @@ class ManagerRegistry:
     def LoadManager(self, path):
         config = ConfigParser.SafeConfigParser()
         config.read(path)
-        connection_manager = dict(config.items("ConnectionManager"))
 
-        if "name" not in connection_manager.keys():
-            raise ConfigParser.NoOptionError("name", "ConnectionManager")
-
-        cm_name = connection_manager["name"]
-        self.services[cm_name] = connection_manager
+        cm_name = os.path.basename(path)[:-len(".manager")]
+        self.services[cm_name] = {
+            "name": cm_name,
+            "busname": "org.freedesktop.Telepathy.ConnectionManager.%s" % cm_name,
+            "objectpath": "/org/freedesktop/Telepathy/ConnectionManager/%s" % cm_name,
+        }
         protocols = {}
 
-        for section in set(config.sections()) - set(["ConnectionManager"]):
+        for section in set(config.sections()):
             if section.startswith('Protocol '):
                 proto_name = section[len('Protocol '):]
                 protocols[proto_name] = dict(config.items(section))
