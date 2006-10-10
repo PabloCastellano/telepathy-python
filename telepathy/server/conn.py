@@ -122,7 +122,7 @@ class Connection(dbus.service.Object):
                 if not isinstance(value, unicode):
                     raise InvalidArgument('incorrect type to %s parameter, got %s, expected a string' % (parm, type(value)))
             elif sig == 'q':
-                if not isinstance(value, int):
+                if not isinstance(value, (int, long)):
                     raise InvalidArgument('incorrect type to %s parameter, got %s, expected an int' % (parm, type(value)))
             elif sig == 'b':
                 if not isinstance(value, bool):
