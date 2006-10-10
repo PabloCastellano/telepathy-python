@@ -100,7 +100,13 @@ class Channel(dbus.service.Object):
         such as contact list channels may not be closed.
 
         Possible Errors:
-        Disconnected, NetworkError, NotImplemented
+
+        * Disconnected
+        * NetworkError
+        * NotImplemented - this channel may never be closed, e.g. a contact
+          list
+        * NotAvailable - this channel is not currently in a state where
+          it can be closed, e.g. a non-empty user-defined contact group
         """
         self.Closed()
         self._conn.remove_channel(self)
@@ -253,16 +259,37 @@ class ChannelTypeContactList(Channel):
     on the server. This channel type has no methods because all of the
     functionality it represents is available via the group interface.
 
-    Singleton instances of this channel type should be created by the
-    connection manager at connection time if the list exists on the server, or
-    may be requested by using the appropriate handle.  These handles can be
-    obtained using RequestHandle with a handle type of
-    CONNECTION_HANDLE_TYPE_LIST and one of the following identifiers:
-     subscribe - the group of contacts for whom you wish to receive presence
-     publish - the group of contacts who may receive your presence
-     hide - a group of contacts who are on the publish list but are temporarily disallowed from receiving your presence
-     allow - a group of contacts who may send you messages
-     deny - a group of contacts who may not send you messages
+    There are currently two types of contact list:
+    CONNECTION_HANDLE_TYPE_LIST is a "magic" server-defined list, and
+    CONNECTION_HANDLE_TYPE_USER_CONTACT_GROUP is a user-defined contact group.
+
+    For server-defined lists like the subscribe list, singleton instances
+    of this channel type should be created by the connection manager at
+    connection time if the list exists on the server, or may be requested
+    by using the appropriate handle.  These handles can be obtained using
+    RequestHandle with a handle type of CONNECTION_HANDLE_TYPE_LIST and
+    one of the following identifiers:
+
+    * subscribe - the group of contacts for whom you wish to receive presence
+    * publish - the group of contacts who may receive your presence
+    * hide - a group of contacts who are on the publish list but are temporarily disallowed from receiving your presence
+    * allow - a group of contacts who may send you messages
+    * deny - a group of contacts who may not send you messages
+
+    These contact list channels may not be closed.
+
+    For user-defined contact groups, instances of this channel type should
+    be created by the connection manager at connection time for each group
+    that exists on the server. New, empty groups can be created by calling
+    RequestHandle with a handle type of
+    CONNECTION_HANDLE_TYPE_USER_CONTACT_GROUP and with the name set to the
+    human-readable UTF-8 name of the group.
+
+    User-defined groups may be deleted by closing the channel, but only if
+    the group is already empty. Closing a channel to a non-empty group is
+    not allowed; its members must be set to the empty set first.
+
+    (FIXME: should the user contact groups have a different type?)
     """
     _dbus_interfaces = [CHANNEL_TYPE_CONTACT_LIST]
 
