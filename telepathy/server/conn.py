@@ -455,8 +455,9 @@ class Connection(dbus.service.Object):
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='')
     def Disconnect(self):
         """
-        Request that the connection be closed. This does nothing if the
-        connection is not connected.
+        Request that the connection be closed. This closes the connection if
+        it's not already in DISCONNECTED state, and destroys the connection
+        object.
         """
         pass
 
