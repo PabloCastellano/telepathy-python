@@ -46,6 +46,13 @@ DEFAULT_PASSWORD = ""
 DEFAULT_CONFERENCE_SERVER = "conference.jabber.org"
 DEFAULT_ROOM_ENTRY_TEXT = "tryggve@conference.jabber.belnet.be"
 
+_VIEW_COL_ICON = 0
+_VIEW_COL_PRESENCE = 1
+_VIEW_COL_COMBINED_STATUS = 2
+_VIEW_COL_HANDLE = 3
+_VIEW_COL_STATUS = 4
+_VIEW_COL_GROUPS = 5
+
 class MainWindow(gtk.Window):
     def __init__(self):
         gtk.Window.__init__(self)
@@ -87,7 +94,9 @@ class MainWindow(gtk.Window):
         self._model = gtk.ListStore(gtk.gdk.Pixbuf,
                                     scw.TYPE_PRESENCE,
                                     gobject.TYPE_STRING,
-                                    int)
+                                    int,
+                                    gobject.TYPE_STRING,
+                                    gobject.TYPE_PYOBJECT)
 
         sw = gtk.ScrolledWindow()
         sw.set_shadow_type(gtk.SHADOW_NONE)
@@ -97,8 +106,10 @@ class MainWindow(gtk.Window):
         view = scw.View()
         view.connect("activate", self._view_activate_cb)
         view.set_property("model", self._model)
-        view.set_column_foldable(2, True)
-        view.set_column_visible(3, False)
+        view.set_column_foldable(_VIEW_COL_COMBINED_STATUS, True)
+        view.set_column_visible(_VIEW_COL_HANDLE, False)
+        view.set_column_visible(_VIEW_COL_STATUS, False)
+        view.set_column_visible(_VIEW_COL_GROUPS, False)
         sw.add(view)
         self._view = view
 
@@ -122,7 +133,6 @@ class MainWindow(gtk.Window):
         rlbtn = gtk.Button("Close Roomlist")
         rlbtn.connect ("clicked", self._close_roomlist_btn_clicked)
         input_hbox.pack_start(rlbtn, expand=False)
-
 
         # initialize
         nb.set_current_page(0)
@@ -191,7 +201,7 @@ class MainWindow(gtk.Window):
             found = False
             iter = self._model.get_iter_first()
             while iter:
-                cur_status, cur_handle = self._model.get(iter, 2, 3)
+                cur_status, cur_handle = self._model.get(iter, _VIEW_COL_COMBINED_STATUS, _VIEW_COL_HANDLE)
                 if cur_handle == handle:
                     found = True
                     break
@@ -410,10 +420,12 @@ class MainWindow(gtk.Window):
     def _cl_add_contact(self, handle_type, handle, name):
         iter = self._model.append()
         self._model.set(iter,
-                        0, self._icon,
-                        1, "<b><action id='click%s'>%s</action></b>" % (handle, name),
-                        2, "Offline",
-                        3, handle)
+                        _VIEW_COL_ICON, self._icon,
+                        _VIEW_COL_PRESENCE, "<b><action id='click%s'>%s</action></b>" % (handle, name),
+                        _VIEW_COL_COMBINED_STATUS, "Offline // []",
+                        _VIEW_COL_HANDLE, handle,
+                        _VIEW_COL_STATUS, "Offline",
+                        _VIEW_COL_GROUPS, [])
 
         self._pending_presence_lookups.append(handle)
         self._process_presence_queue()
@@ -441,7 +453,7 @@ class MainWindow(gtk.Window):
             found = False
             iter = self._model.get_iter_first()
             while iter:
-                cur = self._model.get_value(iter, 3)
+                cur = self._model.get_value(iter, _VIEW_COL_HANDLE)
                 if cur == handle:
                     found = True
                     break
@@ -452,7 +464,10 @@ class MainWindow(gtk.Window):
 
             for name, params in statuses.iteritems():
                 status = self._get_status_message(name, params)
-                self._model.set_value(iter, 2, status)
+                self._model.set_value(iter, _VIEW_COL_STATUS, status)
+                self._model.set_value(iter, _VIEW_COL_COMBINED_STATUS,
+                                      '%s // %s' % (status,
+                                                    self._model.get_value(iter, _VIEW_COL_GROUPS)))
                 break
 
     def _contact_info_cb (self, handle, vcard):
