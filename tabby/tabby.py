@@ -105,6 +105,7 @@ class MainWindow(gtk.Window):
 
         view = scw.View()
         view.connect("activate", self._view_activate_cb)
+        view.connect("context-request", self._view_context_cb)
         view.set_property("model", self._model)
         view.set_column_foldable(_VIEW_COL_COMBINED_STATUS, True)
         view.set_column_visible(_VIEW_COL_HANDLE, False)
@@ -144,6 +145,8 @@ class MainWindow(gtk.Window):
         self._conversations = {}
         self._rooms = {}
         self._channels = {}
+        self._groups = {}
+        self._pending_group_additions = {}
         self._status = CONNECTION_STATUS_DISCONNECTED
 
         self._icon = gtk.gdk.pixbuf_new_from_file("data/images/face-surprise.png")
@@ -194,21 +197,47 @@ class MainWindow(gtk.Window):
         self._rooms[handle].take_room_channel(channel)
         self._rooms[handle].show()
 
+    def _view_context_cb(self, view, action_id, action_data, x=0, y=0):
+        if action_id[:5] == 'click':
+            handle = int(action_id[5:])
+
+            try:
+                iter = self._find_contact_iter(handle)
+            except LookupError:
+                return
+
+            menu = gtk.Menu()
+            item = gtk.MenuItem('Add to group...')
+            item.connect('activate', lambda item: self._add_to_group_cb(handle))
+            menu.append(item)
+            item = gtk.MenuItem('Remove from group...')
+            item.connect('activate', lambda item: self._rm_from_group_cb(handle))
+            menu.append(item)
+            menu.show_all()
+            menu.popup(None, None, None, 0, 0)
+
+    def _add_to_group_cb(self, handle):
+        for name in self._groups:
+            print "adding %i to %r" % (handle, name)
+            self._groups[name][CHANNEL_INTERFACE_GROUP].AddMembers([handle], '')
+            return
+
+    def _rm_from_group_cb(self, handle):
+        for name in self._groups:
+            print "removing %i from %r" % (handle, name)
+            self._groups[name][CHANNEL_INTERFACE_GROUP].RemoveMembers([handle], '')
+            return
+
     def _view_activate_cb(self, view, action_id, action_data):
         if action_id[:5] == "click":
             handle = int(action_id[5:])
 
-            found = False
-            iter = self._model.get_iter_first()
-            while iter:
-                cur_status, cur_handle = self._model.get(iter, _VIEW_COL_COMBINED_STATUS, _VIEW_COL_HANDLE)
-                if cur_handle == handle:
-                    found = True
-                    break
-                iter = self._model.iter_next(iter)
-
-            if not found:
+            try:
+                iter = self._find_contact_iter(handle)
+            except LookupError:
                 return
+            else:
+                cur_status = self._model.get_value(iter, _VIEW_COL_STATUS)
 
             if cur_status == "Offline":
                 return
@@ -320,6 +349,7 @@ class MainWindow(gtk.Window):
             self._conn_new_channel_cb(obj_path, channel_type, handle_type, handle, False)
 
     def _conn_new_channel_cb(self, obj_path, channel_type, handle_type, handle, suppress_handler):
+        print "_conn_new_channel_cb(%r, %r, %r, %r, %r)" % (obj_path, channel_type, handle_type, handle, suppress_handler)
         if suppress_handler:
             return
 
@@ -329,9 +359,14 @@ class MainWindow(gtk.Window):
         channel = None
 
         if channel_type == CHANNEL_TYPE_CONTACT_LIST:
-            channel = ContactListChannel(self._conn, obj_path, handle)
-            self._conn.lookup_handle(handle_type, handle,
-                                     self._set_contact_list, channel)
+            if handle_type == CONNECTION_HANDLE_TYPE_LIST:
+                channel = ContactListChannel(self._conn, obj_path, handle)
+                self._conn.lookup_handle(handle_type, handle,
+                                         self._set_contact_list, channel)
+            elif handle_type == CONNECTION_HANDLE_TYPE_USER_CONTACT_GROUP:
+                channel = ContactGroupChannel(self._conn, obj_path, handle)
+                self._conn.lookup_handle(handle_type, handle,
+                                         self._set_contact_group, channel)
         elif channel_type == CHANNEL_TYPE_TEXT and handle_type == CONNECTION_HANDLE_TYPE_ROOM:
             channel = RoomChannel(self._conn, obj_path, handle)
 
@@ -397,35 +432,124 @@ class MainWindow(gtk.Window):
         print "Exception received:", exception
 
     def _set_contact_list(self, handle_type, handle, name, channel):
+        print "_set_contact_list(%r, %r, %r, %r)" % (handle_type, handle, name, channel)
         if name == "subscribe":
             self._subscribe = channel
             dbus_call_async(self._subscribe[CHANNEL_INTERFACE_GROUP].GetMembers,
-                            reply_handler=self._cl_get_members_reply_cb,
+                            reply_handler=self._cl_subscribe_get_members_reply_cb,
                             error_handler=self._conn_error_cb)
             self._subscribe[CHANNEL_INTERFACE_GROUP].connect_to_signal("MembersChanged",
                     lambda *args: dbus_signal_cb(self._cl_subscribe_members_changed_cb, *args))
         elif name == "publish":
             self._publish = channel
         else:
-            print "_set_contact_list: got unknown list '%s'" % name
+            print "_set_contact_list: ignoring unknown list '%s'" % name
 
-    def _cl_get_members_reply_cb(self, members):
+    def _set_contact_group(self, handle_type, handle, name, channel):
+        print "_set_contact_group(%r, %r, %r, %r)" % (handle_type, handle, name, channel)
+        self._groups[name] = channel
+        dbus_call_async(channel[CHANNEL_INTERFACE_GROUP].GetMembers,
+                        reply_handler=lambda *args: self._cg_get_members_reply_cb(name, *args),
+                        error_handler=self._conn_error_cb)
+        channel[CHANNEL_INTERFACE_GROUP].connect_to_signal("MembersChanged",
+                lambda *args: dbus_signal_cb(self._cg_members_changed_cb,
+                                             name, *args))
+
+    def _find_contact_iter(self, handle):
+        iter = self._model.get_iter_first()
+        while iter:
+            cur = self._model.get_value(iter, _VIEW_COL_HANDLE)
+            if cur == handle:
+                return iter
+            iter = self._model.iter_next(iter)
+        print "Can't find handle %i in the contacts" % handle
+        raise LookupError("Can't find handle %i in the contacts" % handle)
+
+    def _cg_get_members_reply_cb(self, name, members):
+        print "_cg_get_members_reply_cb: (%r, %r)" % (name, members)
+        for member in members:
+            try:
+                iter = self._find_contact_iter(member)
+            except LookupError:
+                # the group contains a contact we don't know about yet,
+                # but hopefully they'll turn up...
+                groups = self._pending_group_additions.setdefault(member, [])
+                iter = None
+            else:
+                groups = self._model.get_value(iter, _VIEW_COL_GROUPS)
+            try:
+                groups.index(name)
+            except ValueError:
+                # not there, so add it
+                print "Including %i in group %r" % (member, name)
+                groups.append(name)
+                groups.sort()
+            if iter is not None:
+                self._contact_iter_update_status(iter)
+
+    def _cg_members_changed_cb(self, name, reason, added, removed, local_pending, remote_pending, actor, reason_code):
+        print "_cg_members_changed_cb: (%r, %r)" % (name, (reason, added, removed, local_pending, remote_pending, actor, reason_code))
+        for member in removed:
+            try:
+                iter = self._find_contact_iter(member)
+            except LookupError:
+                iter = None
+                # the group contains a contact we don't know about yet,
+                # but hopefully they'll turn up...
+                groups = self._pending_group_additions.get(member, None)
+                if groups is None:
+                    continue
+            else:
+                groups = self._model.get_value(iter, _VIEW_COL_GROUPS)
+            print "Removing %i from group %r" % (member, name)
+            try:
+                groups.remove(name)
+            except ValueError:
+                # already absent
+                pass
+            if iter is not None:
+                self._contact_iter_update_status(iter)
+
+        for member in added:
+            try:
+                iter = self._find_contact_iter(member)
+            except LookupError:
+                iter = None
+                # the group contains a contact we don't know about yet,
+                # but hopefully they'll turn up...
+                groups = self._pending_group_additions.setdefault(member, [])
+            else:
+                groups = self._model.get_value(iter, _VIEW_COL_GROUPS)
+            print "Adding %i to group %r" % (member, name)
+            try:
+                groups.index(name)
+            except ValueError:
+                # not there, so add it
+                groups.append(name)
+                groups.sort()
+            if iter is not None:
+                self._contact_iter_update_status(iter)
+
+    def _cl_subscribe_get_members_reply_cb(self, members):
+        print "_cl_subscribe_get_members_reply_cb(%r)" % members
         for member in members:
             self._conn.lookup_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self._cl_add_contact)
 
     def _cl_subscribe_members_changed_cb(self, reason, added, removed, local_pending, remote_pending, actor, reason_code):
+        print "_cl_subscribe_get_members_reply_cb(..., added=%r)" % added
         for member in added:
             self._conn.lookup_handle(CONNECTION_HANDLE_TYPE_CONTACT, member, self._cl_add_contact)
 
     def _cl_add_contact(self, handle_type, handle, name):
         iter = self._model.append()
+        groups = self._pending_group_additions.pop(handle, [])
         self._model.set(iter,
                         _VIEW_COL_ICON, self._icon,
                         _VIEW_COL_PRESENCE, "<b><action id='click%s'>%s</action></b>" % (handle, name),
                         _VIEW_COL_COMBINED_STATUS, "Offline // []",
                         _VIEW_COL_HANDLE, handle,
                         _VIEW_COL_STATUS, "Offline",
-                        _VIEW_COL_GROUPS, [])
+                        _VIEW_COL_GROUPS, groups)
 
         self._pending_presence_lookups.append(handle)
         self._process_presence_queue()
@@ -447,28 +571,25 @@ class MainWindow(gtk.Window):
             self._pending_presence_lookups = []
 
     def _presence_update_cb(self, presences):
+        print "_presence_update_cb(%r)", presences
         for handle, presence in presences.iteritems():
             idle, statuses = presence
 
-            found = False
-            iter = self._model.get_iter_first()
-            while iter:
-                cur = self._model.get_value(iter, _VIEW_COL_HANDLE)
-                if cur == handle:
-                    found = True
-                    break
-                iter = self._model.iter_next(iter)
-
-            if not found:
+            try:
+                iter = self._find_contact_iter(handle)
+            except LookupError:
                 return
 
             for name, params in statuses.iteritems():
                 status = self._get_status_message(name, params)
                 self._model.set_value(iter, _VIEW_COL_STATUS, status)
-                self._model.set_value(iter, _VIEW_COL_COMBINED_STATUS,
-                                      '%s // %s' % (status,
-                                                    self._model.get_value(iter, _VIEW_COL_GROUPS)))
+                self._contact_iter_update_status(iter)
                 break
+
+    def _contact_iter_update_status(self, iter):
+        self._model.set_value(iter, _VIEW_COL_COMBINED_STATUS, '%s // %s' %
+                              (self._model.get_value(iter, _VIEW_COL_STATUS),
+                               self._model.get_value(iter, _VIEW_COL_GROUPS)))
 
     def _contact_info_cb (self, handle, vcard):
         print handle, vcard

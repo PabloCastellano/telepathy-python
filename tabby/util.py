@@ -390,6 +390,11 @@ class ContactListChannel(GroupChannel):
         GroupChannel.__init__(self, conn, obj_path, CONNECTION_HANDLE_TYPE_LIST,
                               handle, CHANNEL_TYPE_CONTACT_LIST)
 
+class ContactGroupChannel(GroupChannel):
+    def __init__(self, conn, obj_path, handle):
+        GroupChannel.__init__(self, conn, obj_path, CONNECTION_HANDLE_TYPE_USER_CONTACT_GROUP,
+                              handle, CHANNEL_TYPE_CONTACT_LIST)
+
 class ImChannel(GroupChannel):
     __gsignals__ = {
         "message-received": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
