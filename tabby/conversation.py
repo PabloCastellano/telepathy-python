@@ -103,9 +103,8 @@ class Conversation:
         dbus_call_async(self._conn[CONN_INTERFACE].RequestChannel,
             CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_CONTACT,
             handle, True,
-            reply_handler=self._request_im_channel_reply_cb,
-            error_handler=self._error_cb,
-            extra_args=(handle, name,))
+            reply_handler=lambda op: self._request_im_channel_reply_cb(op, handle, name),
+            error_handler=self._error_cb)
 
         # Show the widgets created by us
         image.show()
