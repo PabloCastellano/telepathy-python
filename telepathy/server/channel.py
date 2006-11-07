@@ -734,6 +734,9 @@ class ChannelTypeText(Channel):
         4 - CHANNEL_TEXT_SEND_ERROR_TOO_LONG
             The outgoing message was too long and was rejected by the
             server.
+        5 - CHANNEL_TEXT_SEND_ERROR_NOT_IMPLEMENTED
+            The channel doesn't support sending text messages to requested
+            contact.
 
         Parameters:
         error - one of the above integer errors
