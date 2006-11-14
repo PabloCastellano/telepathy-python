@@ -1064,6 +1064,19 @@ class ConnectionInterfacePresence(dbus.service.Interface):
         """
         pass
 
+    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='au', out_signature='a{u(ua{sa{sv}})}')
+    def GetPresence(self, contacts):
+        """
+        Get presence previously emitted by PresenceUpdate for the given
+        contacts. Data is returned in the same structure as the PresenceUpdate
+        signal. Using this method in favour of RequestPresence has the
+        advantage that it will not wake up each client connected to the
+        PresenceUpdate signal.
+
+        Possible Errors:
+        Disconnected, InvalidHandle, NotAvailable
+        """
+
     @dbus.service.signal(CONN_INTERFACE_PRESENCE, signature='a{u(ua{sa{sv}})}')
     def PresenceUpdate(self, presence):
         """
