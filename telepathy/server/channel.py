@@ -1097,6 +1097,8 @@ class ChannelInterfaceGroup(dbus.service.Interface):
             The change is due to an invitation.
         5 - CHANNEL_GROUP_CHANGE_REASON_BANNED
             The change is due to a kick+ban operation.
+        6 - CHANNEL_GROUP_CHANGE_REASON_ERROR
+            The change is due to an error occurring.
 
         Parameters:
         message - a string message from the server, or blank if not
