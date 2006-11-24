@@ -855,7 +855,7 @@ class ChannelTypeText(Channel):
         flags - a bitwise OR of the message flags as defined above
         text - the text of the message
         """
-        self._pending_messages[id] = (timestamp, sender, type, text)
+        self._pending_messages[id] = (timestamp, sender, type, flags, text)
 
     @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='')
     def LostMessage(self):
