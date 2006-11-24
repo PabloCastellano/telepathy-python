@@ -20,10 +20,11 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-from connmgr import *
-from conn import *
-from channel import *
-from handle import *
-from properties import *
+from telepathy.server.connmgr import *
+from telepathy.server.conn import *
+from telepathy.server.channel import *
+from telepathy.server.handle import *
+from telepathy.server.media import *
+from telepathy.server.properties import *
 
 from telepathy import version, __version__
