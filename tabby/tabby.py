@@ -52,6 +52,7 @@ _VIEW_COL_COMBINED_STATUS = 2
 _VIEW_COL_HANDLE = 3
 _VIEW_COL_STATUS = 4
 _VIEW_COL_GROUPS = 5
+_VIEW_COL_NAME = 6
 
 class MainWindow(gtk.Window):
     def __init__(self):
@@ -96,7 +97,8 @@ class MainWindow(gtk.Window):
                                     gobject.TYPE_STRING,
                                     int,
                                     gobject.TYPE_STRING,
-                                    gobject.TYPE_PYOBJECT)
+                                    gobject.TYPE_PYOBJECT,
+                                    gobject.TYPE_STRING)
 
         sw = gtk.ScrolledWindow()
         sw.set_shadow_type(gtk.SHADOW_NONE)
@@ -111,6 +113,7 @@ class MainWindow(gtk.Window):
         view.set_column_visible(_VIEW_COL_HANDLE, False)
         view.set_column_visible(_VIEW_COL_STATUS, False)
         view.set_column_visible(_VIEW_COL_GROUPS, False)
+        view.set_column_visible(_VIEW_COL_NAME, False)
         sw.add(view)
         self._view = view
 
@@ -217,16 +220,77 @@ class MainWindow(gtk.Window):
             menu.popup(None, None, None, 0, 0)
 
     def _add_to_group_cb(self, handle):
-        for name in self._groups:
+        try:
+            iter = self._find_contact_iter(handle)
+        except LookupError:
+            # user would have to be pretty ingenious to manage this
+            name = '%s' % handle
+        else:
+            name = self._model.get_value(iter, _VIEW_COL_NAME)
+
+        dialog = gtk.Dialog('Add "%s" to group' % name, self,
+                            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                            (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
+                             gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        combo = gtk.combo_box_entry_new_text()
+        groups = self._groups.keys()
+        groups.sort()
+        for name in groups:
+            combo.append_text(name)
+        dialog.vbox.pack_start(combo)
+        dialog.show_all()
+        if dialog.run() == gtk.RESPONSE_ACCEPT:
+            name = combo.get_active_text()
             print "adding %i to %r" % (handle, name)
-            self._groups[name][CHANNEL_INTERFACE_GROUP].AddMembers([handle], '')
-            return
+            self._get_group(name)[CHANNEL_INTERFACE_GROUP].AddMembers([handle], '')
+            #plz_crash_me = [self._get_group('%s' % i)[CHANNEL_INTERFACE_GROUP]
+            #                for i in xrange(20)]
+            #args = ([handle], '')
+            #for i in plz_crash_me:
+            #    i.AddMembers(*args)
+        dialog.hide()
+        del dialog
+        del combo
+
+    def _get_group(self, name):
+        group = self._groups.get(name)
+        if group is None:
+            handle = self._conn[CONN_INTERFACE].RequestHandles(
+                        CONNECTION_HANDLE_TYPE_USER_CONTACT_GROUP, [name])[0]
+            group = self._conn[CONN_INTERFACE].RequestChannel(
+                    CHANNEL_TYPE_CONTACT_LIST,
+                    CONNECTION_HANDLE_TYPE_USER_CONTACT_GROUP,
+                    handle, False)
+            group = ContactGroupChannel(self._conn, group, handle)
+        return group
 
     def _rm_from_group_cb(self, handle):
-        for name in self._groups:
+        try:
+            iter = self._find_contact_iter(handle)
+        except LookupError:
+            # user would have to be pretty ingenious to manage this
+            name = '%s' % handle
+        else:
+            name = self._model.get_value(iter, _VIEW_COL_NAME)
+
+        dialog = gtk.Dialog('Remove "%s" from group' % name, self,
+                            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                            (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
+                             gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        combo = gtk.combo_box_new_text()
+        groups = self._groups.keys()
+        groups.sort()
+        for name in groups:
+            combo.append_text(name)
+        dialog.vbox.pack_start(combo)
+        dialog.show_all()
+        if dialog.run() == gtk.RESPONSE_ACCEPT:
+            name = combo.get_active_text()
             print "removing %i from %r" % (handle, name)
-            self._groups[name][CHANNEL_INTERFACE_GROUP].RemoveMembers([handle], '')
-            return
+            self._get_group(name)[CHANNEL_INTERFACE_GROUP].RemoveMembers([handle], '')
+            dialog.hide()
+            del dialog
+            del combo
 
     def _view_activate_cb(self, view, action_id, action_data):
         if action_id[:5] == "click":
@@ -549,7 +613,8 @@ class MainWindow(gtk.Window):
                         _VIEW_COL_COMBINED_STATUS, "Offline // []",
                         _VIEW_COL_HANDLE, handle,
                         _VIEW_COL_STATUS, "Offline",
-                        _VIEW_COL_GROUPS, groups)
+                        _VIEW_COL_GROUPS, groups,
+                        _VIEW_COL_NAME, name),
 
         self._pending_presence_lookups.append(handle)
         self._process_presence_queue()
