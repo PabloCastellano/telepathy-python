@@ -140,7 +140,7 @@ class OutgoingCall(Call):
 
     def status_changed_cb (self, state, reason):
         if state == CONNECTION_STATUS_CONNECTED:
-            handle = conn[CONN_INTERFACE].RequestHandles(
+            handle = self.conn[CONN_INTERFACE].RequestHandles(
                 CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
             self.handle = handle
 
@@ -150,7 +150,7 @@ class OutgoingCall(Call):
             import time
             time.sleep(5)
 
-            conn[CONN_INTERFACE].RequestChannel(
+            self.conn[CONN_INTERFACE].RequestChannel(
                 CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
                 handle, True,
                 reply_handler=lambda *stuff: None,
