@@ -80,10 +80,3 @@ class ChannelInviteOnly(dbus.DBusException):
     The requested channel is invite only.
     """
     _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.Channel.InviteOnly'
-
-class AlreadyInAGroup(dbus.DBusException):
-    """
-    Raised when an attempt is made to add a contact to multiple
-    groups that have the CHANNEL_GROUP_FLAG_ONLY_ONE_GROUP flag.
-    """
-    _dbus_error_name = _TELEPATHY_ERROR_IFACE + '.AlreadyInAGroup'
