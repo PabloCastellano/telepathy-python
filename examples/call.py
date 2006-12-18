@@ -3,7 +3,7 @@ import dbus.glib
 import gobject
 import sys
 
-from account import read_account, connect
+from account import connection_from_file
 
 from telepathy.client.channel import Channel
 from telepathy.constants import (
@@ -164,10 +164,7 @@ class IncomingCall(Call):
 
 if __name__ == '__main__':
     assert len(sys.argv) in (2, 3)
-    account_file = sys.argv[1]
-
-    manager, protocol, account = read_account(account_file)
-    conn = connect(manager, protocol, account)
+    conn = connection_from_file(sys.argv[1])
 
     if len(sys.argv) > 2:
         contact = sys.argv[2]
