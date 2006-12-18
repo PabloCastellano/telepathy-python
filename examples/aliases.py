@@ -7,7 +7,7 @@ import dbus.glib
 import gobject
 import sys
 
-from account import read_account, connect
+from account import connection_from_file
 
 from telepathy.client.channel import Channel
 from telepathy.constants import (
@@ -82,10 +82,7 @@ class AliasesClient:
 
 if __name__ == '__main__':
     assert len(sys.argv) == 2
-    account_file = sys.argv[1]
-
-    manager, protocol, account = read_account(account_file)
-    conn = connect(manager, protocol, account)
+    conn = connection_from_file(sys.argv[1])
     client = AliasesClient(conn)
 
     print "connecting"
