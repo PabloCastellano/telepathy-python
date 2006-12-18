@@ -4,17 +4,13 @@ Telepathy example which requests the avatar for the user's own handle and
 displays it in a Gtk window.
 """
 
-import dbus
 import dbus.glib
 import gtk
 import sys
 
-from pprint import pprint
-
 from telepathy.constants import CONNECTION_STATUS_CONNECTED
 from telepathy.interfaces import (
-    CONN_MGR_INTERFACE, CONN_INTERFACE, CONN_INTERFACE_AVATARS)
-import telepathy.client
+    CONN_INTERFACE, CONN_INTERFACE_AVATARS)
 
 from account import read_account, connect
 

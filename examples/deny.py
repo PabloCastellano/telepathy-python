@@ -7,12 +7,10 @@ from account import read_account, connect
 
 from telepathy.client.channel import Channel
 from telepathy.constants import (
-    CONNECTION_HANDLE_TYPE_NONE, CONNECTION_HANDLE_TYPE_CONTACT,
-    CONNECTION_HANDLE_TYPE_LIST, CONNECTION_STATUS_CONNECTED,
-    CONNECTION_STATUS_DISCONNECTED)
+    CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_HANDLE_TYPE_LIST,
+    CONNECTION_STATUS_CONNECTED)
 from telepathy.interfaces import (
-    CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_CONTACT_LIST,
-    CONN_INTERFACE)
+    CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_CONTACT_LIST, CONN_INTERFACE)
 
 def print_members(conn, chan):
     current, local_pending, remote_pending = (
