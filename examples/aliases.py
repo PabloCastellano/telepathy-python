@@ -48,7 +48,6 @@ class AliasesClient:
         known_channel = self._request_list_channel('known')
         current, local_pending, remote_pending = (
             known_channel[CHANNEL_INTERFACE_GROUP].GetAllMembers())
-        print current
         names = self.conn[CONN_INTERFACE].InspectHandles(
                 CONNECTION_HANDLE_TYPE_CONTACT, current)
         # hack
