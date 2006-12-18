@@ -91,47 +91,10 @@ class Call:
         print "channel closed"
         self.quit()
 
-    def do_window(self):
-        print "trying to open window"
-
-        import gtk
-
-        window = gtk.Window()
-        window.set_border_width (5)
-        hbox = gtk.HBox(False, 5)
-        label1 = gtk.Label('Output')
-        label2 = gtk.Label('Preview')
-        vbox1 = gtk.VBox(False, 5)
-        vbox2 = gtk.VBox(False, 5)
-        socket1 = gtk.Socket()
-        socket1.set_size_request(320, 240)
-        socket2 = gtk.Socket()
-        socket2.set_size_request(320, 240)
-
-        vbox1.add(label1)
-        vbox1.add(socket1)
-        vbox2.add(label2)
-        vbox2.add(socket2)
-        hbox.add(vbox1)
-        hbox.add(vbox2)
-        window.add(hbox)
-        window.show_all()
-
-        stream_engine = get_stream_engine()
-        badger = dbus.Interface(stream_engine,
-            'org.freedesktop.Telepathy.StreamEngine')
-        chan_path = self.channel._dbus_object._object_path
-        badger.SetOutputWindow(chan_path, 2, socket1.get_id())
-        badger.AddPreviewWindow(socket2.get_id())
-        return False
-
     def members_changed_cb(self, message, added, removed, local_pending,
             remote_pending, actor, reason):
         print 'MembersChanged', (
             added, removed, local_pending, remote_pending, actor, reason)
-
-        if added:
-            gobject.timeout_add(5000, self.do_window)
 
 class OutgoingCall(Call):
     def __init__(self, conn, contact):
