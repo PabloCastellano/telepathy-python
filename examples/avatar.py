@@ -12,7 +12,7 @@ from telepathy.constants import CONNECTION_STATUS_CONNECTED
 from telepathy.interfaces import (
     CONN_INTERFACE, CONN_INTERFACE_AVATARS)
 
-from account import read_account, connect
+from account import connection_from_file
 
 def window_closed_cb(window):
     gtk.main_quit()
@@ -49,9 +49,7 @@ def status_changed_cb(state, reason):
     window.connect('destroy', gtk.main_quit)
 
 if __name__ == '__main__':
-    account_file = sys.argv[1]
-    manager, protocol, account = read_account(account_file)
-    conn = connect(manager, protocol, account)
+    conn = connection_from_file(sys.argv[1])
 
     # XXX: hack!
     conn._valid_interfaces = [CONN_INTERFACE, CONN_INTERFACE_AVATARS]
