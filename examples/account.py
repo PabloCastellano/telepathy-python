@@ -45,4 +45,7 @@ def connect(manager, protocol, account):
         mgr[CONN_MGR_INTERFACE].RequestConnection(protocol, account)
     return telepathy.client.Connection(conn_bus_name, conn_object_path)
 
+def connection_from_file(path):
+    manager, protocol, account = read_account(path)
+    return connect(manager, protocol, account)
 
