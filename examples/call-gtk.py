@@ -8,7 +8,7 @@ import dbus
 import gobject
 import gtk
 
-from account import read_account, connect
+from account import connection_from_file
 from call import IncomingCall, OutgoingCall, get_stream_engine
 
 from telepathy.interfaces import CONN_INTERFACE
@@ -108,10 +108,7 @@ class GtkIncomingCall(GtkLoopMixin, BaseGtkCall, IncomingCall):
 
 if __name__ == '__main__':
     assert len(sys.argv) in (2, 3)
-    account_file = sys.argv[1]
-
-    manager, protocol, account = read_account(account_file)
-    conn = connect(manager, protocol, account)
+    conn = connection_from_file(sys.argv[1])
 
     if len(sys.argv) > 2:
         contact = sys.argv[2]
