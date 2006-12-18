@@ -3,7 +3,7 @@ import dbus.glib
 import gobject
 import sys
 
-from account import read_account, connect
+from account import connection_from_file
 
 from telepathy.client.channel import Channel
 from telepathy.constants import (
@@ -26,7 +26,7 @@ def print_members(conn, chan):
     if not current:
         print ' (none)'
 
-class Deny:
+class DenyClient:
     def __init__(self, conn, contact):
         self.conn = conn
         self.contact = contact
@@ -73,12 +73,9 @@ class Deny:
 
 if __name__ == '__main__':
     assert len(sys.argv) == 3
-    account_file = sys.argv[1]
+    conn = connection_from_file(sys.argv[1])
     contact = sys.argv[2]
-
-    manager, protocol, account = read_account(account_file)
-    conn = connect(manager, protocol, account)
-    deny = Deny(conn, contact)
+    deny = DenyClient(conn, contact)
 
     print "connecting"
     conn[CONN_INTERFACE].Connect()
