@@ -115,7 +115,7 @@ class OutgoingCall(Call):
 
             self.conn[CONN_INTERFACE].RequestChannel(
                 CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
-                handle, True,
+                0, True,
                 reply_handler=lambda *stuff: None,
                 error_handler=self.request_channel_error_cb)
 
