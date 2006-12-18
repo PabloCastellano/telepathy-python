@@ -12,7 +12,7 @@ from telepathy.constants import (
     MEDIA_STREAM_TYPE_AUDIO, MEDIA_STREAM_TYPE_VIDEO)
 from telepathy.interfaces import (
     CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_STREAMED_MEDIA,
-    CONN_INTERFACE)
+    CONN_INTERFACE, CONN_INTERFACE_CAPABILITIES)
 
 def get_stream_engine():
     bus = dbus.Bus()
@@ -148,6 +148,10 @@ class IncomingCall(Call):
     def status_changed_cb (self, state, reason):
         if state == CONNECTION_STATUS_CONNECTED:
             print "waiting for incoming call"
+
+            self.conn._valid_interfaces.add(CONN_INTERFACE_CAPABILITIES)
+            self.conn[CONN_INTERFACE_CAPABILITIES].AdvertiseCapabilities(
+                [(CHANNEL_TYPE_STREAMED_MEDIA, 3)], [])
 
         Call.status_changed_cb(self, state, reason)
 
