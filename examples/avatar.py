@@ -33,7 +33,7 @@ def status_changed_cb(state, reason):
     print 'token:', tokens[0]
 
     if len(sys.argv) > 2:
-        avatar = file('avatar.png').read()
+        avatar = file(sys.argv[2]).read()
         new_token = conn[CONN_INTERFACE_AVATARS].SetAvatar(avatar, 'image/png')
         print 'new token:', new_token
         gtk.main_quit()
