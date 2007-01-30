@@ -34,6 +34,19 @@ from telepathy import *
 
 import telepathy.client
 
+
+def variant(val, type):
+    if type in 'uiqntxby':
+        return int(val)
+    elif type == 'd':
+        return float(val)
+    else:
+        return val
+
+if getattr(dbus, 'version', (0,0,0)) < (0,80):
+    variant = dbus.Variant
+
+
 class ContactListChannel(telepathy.client.Channel):
     def __init__(self, conn, object_path, handle_type, handle):
         telepathy.client.Channel.__init__(self, conn._service_name,
@@ -324,11 +337,11 @@ if __name__ == '__main__':
 
     for (name, (type, default)) in reg.GetParams(manager, protocol)[0].iteritems():
         if name in cmdline_params:
-            params[name] = dbus.Variant(cmdline_params[name],type)
+            params[name] = variant(cmdline_params[name],type)
         elif name == 'password':
-            params[name] = dbus.Variant(getpass.getpass(),type)
+            params[name] = variant(getpass.getpass(),type)
         else:
-            params[name] = dbus.Variant(raw_input(name+': '),type)
+            params[name] = variant(raw_input(name+': '),type)
 
     mgr = telepathy.client.ConnectionManager(mgr_bus_name, mgr_object_path)
     print "using params:",params

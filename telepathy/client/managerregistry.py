@@ -78,6 +78,10 @@ import dircache
 import dbus
 import telepathy
 
+
+_dbus_py_version = getattr(dbus, 'version', (0,0,0))
+
+
 class ManagerRegistry:
     def __init__(self):
         self.services = {}
@@ -189,7 +193,15 @@ class ManagerRegistry:
 
             for key, val in config.iteritems():
                 if key.strip().startswith("default-"+name):
-                    default = dbus.Variant(val.strip(), signature=type)
+                    if _dbus_py_version < (0, 80):
+                        default = dbus.Variant(val.strip(), signature=type)
+                    else:
+                        default = val.strip()
+                        if type in 'uiqntxby':
+                            default = int(default)
+                        elif type == 'd':
+                            default = float(default)
+                        # we don't support non-basic types
                     flags |= telepathy.CONN_MGR_PARAM_FLAG_HAS_DEFAULT
 
             params[name] = (type, default, flags)
