@@ -1,4 +1,4 @@
-
+import dbus
 import dbus.glib
 import gobject
 import sys
@@ -13,6 +13,24 @@ from telepathy.constants import (
 from telepathy.interfaces import (
     CHANNEL_INTERFACE, CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_STREAMED_MEDIA,
     CONN_INTERFACE, CONN_INTERFACE_CAPABILITIES)
+
+import logging
+logging.basicConfig()
+
+
+def proxy_get_object_path(proxy):
+    if getattr(dbus, 'version', (0,0,0)) < (0, 80):
+        # non-public API in dbus-python < 0.80
+        return proxy._object_path
+    else:
+        # actually official API in 0.80+
+        return proxy.__dbus_object_path__
+
+
+def proxy_get_service_name(proxy):
+    # FIXME: using non-public API
+    return proxy._named_service
+
 
 def get_stream_engine():
     bus = dbus.Bus()
@@ -65,7 +83,7 @@ class Call:
         self.chan_handle = handle
 
         print "new streamed media channel"
-        Channel(self.conn._dbus_object._named_service, object_path,
+        Channel(proxy_get_service_name(self.conn._dbus_object), object_path,
                 ready_handler=self.channel_ready_cb)
 
     def channel_ready_cb(self, channel):
@@ -78,10 +96,10 @@ class Call:
         handler = dbus.Interface(stream_engine,
             'org.freedesktop.Telepathy.ChannelHandler')
         handler.HandleChannel(
-            self.conn._dbus_object._named_service,
-            self.conn._dbus_object._object_path,
+            proxy_get_service_name(self.conn._dbus_object),
+            proxy_get_object_path(self.conn._dbus_object),
             CHANNEL_TYPE_STREAMED_MEDIA,
-            channel._dbus_object._object_path,
+            proxy_get_object_path(channel._dbus_object),
             self.chan_handle_type,
             self.chan_handle)
 
