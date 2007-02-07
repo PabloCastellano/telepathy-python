@@ -197,8 +197,13 @@ class ManagerRegistry:
                         default = dbus.Variant(val.strip(), signature=type)
                     else:
                         default = val.strip()
-                        if type in 'uiqntxby':
+                        if type in 'uiqntxy':
                             default = int(default)
+                        elif type == 'b':
+                            if default.lower() in ('0', 'false'):
+                                default = False
+                            else:
+                                default = True
                         elif type == 'd':
                             default = float(default)
                         # we don't support non-basic types
