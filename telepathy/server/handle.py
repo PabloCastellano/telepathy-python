@@ -25,7 +25,12 @@ class Handle(object):
 
     def get_id(self):
         return self._id
-    __int__ = get_id
+
+    def __int__(self):
+        return int(self._id)
+
+    def __long__(self):
+        return long(self._id)
 
     def get_type(self):
         return self._type
