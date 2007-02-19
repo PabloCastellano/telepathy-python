@@ -41,3 +41,18 @@ class Connection(InterfaceFactory):
         self.get_valid_interfaces().update(interfaces)
         if self._ready_handler is not None:
             self._ready_handler(self)
+    
+    @staticmethod
+    def get_connections(bus=None):
+        connections = []
+        if not bus:
+            bus = dbus.Bus()
+
+        bus_object = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
+
+        for service in bus_object.ListNames(dbus_interface='org.freedesktop.DBus'):
+            if service.startswith('org.freedesktop.Telepathy.Connection.'):
+                connection = Connection(service, "/%s" % service.replace(".", "/"))
+                connections.append(connection)
+
+        return connections
