@@ -19,8 +19,8 @@
 
 import dbus
 
-from telepathy.client.interfacefactory import (InterfaceFactory,
-                                               default_error_handler)
+from telepathy.client.interfacefactory import (
+    InterfaceFactory, default_error_handler)
 from telepathy.interfaces import CONN_INTERFACE, CONN_INTERFACE_AVATARS
 
 class Connection(InterfaceFactory):
