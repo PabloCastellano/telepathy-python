@@ -32,7 +32,7 @@ class Watcher:
 
         for name in conn_names:
             conn = self._get_conn(name)
-            self._watch_conn(conn)
+            self._watch_conn(name, conn)
             status = connection_status[conn[CONN_INTERFACE].GetStatus()]
             print 'found connection: %s (%s)' % (name, status)
 
@@ -44,7 +44,7 @@ class Watcher:
             mgr, protocol, account)
         return Connection(conn_prefix + name, path)
 
-    def _watch_conn(self, conn):
+    def _watch_conn(self, name, conn):
         conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             lambda status, reason:
                 self._status_changed_cb(name, status, reason))
@@ -55,7 +55,7 @@ class Watcher:
 
             if old == '':
                 conn = self._get_conn(name)
-                self._watch_conn(conn)
+                self._watch_conn(name, conn)
                 status = connection_status[conn[CONN_INTERFACE].GetStatus()]
                 print 'new connection: %s (%s)' % (name, status)
             elif new == '':
