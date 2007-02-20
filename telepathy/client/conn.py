@@ -42,10 +42,9 @@ class Connection(InterfaceFactory):
         if status == CONNECTION_STATUS_CONNECTED:
             self._get_interfaces()
         else:
-            self._status_changed_foo = \
+            self._status_changed_connection = \
                 self[CONN_INTERFACE].connect_to_signal('StatusChanged',
                     self._status_changed_cb)
-            #print self._status_changed_foo
 
     def _get_interfaces(self, *stuff):
         self[CONN_INTERFACE].GetInterfaces(
@@ -77,7 +76,7 @@ class Connection(InterfaceFactory):
         if status == CONNECTION_STATUS_CONNECTED:
             self._get_interfaces()
 
-            if self._status_changed_foo:
+            if self._status_changed_connection:
                 # old dbus-python returns None from connect_to_signal
-                self._status_changed_foo.disconnect()
+                self._status_changed_connection.disconnect()
 
