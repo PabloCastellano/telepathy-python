@@ -25,10 +25,13 @@ from telepathy.interfaces import CONN_INTERFACE
 from telepathy.constants import CONNECTION_STATUS_CONNECTED
 
 class Connection(InterfaceFactory):
-    def __init__(self, service_name, object_path, bus=None, ready_handler=None,
-                 error_handler=default_error_handler):
+    def __init__(self, service_name, object_path=None, bus=None,
+            ready_handler=None, error_handler=default_error_handler):
         if not bus:
             bus = dbus.Bus()
+
+        if object_path is None:
+            object_path = '/' + service_name.replace('.', '/')
 
         self.service_name = service_name
         self.object_path = object_path
