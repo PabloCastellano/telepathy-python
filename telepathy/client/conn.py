@@ -40,16 +40,25 @@ class Connection(InterfaceFactory):
         object = bus.get_object(service_name, object_path)
         InterfaceFactory.__init__(self, object)
         self.get_valid_interfaces().add(CONN_INTERFACE)
-        status = self[CONN_INTERFACE].GetStatus()
 
+        # note: old dbus-python returns None from connect_to_signal
+        self._status_changed_connection = \
+            self[CONN_INTERFACE].connect_to_signal('StatusChanged',
+                lambda status, reason: self._status_cb(status))
+        self[CONN_INTERFACE].GetStatus(
+            reply_handler=self._status_cb,
+            error_handler=error_handler)
+
+    def _status_cb(self, status):
         if status == CONNECTION_STATUS_CONNECTED:
             self._get_interfaces()
-        else:
-            self._status_changed_connection = \
-                self[CONN_INTERFACE].connect_to_signal('StatusChanged',
-                    self._status_changed_cb)
 
-    def _get_interfaces(self, *stuff):
+            if self._status_changed_connection:
+                # disconnect signal handler
+                self._status_changed_connection.disconnect()
+                self._status_changed_connection = None
+
+    def _get_interfaces(self):
         self[CONN_INTERFACE].GetInterfaces(
             reply_handler=self._get_interfaces_reply_cb,
             error_handler=self._error_handler)
@@ -74,12 +83,4 @@ class Connection(InterfaceFactory):
                 connections.append(connection)
 
         return connections
-
-    def _status_changed_cb(self, status, reason):
-        if status == CONNECTION_STATUS_CONNECTED:
-            self._get_interfaces()
-
-            if self._status_changed_connection:
-                # old dbus-python returns None from connect_to_signal
-                self._status_changed_connection.disconnect()
 
