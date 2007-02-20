@@ -56,7 +56,7 @@ class Connection(InterfaceFactory):
 
         if self._ready_handler is not None:
             self._ready_handler(self)
-    
+
     @staticmethod
     def get_connections(bus=None):
         connections = []
