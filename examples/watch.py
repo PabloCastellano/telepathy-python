@@ -12,7 +12,6 @@ from telepathy.interfaces import CONN_INTERFACE
 from telepathy.client import Connection
 
 conn_prefix = 'org.freedesktop.Telepathy.Connection.'
-mgr_prefix = 'org.freedesktop.Telepathy.ConnectionManager.'
 connection_status = ['Connected', 'Connecting', 'Disconnected']
 
 class Watcher:
@@ -27,12 +26,6 @@ class Watcher:
 
         dbus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
         dbus.connect_to_signal('NameOwnerChanged', self._name_owner_changed_cb)
-
-    def _get_conn(self, name):
-        mgr, protocol, account = name.split('.')
-        path = '/org/freedesktop/Telepathy/Connection/%s/%s/%s' % (
-            mgr, protocol, account)
-        return Connection(conn_prefix + name, path)
 
     def _watch_conn(self, conn):
         name = conn.service_name[len(conn_prefix):]
