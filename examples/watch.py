@@ -32,9 +32,9 @@ class Watcher:
 
         for name in conn_names:
             conn = self._get_conn(name)
+            self._watch_conn(conn)
             status = connection_status[conn[CONN_INTERFACE].GetStatus()]
             print 'found connection: %s (%s)' % (name, status)
-            self._watch_conn(conn)
 
         dbus.connect_to_signal('NameOwnerChanged', self._name_owner_changed_cb)
 
@@ -55,8 +55,8 @@ class Watcher:
 
             if old == '':
                 conn = self._get_conn(name)
-                status = connection_status[conn[CONN_INTERFACE].GetStatus()]
                 self._watch_conn(conn)
+                status = connection_status[conn[CONN_INTERFACE].GetStatus()]
                 print 'new connection: %s (%s)' % (name, status)
             elif new == '':
                 print 'connection gone: %s' % name
