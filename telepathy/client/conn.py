@@ -78,5 +78,6 @@ class Connection(InterfaceFactory):
             self._get_interfaces()
 
             if self._status_changed_foo:
+                # old dbus-python returns None from connect_to_signal
                 self._status_changed_foo.disconnect()
 
