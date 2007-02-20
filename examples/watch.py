@@ -15,27 +15,17 @@ conn_prefix = 'org.freedesktop.Telepathy.Connection.'
 mgr_prefix = 'org.freedesktop.Telepathy.ConnectionManager.'
 connection_status = ['Connected', 'Connecting', 'Disconnected']
 
-def prefix_filter(prefix, iter):
-    prefix_len = len(prefix)
-
-    for x in iter:
-        if x.startswith(prefix):
-            yield x[prefix_len:]
-
 class Watcher:
     def __init__(self, bus):
         self.bus = bus
+        connections = Connection.get_connections()
 
-        dbus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
-        names = dbus.ListNames()
-        conn_names = list(prefix_filter(conn_prefix, names))
-
-        for name in conn_names:
-            conn = self._get_conn(name)
-            self._watch_conn(name, conn)
+        for conn in connections:
+            self._watch_conn(conn)
             status = connection_status[conn[CONN_INTERFACE].GetStatus()]
             print 'found connection: %s (%s)' % (name, status)
 
+        dbus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
         dbus.connect_to_signal('NameOwnerChanged', self._name_owner_changed_cb)
 
     def _get_conn(self, name):
@@ -44,7 +34,8 @@ class Watcher:
             mgr, protocol, account)
         return Connection(conn_prefix + name, path)
 
-    def _watch_conn(self, name, conn):
+    def _watch_conn(self, conn):
+        name = conn.service_name[len(conn_prefix):]
         conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             lambda status, reason:
                 self._status_changed_cb(name, status, reason))
@@ -54,8 +45,8 @@ class Watcher:
             name = service[len(conn_prefix):]
 
             if old == '':
-                conn = self._get_conn(name)
-                self._watch_conn(name, conn)
+                conn = Connection(service)
+                self._watch_conn(conn)
                 status = connection_status[conn[CONN_INTERFACE].GetStatus()]
                 print 'new connection: %s (%s)' % (name, status)
             elif new == '':
