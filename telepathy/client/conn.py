@@ -21,7 +21,8 @@ import dbus
 
 from telepathy.client.interfacefactory import (
     InterfaceFactory, default_error_handler)
-from telepathy.interfaces import CONN_INTERFACE, CONN_INTERFACE_AVATARS
+from telepathy.interfaces import CONN_INTERFACE
+from telepathy.constants import CONNECTION_STATUS_CONNECTED
 
 class Connection(InterfaceFactory):
     def __init__(self, service_name, object_path, bus=None, ready_handler=None,
@@ -32,13 +33,28 @@ class Connection(InterfaceFactory):
         self.service_name = service_name
         self.object_path = object_path
         self._ready_handler = ready_handler
+        self._error_handler = error_handler
         object = bus.get_object(service_name, object_path)
         InterfaceFactory.__init__(self, object)
         self.get_valid_interfaces().add(CONN_INTERFACE)
-        self[CONN_INTERFACE].GetInterfaces(reply_handler=self.get_interfaces_reply_cb, error_handler=error_handler)
+        status = self[CONN_INTERFACE].GetStatus()
 
-    def get_interfaces_reply_cb(self, interfaces):
+        if status == CONNECTION_STATUS_CONNECTED:
+            self._get_interfaces()
+        else:
+            self._status_changed_foo = \
+                self[CONN_INTERFACE].connect_to_signal('StatusChanged',
+                    self._status_changed_cb)
+            #print self._status_changed_foo
+
+    def _get_interfaces(self, *stuff):
+        self[CONN_INTERFACE].GetInterfaces(
+            reply_handler=self._get_interfaces_reply_cb,
+            error_handler=self._error_handler)
+
+    def _get_interfaces_reply_cb(self, interfaces):
         self.get_valid_interfaces().update(interfaces)
+
         if self._ready_handler is not None:
             self._ready_handler(self)
     
@@ -56,3 +72,11 @@ class Connection(InterfaceFactory):
                 connections.append(connection)
 
         return connections
+
+    def _status_changed_cb(self, status, reason):
+        if status == CONNECTION_STATUS_CONNECTED:
+            self._get_interfaces()
+
+            if self._status_changed_foo:
+                self._status_changed_foo.disconnect()
+
