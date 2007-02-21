@@ -9,7 +9,7 @@ import sys
 
 from account import connection_from_file
 
-from telepathy.client.channel import Channel
+from telepathy.client import Channel
 from telepathy.constants import (
     CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_HANDLE_TYPE_LIST,
     CONNECTION_STATUS_CONNECTED, CONNECTION_STATUS_DISCONNECTED)
