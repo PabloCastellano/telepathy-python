@@ -25,10 +25,14 @@ def default_error_handler(exception):
     stderr.write('Exception from asynchronous method call:\n%s\n' % exception)
 
 class InterfaceFactory(object):
-    def __init__(self, dbus_object):
+    def __init__(self, dbus_object, default_interface=None):
         self._dbus_object = dbus_object
         self._interfaces = {}
         self._valid_interfaces = set()
+        self._default_interface = default_interface
+
+        if default_interface:
+            self._valid_interfaces.add(default_interface)
 
     def get_valid_interfaces(self):
         return self._valid_interfaces
@@ -44,3 +48,7 @@ class InterfaceFactory(object):
 
     def __contains__(self, name):
         return name in self._interfaces or name in self._valid_interfaces
+
+    def __getattr__(self, name):
+        return self[self._default_interface].__getattr__(name)
+
