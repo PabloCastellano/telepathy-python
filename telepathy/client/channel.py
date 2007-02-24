@@ -34,8 +34,7 @@ class Channel(InterfaceFactory):
         self._ready_handler = ready_handler
         self.error_cb = error_handler
         object = bus.get_object(service_name, object_path)
-        InterfaceFactory.__init__(self, object)
-        self.get_valid_interfaces().add(CHANNEL_INTERFACE)
+        InterfaceFactory.__init__(self, object, CHANNEL_INTERFACE)
         self[CHANNEL_INTERFACE].GetChannelType(reply_handler=self.get_channel_type_reply_cb, error_handler=self.error_cb)
 
     def get_channel_type_reply_cb(self, interface):
