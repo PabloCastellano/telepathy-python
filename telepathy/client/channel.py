@@ -48,7 +48,9 @@ class Channel(InterfaceFactory):
 
     def get_channel_type_reply_cb(self, interface):
         self.get_valid_interfaces().add(interface)
-        self[CHANNEL_INTERFACE].GetInterfaces(reply_handler=self.get_interfaces_reply_cb, error_handler=self.error_cb)
+        self[CHANNEL_INTERFACE].GetInterfaces(
+            reply_handler=self.get_interfaces_reply_cb,
+            error_handler=self.error_cb)
 
     def get_interfaces_reply_cb(self, interfaces):
         self.get_valid_interfaces().update(interfaces)
