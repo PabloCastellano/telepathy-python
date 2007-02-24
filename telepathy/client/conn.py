@@ -38,8 +38,7 @@ class Connection(InterfaceFactory):
         self._ready_handler = ready_handler
         self._error_handler = error_handler
         object = bus.get_object(service_name, object_path)
-        InterfaceFactory.__init__(self, object)
-        self.get_valid_interfaces().add(CONN_INTERFACE)
+        InterfaceFactory.__init__(self, object, CONN_INTERFACE)
 
         # note: old dbus-python returns None from connect_to_signal
         self._status_changed_connection = \
