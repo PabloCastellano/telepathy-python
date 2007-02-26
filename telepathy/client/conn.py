@@ -54,7 +54,7 @@ class Connection(InterfaceFactory):
 
             if self._status_changed_connection:
                 # disconnect signal handler
-                self._status_changed_connection.disconnect()
+                self._status_changed_connection.remove()
                 self._status_changed_connection = None
 
     def _get_interfaces(self):
