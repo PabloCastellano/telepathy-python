@@ -53,7 +53,7 @@ class GtkLoopMixin:
             gtk.main()
         except KeyboardInterrupt:
             print "killed"
-            self.interrupt()
+            self.quit()
 
     def quit(self):
         gtk.main_quit()
