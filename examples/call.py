@@ -39,8 +39,9 @@ def get_stream_engine():
         '/org/freedesktop/Telepathy/StreamEngine')
 
 class Call:
-    def __init__(self, conn):
+    def __init__(self, conn, options):
         self.conn = conn
+        self.options = options
         self.channel = None
 
         conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
@@ -115,8 +116,8 @@ class Call:
             added, removed, local_pending, remote_pending, actor, reason)
 
 class OutgoingCall(Call):
-    def __init__(self, conn, contact):
-        Call.__init__(self, conn)
+    def __init__(self, conn, contact, options):
+        Call.__init__(self, conn, options)
         self.contact = contact
 
     def status_changed_cb (self, state, reason):
@@ -133,7 +134,7 @@ class OutgoingCall(Call):
 
             self.conn[CONN_INTERFACE].RequestChannel(
                 CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
-                0, True,
+                handle, True,
                 reply_handler=lambda *stuff: None,
                 error_handler=self.request_channel_error_cb)
 
@@ -142,7 +143,8 @@ class OutgoingCall(Call):
     def channel_ready_cb(self, channel):
         Call.channel_ready_cb(self, channel)
 
-        channel[CHANNEL_INTERFACE_GROUP].AddMembers([self.handle], "")
+        if not self.options.directed:
+            channel[CHANNEL_INTERFACE_GROUP].AddMembers([self.handle], "")
 
         print "requesting audio/video streams"
 
@@ -181,14 +183,24 @@ class IncomingCall(Call):
         channel[CHANNEL_INTERFACE_GROUP].AddMembers(pending, "")
 
 if __name__ == '__main__':
-    assert len(sys.argv) in (2, 3)
-    conn = connection_from_file(sys.argv[1])
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option('--directed', dest='directed', default=False,
+                      action='store_true',
+                      help='Make the call by creating a channel to a contact; '
+                           'if not given, create a channel then add the '
+                           'desired contact')
 
-    if len(sys.argv) > 2:
-        contact = sys.argv[2]
-        call = OutgoingCall(conn, sys.argv[2])
+    (options, args) = parser.parse_args()
+
+    assert len(args) in (1, 2)
+    conn = connection_from_file(args[0])
+
+    if len(args) > 1:
+        contact = args[1]
+        call = OutgoingCall(conn, args[1], options)
     else:
-        call = IncomingCall(conn)
+        call = IncomingCall(conn, options)
 
     print "connecting"
     conn[CONN_INTERFACE].Connect()
