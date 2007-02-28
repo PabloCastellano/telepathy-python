@@ -132,11 +132,18 @@ class OutgoingCall(Call):
             import time
             time.sleep(5)
 
-            self.conn[CONN_INTERFACE].RequestChannel(
-                CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
-                handle, True,
-                reply_handler=lambda *stuff: None,
-                error_handler=self.request_channel_error_cb)
+            if self.options.directed:
+                self.conn[CONN_INTERFACE].RequestChannel(
+                    CHANNEL_TYPE_STREAMED_MEDIA,
+                    CONNECTION_HANDLE_TYPE_CONTACT, handle, True,
+                    reply_handler=lambda *stuff: None,
+                    error_handler=self.request_channel_error_cb)
+            else:
+                self.conn[CONN_INTERFACE].RequestChannel(
+                    CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
+                    0, True,
+                    reply_handler=lambda *stuff: None,
+                    error_handler=self.request_channel_error_cb)
 
         Call.status_changed_cb(self, state, reason)
 
