@@ -96,10 +96,11 @@ class Message:
 
     def sent_cb(self, timestamp, type, text):
         print 'message sent: """%s"""' % text
-        self.quit()
+        gobject.timeout_add(1000, self.quit)
 
     def send_error_cb(self, error, timestamp, type, text):
         print 'error sending message: code %d' % error
+        gobject.timeout_add(1000, self.quit)
 
 if __name__ == '__main__':
     conn = connection_from_file(sys.argv[1])
