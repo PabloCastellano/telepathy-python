@@ -42,6 +42,10 @@ from telepathy.server.handle import Handle
 from telepathy._generated.Connection import Connection as _Connection
 
 class Connection(_Connection):
+
+    _optional_parameters = {}
+    _mandatory_parameters = {}
+
     def __init__(self, proto, account):
         """
         Parameters:
