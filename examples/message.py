@@ -96,11 +96,14 @@ class Message:
 
     def sent_cb(self, timestamp, type, text):
         print 'message sent: """%s"""' % text
+        # if we Disconnect() immediately, the message might not actually
+        # make it to the network before the socket is shut down (this can
+        # be the case in Gabble) - as a workaround, delay before disconnecting
         gobject.timeout_add(1000, self.quit)
 
     def send_error_cb(self, error, timestamp, type, text):
         print 'error sending message: code %d' % error
-        gobject.timeout_add(1000, self.quit)
+        self.quit()
 
 if __name__ == '__main__':
     conn = connection_from_file(sys.argv[1])
