@@ -3,4 +3,5 @@ include COPYING
 include TODO-PROTO
 include TODO-SPEC
 recursive-include examples *.py
-recursive-include tools *.py *.def
+recursive-include spec *.xml
+recursive-include tools *.py *.def *.xsl
