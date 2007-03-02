@@ -39,38 +39,9 @@ from telepathy.interfaces import (CONN_INTERFACE,
                                   CONN_INTERFACE_RENAMING)
 from telepathy.server.handle import Handle
 
-class Connection(dbus.service.Object):
-    """
-    This models a connection to a single user account on a communication
-    service. Its basic capability is to provide the facility to request and
-    receive channels of differing types (such as text channels or streaming
-    media channels) which are used to carry out further communication.
+from telepathy._generated.Connection import Connection as _Connection
 
-    As well as the methods and signatures below, arbitrary interfaces may be
-    provided by the Connection object to represent extra connection-wide
-    functionality, such as the Connection.Interface.Presence for receiving and
-    reporting presence information, and Connection.Interface.Aliasing for
-    connections where contacts may set and change an alias for themselves.
-    These interfaces can be discovered using GetInterfaces after the
-    connection, has been established and must not change subsequently at
-    runtime.
-
-    Contacts, rooms, and server-stored lists (such as subscribed contacts,
-    block lists, or allow lists) on a service are all represented by
-    immutable handles, which are unsigned non-zero integers which are valid
-    only for the lifetime of the connection object, and are used throughout the
-    protocol where these entities are represented, allowing simple testing of
-    equality within clients. Handles have per-type uniqueness, meaning that
-    every (handle type, handle number) tuple is guaranteed to be unique within
-    a connection and that a handle alone (without its type) is meaningless or
-    ambiguous. Connection manager implementations should reference count these
-    handles to determine if they are in use either by any active clients or any
-    open channels, and may deallocate them when this ceases to be true. Clients
-    may request handles of a given type and name with the RequestHandles
-    method, inspect the entity name of handles with the InspectHandles method,
-    keep handles from being released with HoldHandles, and notify that they are
-    no longer storing handles with ReleaseHandles.
-    """
+class Connection(_Connection):
     def __init__(self, proto, account):
         """
         Parameters:
@@ -81,7 +52,7 @@ class Connection(dbus.service.Object):
         clean_account = re.sub('[^a-zA-Z0-9_]', '_', account)
         bus_name = dbus.service.BusName('org.freedesktop.Telepathy.Connection.' + clean_account)
         object_path = '/org/freedesktop/Telepathy/Connection/' + clean_account
-        dbus.service.Object.__init__(self, bus_name, object_path)
+        _Connection.__init__(self, bus_name, object_path)
 
         # monitor clients dying so we can release handles
         self._bus.add_signal_receiver(self.name_owner_changed_callback,
@@ -118,10 +89,11 @@ class Connection(dbus.service.Object):
             else:
                 raise InvalidArgument('unknown parameter name %s' % parm)
 
+            # we currently support strings, (u)int16/32 and booleans
             if sig == 's':
                 if not isinstance(value, unicode):
                     raise InvalidArgument('incorrect type to %s parameter, got %s, expected a string' % (parm, type(value)))
-            elif sig == 'q':
+            elif sig in 'iunq':
                 if not isinstance(value, (int, long)):
                     raise InvalidArgument('incorrect type to %s parameter, got %s, expected an int' % (parm, type(value)))
             elif sig == 'b':
@@ -190,42 +162,15 @@ class Connection(dbus.service.Object):
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
-        """
-        Get the optional interfaces supported by this connection.
-
-        Returns:
-        an array of D-Bus interface names
-        """
         self.check_connected()
         return self._interfaces
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='s')
     def GetProtocol(self):
-        """
-        Get the protocol this connection is using.
-
-        Returns:
-        a string identifier for the protocol
-        """
         return self._proto
 
     @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='as')
     def InspectHandles(self, handle_type, handles):
-        """
-        Return a string representation for a number of handles of a given
-        type.
-
-        Parameters:
-        handle_type - an integer handle type (as defined in RequestHandles)
-        handles - an array of integer handles of this type
-
-        Returns:
-        an array of handle names in the same order as the given numbers
-
-        Potential Errors:
-        Disconnected, InvalidArgument (the given type is not valid),
-        InvalidHandle (a given handle is not valid on this connection)
-        """
         self.check_connected()
         self.check_handle_type(handle_type)
 
@@ -240,32 +185,6 @@ class Connection(dbus.service.Object):
 
     @dbus.service.method(CONN_INTERFACE, in_signature='uas', out_signature='au', sender_keyword='sender')
     def RequestHandles(self, handle_type, names, sender):
-        """
-        Request several handles from the connection manager which represent a
-        number of contacts, rooms or server-stored lists on the service. The
-        connection manager should record that these handles are in use by the
-        client who invokes this method, and must not deallocate the handles
-        until the client disconnects from the bus or calls the ReleaseHandle
-        method. Where the name refers to an entity that already has a handle
-        in this connection manager, this handle should be returned instead.
-        The handle number 0 must not be returned by the connection manager.
-
-        The type value may be one of the following:
-        0 - CONNECTION_HANDLE_TYPE_NONE
-        1 - CONNECTION_HANDLE_TYPE_CONTACT
-        2 - CONNECTION_HANDLE_TYPE_ROOM
-        3 - CONNECTION_HANDLE_TYPE_LIST
-
-        Parameters:
-        handle_type - an integer handle type (as defined in RequestHandle)
-        name - an array of names of entities to request handles for
-
-        Returns:
-        an array of integer handle numbers in the same order as given strings
-
-        Potential Errors:
-        Disconnected, InvalidArgument (the given type is not valid), NotAvailable (the given name is not a valid entity of the given type)
-        """
         self.check_connected()
         self.check_handle_type(handle_type)
 
@@ -281,24 +200,6 @@ class Connection(dbus.service.Object):
 
     @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='', sender_keyword='sender')
     def HoldHandles(self, handle_type, handles, sender):
-        """
-        Notify the connection manger that your client is holding a copy
-        of handles which may not be in use in any existing channel or
-        list, and were not obtained by using the RequestHandles method. For
-        example, a handle observed in an emitted signal, or displayed
-        somewhere in the UI that is not associated with a channel. The
-        connection manager must not deallocate a handle where any clients
-        have used this method to indicate it is in use until the ReleaseHandle
-        method is called, or the clients disappear from the bus.
-
-        Parameters:
-        handle_type - an integer handle type (as defined in RequestHandle)
-        handle - a array of integer handles to hold
-
-        Potential Errors:
-        Disconnected, InvalidArgument (the handle type is invalid),
-        InvalidHandle (the given handle is not valid)
-        """
         self.check_connected()
         self.check_handle_type(handle_type)
 
@@ -311,21 +212,6 @@ class Connection(dbus.service.Object):
 
     @dbus.service.method(CONN_INTERFACE, in_signature='uau', out_signature='', sender_keyword='sender')
     def ReleaseHandles(self, handle_type, handles, sender):
-        """
-        Explicitly notify the connection manager that your client is no
-        longer holding any references to the given handles, and that they
-        may be deallocated if they are not held by any other clients or
-        referenced by any existing channels.
-
-        Parameters:
-        handle_type - an integer handle type (as defined in RequestHandle)
-        handle - an array of integer handles being held by the client
-
-        Potential Errors:
-        Disconnected, InvalidArgument (the given handle type is invalid),
-        InvalidHandle (the given handle is not valid), NotAvailable (the given
-        handle is not held by this client)
-        """
         self.check_connected()
         self.check_handle_type(handle_type)
 
@@ -344,155 +230,19 @@ class Connection(dbus.service.Object):
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='u')
     def GetSelfHandle(self):
-        """
-        Get the handle which represents the user on this connection, which will
-        remain valid for the lifetime of this connection or until the user's
-        identifier changes. This is always a CONTACT type handle.
-
-        Returns:
-        an integer handle representing the user
-
-        Potential Errors:
-        Disconnected
-        """
         self.check_connected()
         return self._self_handle
 
     @dbus.service.signal(CONN_INTERFACE, signature='uu')
     def StatusChanged(self, status, reason):
-        """
-        Emitted when the status of the connection changes.  All states and
-        reasons have numerical values, as defined here:
-
-        0 - CONNECTION_STATUS_CONNECTED
-            The connection is alive and all methods are available.
-
-        1 - CONNECTION_STATUS_CONNECTING
-            The connection has not yet been established, or has been
-            severed and reconnection is being attempted. Some methods may fail
-            until the connection has been established.
-
-        2 - CONNECTION_STATUS_DISCONNECTED
-            The connection has been severed and no method calls are
-            valid. The object may be removed from the bus at any time.
-
-        The reason should be one of the following:
-
-        0 - CONNECTION_STATUS_REASON_NONE_SPECIFIED
-            There is no reason set for this state change.
-
-        1 - CONNECTION_STATUS_REASON_REQUESTED
-            The change is in response to a user request.
-
-        2 - CONNECTION_STATUS_REASON_NETWORK_ERROR
-            There was an error sending or receiving on the network socket.
-
-        3 - CONNECTION_STATUS_REASON_AUTHENTICATION_FAILED
-            The username or password was invalid.
-
-        4 - CONNECTION_STATUS_REASON_ENCRYPTION_ERROR
-            There was an error negotiating SSL on this connection, or
-            encryption was unavailable and require-encryption was set when the
-            connection was created.
-
-        5 - CONNECTION_STATUS_REASON_NAME_IN_USE
-            Someone is already connected to the server using the name
-            you are trying to connect with.
-
-        6 - CONNECTION_STATUS_REASON_CERT_NOT_PROVIDED
-            The server did not provide a SSL certificate.
-
-        7 - CONNECTION_STATUS_REASON_CERT_UNTRUSTED
-            The server's SSL certificate could not be trusted.
-
-        8 - CONNECTION_STATUS_REASON_CERT_EXPIRED
-            The server's SSL certificate has expired.
-
-        9 - CONNECTION_STATUS_REASON_CERT_NOT_ACTIVATED
-            The server's SSL certificate is not yet valid.
-
-        10 - CONNECTION_STATUS_REASON_CERT_HOSTNAME_MISMATCH
-            The server's SSL certificate did not match its hostname.
-
-        11 - CONNECTION_STATUS_REASON_CERT_FINGERPRINT_MISMATCH
-            The server's SSL certificate does not have the expected
-            fingerprint.
-
-        12 - CONNECTION_STATUS_REASON_CERT_SELF_SIGNED
-            The server's SSL certificate is self-signed.
-
-        13 - CONNECTION_STATUS_REASON_CERT_OTHER_ERROR
-            There was some other error validating the server's SSL certificate.
-
-        Parameters:
-        status - an integer indicating the new status
-        reason - an integer indicating the reason for the status change
-        """
         self._status = status
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='u')
     def GetStatus(self):
-        """
-        Get the current status as defined in the StatusChanged signal.
-
-        Returns:
-        an integer representing the current status
-        """
         return self._status
-
-    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='')
-    def Connect(self):
-        """
-        Request that the connection be established. This will be done
-        asynchronously and errors will be returned by emitting StatusChanged
-        signals.
-
-        Potential Errors:
-        NotAvailable (the connection is already connecting or connected)
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='')
-    def Disconnect(self):
-        """
-        Request that the connection be closed. This closes the connection if
-        it's not already in DISCONNECTED state, and destroys the connection
-        object.
-        """
-        pass
-
-    @dbus.service.signal(CONN_INTERFACE, signature='osuub')
-    def NewChannel(self, object_path, channel_type, handle_type, handle, suppress_handler):
-        """
-        Emitted when a new Channel object is created, either through user
-        request or incoming information from the service. The suppress_handler
-        boolean indicates if the channel was requested by an existing client,
-        or is an incoming communication and needs to have a handler launched.
-
-        Parameters:
-        object_path - a D-Bus object path for the channel object on this service
-        channel_type - a D-Bus interface name representing the channel type
-        handle_type - an integer representing the type of handle this channel communicates with, which is zero if no handle is specified
-        handle - a handle indicating the specific contact, room or list this channel communicates with, or zero if it is an anonymous channel
-        suppress_handler - a boolean indicating that the channel was requested by a client that intends to display it to the user, so no handler needs to be launched
-        """
-        pass
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='a(osuu)')
     def ListChannels(self):
-        """
-        List all the channels which currently exist on this connection.
-
-        Returns:
-        an array of structs containing:
-            a D-Bus object path for the channel object on this service
-            a D-Bus interface name representing the channel type
-            an integer representing the handle type this channel communicates with, or zero
-            an integer handle representing the contact, room or list this channel communicates with, or zero
-
-        Potential Errors:
-        Disconnected
-        """
         self.check_connected()
         ret = []
         for channel in self._channels:
@@ -500,302 +250,27 @@ class Connection(dbus.service.Object):
             ret.append(chan)
         return ret
 
-    @dbus.service.method(CONN_INTERFACE, in_signature='suub', out_signature='o')
-    def RequestChannel(self, type, handle_type, handle, suppress_handler):
-        """
-        Request a channel satisfying the specified type and communicating with
-        the contact, room or list indicated by the given handle. The handle may
-        be zero to request the creation of a new, empty channel, which may or
-        may not be available depending on the protocol and channel type. May
-        return an existing channel object, create a new channel, or fail if the
-        request cannot be satisfied.
 
-        Parameters:
-        type - a D-Bus interface name representing base channel type
-        handle_type - an integer representing the handle type, or zero if no handle is being specified
-        handle - an integer handle representing a contact, room or list, or zero
-        suppress_handler - a boolean indicating that the requesting client intends to take responsibility for displaying the channel to the user, so that no other handler needs to be launched
-
-        Returns:
-        the D-Bus object path for the channel created or retrieved
-
-        Possible Errors:
-        Disconnected, NetworkError, NotImplemented (unknown channel type),
-        InvalidHandle (the given handle does not exist or cannot be created),
-        NotAvailable (the requested channel type cannot be created with the given handle),
-        Channel.Banned, Channel.Full, Channel.InviteOnly
-        """
-        self.check_connected()
-        raise NotImplemented('unknown channel type %s' % type)
+from telepathy._generated.Connection_Interface_Aliasing \
+        import ConnectionInterfaceAliasing
 
 
-class ConnectionInterfaceAliasing(dbus.service.Interface):
-    """
-    An interface on connections to support protocols where contacts have an
-    alias which they can change at will, but their underlying unique identifier
-    remains unchanged. Provides a method for the user to set their own alias,
-    and a signal which should be emitted when a contact's alias is changed
-    or first discovered.
+from telepathy._generated.Connection_Interface_Avatars \
+        import ConnectionInterfaceAvatars
 
-    On connections where the user is allowed to set aliases for contacts and
-    store them on the server, the GetAliasFlags method will have the
-    CONNECTION_ALIAS_FLAG_USER_SET flag set, and the SetAliases method
-    may be called on contact handles other than the user themselves.
-    """
 
+from telepathy._generated.Connection_Interface_Capabilities \
+        import ConnectionInterfaceCapabilities \
+        as _ConnectionInterfaceCapabilities
+
+class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
     def __init__(self):
-        self._interfaces.add(CONN_INTERFACE_ALIASING)
-
-    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='', out_signature='u')
-    def GetAliasFlags(self):
-        """
-        Return a logical OR of flags detailing the behaviour of aliases on this
-        connection. Valid flags are:
-        1 - CONNECTION_ALIAS_FLAG_USER_SET
-            The aliases of contacts on this connection are specified by the user
-            of the service, not the contacts themselves. This is the case on
-            eg Jabber.
-
-        Returns:
-        a integer with a logical OR of flags as defined above
-
-        Potential Errors:
-        Disconnected
-        """
-        return 0
-
-    @dbus.service.signal(CONN_INTERFACE_ALIASING, signature='a(us)')
-    def AliasesChanged(self, aliases):
-        """
-        Signal emitted when a contact's alias (or that of the user) is changed.
-
-        Parameters:
-        aliases - an array containing structs of:
-            the handle representing the contact
-            the new alias
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='au', out_signature='as')
-    def RequestAliases(self, contacts):
-        """
-        Request the value of several contacts' aliases at once.
-
-        Parameters:
-        contacts - an array of the handle representing contacts
-
-        Returns:
-        a dictionary of contact handles to aliases in the same order
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable, InvalidHandle
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE_ALIASING, in_signature='a{us}', out_signature='')
-    def SetAliases(self, aliases):
-        """
-        Request that the alias of the given contact be changed. Success will be
-        indicated by emitting an AliasUpdate signal. On connections where the
-        CONNECTION_ALIAS_FLAG_USER_SET flag is not set, this method will only
-        ever succeed if contact is the user's own handle (as returned by
-        GetSelfHandle on the Connection interface).
-
-        Parameters:
-        a dictionary mapping:
-            integer handles of contacts
-            strings of the new alias to set
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidArgument, NotAvailable, PermissionDenied
-        """
-        pass
-
-class ConnectionInterfaceAvatars(dbus.service.Interface):
-    """
-    An interface for requesting avatars for contacts on a given connection,
-    receiving notification when avatars are changed, and publishing your own
-    avatar.
-
-    Avatars are identified by a unique (per contact) token which represents a
-    hash or timestamp (depending on the protocol) of the contacts' avatar data.
-    An empty token means that an avatar has not been set for this contact, and
-    a changed token implies the contact's avatar has changed, but the strings
-    should otherwise be considered opaque by clients.
-
-    A client should use GetAvatarTokens to request the tokens for the avatars
-    of all the contacts it is interested in when it connects. The avatars can
-    then be retreived using RequestAvatar for the corresponding contact.
-    Clients should bind to the AvatarChanged signal and request a new copy of
-    the avatar when a contacts' avatar token changes. Clients should cache the
-    token and data of each contact's avatar between connections, to avoid
-    repeatedly retrieving the same avatar.
-
-    To publish an avatar, a client should use SetAvatar to provide an image
-    which meets the requirements returned by the GetAvatarRequirements
-    function. On some protocols the avatar is stored on the server, so setting
-    the avatar is persistent, but on others it is transferred via a peer to
-    peer mechanism, so needs to be set every connection. Hence, on every
-    connection, clients should inspect the avatar token of the connection's
-    self handle, and set the avatar if it is an empty string (and may
-    optionally replace it if the token corresponds to a different avatar).
-    """
-    def __init__(self):
-        self._interfaces.add(CONN_INTERFACE_AVATARS)
-
-    @dbus.service.method(CONN_INTERFACE_AVATARS,
-                         in_signature='',
-                         out_signature='asqqqqu')
-    def GetAvatarRequirements(self):
-        """
-        Get the required format of avatars on this connection.
-
-        Returns:
-        an array of supported MIME types (eg image/jpeg)
-        the minimum image width in pixels
-        the minimum image height in pixels
-        the maximum image width in pixels
-        the maximum image height in pixels
-        the maximum image size in bytes
-
-        Possible Errors:
-        Disconnected, NetworkError, PermissionDenied, NotAvailable
-        """
-
-    @dbus.service.method(CONN_INTERFACE_AVATARS,
-                         in_signature='au',
-                         out_signature='as')
-    def GetAvatarTokens(self, contacts):
-        """
-        Get the unique tokens for the given contacts' avatars. These tokens
-        can be persisted across connections, and should be used by the client
-        to check whether the avatars have been updated. A empty token means
-        that no avatar is set for the given contact.
-
-        Parameters:
-        contacts - an array of handles representing contacts
-
-        Returns:
-        an array of avatar tokens or empty strings (if no avatar is set) in the
-            same order as the given array of contact handles
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidArgument, PermissionDenied,
-        NotAvailable
-        """
-
-    @dbus.service.method(CONN_INTERFACE_AVATARS,
-                         in_signature='u',
-                         out_signature='ays')
-    def RequestAvatar(self, contact):
-        """
-        Request the avatar for a given contact.
-
-        Parameters:
-        contact - an integer handle for the contact to request the avatar for
-
-        Returns:
-        an array of bytes containing the image data
-        a string containing the image MIME type (eg image/jpeg), or empty if
-            unknown
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidHandle, PermissionDenied,
-        NotAvailable
-        """
-
-    @dbus.service.method(CONN_INTERFACE_AVATARS,
-                         in_signature='ays',
-                         out_signature='s')
-    def SetAvatar(self, avatar, mime_type):
-        """
-        Set a new avatar image for this connection. The avatar image must
-        respect the requirements obtained by GetAvatarRequirements.
-
-        Parameters:
-        avatar - an array of bytes representing the avatar image data
-        mime_type - a string representing the image MIME type
-
-        Returns:
-        the string token of the new avatar
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidArgument, PermissionDenied,
-        NotAvailable
-        """
-
-    @dbus.service.signal(CONN_INTERFACE_AVATARS, signature='us')
-    def AvatarUpdated(self, contact, new_avatar_token):
-        """
-        Emitted when the avatar for a contact has been updated, or first
-        discovered on this connection. If the token differs from the token
-        associated with the client's cached avatar for this contact, the new
-        avatar should be requested with RequestAvatar.
-
-        Parameters:
-        contact - an integer handle for the contact whose avatar has changed
-        new_avatar_token - unique token for their new avatar
-        """
-        pass
-
-class ConnectionInterfaceCapabilities(dbus.service.Interface):
-    """
-    An interface for connections where it is possible to know what channel
-    types may be requested before the request is made to the connection object.
-    Each capability represents a commitment by the connection manager that it
-    will ordinarily be able to create a channel when given a request with the
-    given type and handle.
-
-    Capabilities can pertain to a certain contact handle, representing
-    activities such as having a text chat or a voice call with the user, or can
-    be on the connection itself (where the handle will be zero), where they
-    represent the ability to create channels for chat rooms or activities such
-    as searching and room listing. The activities are represented by the D-Bus
-    interface name of the channel type for that activity.
-
-    The following generic capability flags are defined:
-    1 - CONNECTION_CAPABILITY_FLAG_CREATE
-        The given channel type and handle can be given to RequestChannel to
-        create a new channel of this type.
-    2 - CONNECTION_CAPABILITY_FLAG_INVITE
-        The given contact can be invited to an existing channel of this type.
-
-    In addition, channel types may have type specific capability flags of their
-    own, which are described in the documentation for each channel type.
-
-    This interface also provides for user interfaces notifying the connection
-    manager of what capabilities to advertise for the user. This is done by
-    using the AdvertiseCapabilities method, and deals with the interface names
-    of channel types and the type specific flags pertaining to them which are
-    implemented by available client processes.
-    """
-    def __init__(self):
-        """
-        Initialise the capabilities interface.
-        """
-        self._interfaces.add(CONN_INTERFACE_CAPABILITIES)
+        _ConnectionInterfaceCapabilities.__init__(self)
         self._own_caps = set()
         self._caps = {}
 
     @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='au', out_signature='a(usuu)')
     def GetCapabilities(self, handles):
-        """
-        Returns an array of capabilities for the given contact handles, or
-        the connection itself (where handle is zero).
-
-        Parameters:
-        handle - a contact handle for this connection, or zero for channel types available on the connection itself
-
-        Returns:
-        an array of structures containing:
-            an integer handle representing the contact
-            a string channel type
-            a bitwise OR of generic capability flags for the type
-            a bitwise OR of type specific capability flags for the type
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidHandle (the handle does not represent a contact), PermissionDenied
-        """
         if (handle != 0 and handle not in self._handles):
             raise InvalidHandle
         elif handle in self._caps:
@@ -803,386 +278,53 @@ class ConnectionInterfaceCapabilities(dbus.service.Interface):
         else:
             return []
 
+    # FIXME: this looks broken
     @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(usuuuu)')
     def CapabilitiesChanged(self, caps):
-        """
-        Announce that there has been a change of capabilities on the
-        given handle, or on the connection itself if the handle is zero.
-
-        Parameters:
-        an array of structures containing:
-            an integer handle representing the contact
-            a string channel type
-            a bitwise OR of the contact's old generic capability flags
-            a bitwise OR of the contact's new generic capability flags
-            a bitwise OR of the contact's old type specific capability flags
-            a bitwise OR of the contact's new type specific capability flags
-        """
         if handle not in self._caps:
             self._caps[handle] = set()
 
         self._caps[handle].update(added)
         self._caps[handle].difference_update(removed)
 
+    # FIXME: this looks broken
     @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='a(su)as', out_signature='a(su)')
     def AdvertiseCapabilities(self, add, remove):
-        """
-        Used by user interfaces to indicate which channel types they are able
-        to handle on this connection. Because these may be provided by
-        different client processes, this method accepts channel types to add
-        and remove from the set already advertised on this connection. The type
-        of advertised capabilities (create versus invite) is protocol-dependent
-        and hence cannot be set by the this method. In the case of a client
-        adding an already advertised channel type but with new channel type
-        specific flags, the connection manager should simply add the new flags
-        to the set of advertised capabilities.
-
-        Upon a successful invocation of this method, the CapabilitiesChanged
-        signal will be emitted for the user's own handle (as returned by
-        GetSelfHandle) the by the connection manager to indicate the changes
-        that have been made.  This signal should also be monitored to ensure
-        that the set is kept accurate - for example, a client may remove
-        capabilities or type specific capability flags when it exits
-        which are still provided by another client.
-
-        Parameters:
-        add - an array of structures containing:
-            a string channel type
-            a bitwise OR of type specific capability flags
-        remove - an array of D-Bus interface names of channel types to remove
-
-        Returns:
-        an array of structures describing the current capabilities containing:
-            a string channel type
-            a bitwise OR of type specific capability flags
-
-        Potential Errors:
-        NetworkError, Disconnected
-        """
         # no-op implementation
         self.AdvertisedCapabilitiesChanged(self._self_handle, add, remove)
 
 
-class ConnectionInterfaceContactInfo(dbus.service.Interface):
-    """
-    THIS INTERFACE IS DEPRECATED AND SHOULD NOT BE USED. A new version
-    will be proposed in the 0.13 specification branch.
+from telepathy._generated.Connection_Interface_Contact_Info \
+        import ConnectionInterfaceContactInfo
 
-    An interface for requesting information about a contact on a given
-    connection. Information is returned as a vCard represented as an XML
-    string, in the format defined by JEP-0054: vcard-temp specifiation
-    from the Jabber Software Foundation (this is derived from the
-    aborted IETF draft draft-dawson-vcard-xml-dtd-01).
 
-    Implementations using PHOTO or SOUND elements should use the URI encoding
-    where possible, and not provide base64 encoded data to avoid unnecessary
-    bus traffic. Clients should not implement support for these encoded forms.
-    A separate interface will be provided for transferring user avatars.
+from telepathy._generated.Connection_Interface_Forwarding \
+        import ConnectionInterfaceForwarding \
+        as _ConnectionInterfaceForwarding
 
-    The following extended element names are also added to represent
-    information from other systems which are not based around vCards:
-     USERNAME - the username of the contact on their local system (used on IRC for example)
-     HOSTNAME - the fully qualified hostname, or IPv4 or IPv6 address of the contact in dotted quad or colon-separated form
-    """
+class ConnectionInterfaceForwarding(_ConnectionInterfaceForwarding):
     def __init__(self):
-        self._interfaces.add(CONN_INTERFACE_CONTACT_INFO)
-
-    @dbus.service.method(CONN_INTERFACE_CONTACT_INFO, in_signature='u', out_signature='')
-    def RequestContactInfo(self, contact):
-        """
-        Request information for a given contact. The function will return
-        after a GotContactInfo signal has been emitted for the contact, or
-        an error returned.
-
-        Parameters:
-        contact - an integer handle for the contact to request info for
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidHandle, PermissionDenied, NotAvailable
-        """
-        pass
-
-    @dbus.service.signal(CONN_INTERFACE_CONTACT_INFO, signature='us')
-    def GotContactInfo(self, contact, vcard):
-        """
-        Emitted when information has been received from the server with
-        the details of a particular contact.
-
-        Parameters:
-        contact - an integer handle of the contact ID on the server
-        vcard - the XML string containing their vcard information
-        """
-        pass
-
-
-class ConnectionInterfaceForwarding(dbus.service.Interface):
-    """
-    A connection interface for services which can signal to contacts
-    that they should instead contact a different user ID, effectively
-    forwarding all incoming communication channels to another contact on
-    the service.
-    """
-    def __init__(self):
-        self._interfaces.add(CONN_INTERFACE_FORWARDING)
+        _ConnectionInterfaceForwarding.__init__(self)
         self._forwarding_handle = 0
 
     @dbus.service.method(CONN_INTERFACE_FORWARDING, in_signature='', out_signature='u')
     def GetForwardingHandle(self):
-        """
-        Returns the current forwarding contact handle, or zero if none is set.
-
-        Returns:
-        an integer contact handle to whom incoming communication is forwarded
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable
-        """
         return self._forwarding_handle
-
-    @dbus.service.method(CONN_INTERFACE_FORWARDING, in_signature='u', out_signature='')
-    def SetForwardingHandle(self, forward_to):
-        """
-        Set a contact handle to forward incoming communications to. A zero
-        handle disables forwarding.
-
-        Parameters:
-        forward_to - an integer contact handle to forward incoming communications to
-
-        Possible Errors:
-        Disconnected, NetworkError, PermissionDenied, NotAvailable, InvalidHandle
-        """
-        pass
 
     @dbus.service.signal(CONN_INTERFACE_FORWARDING, signature='u')
     def ForwardingChanged(self, forward_to):
-        """
-        Emitted when the forwarding contact handle for this connection has been
-        changed. An zero handle indicates forwarding is disabled.
-
-        Parameters:
-        forward_to - an integer contact handle to forward communication to
-        """
         self._forwarding_handle = forward_to
 
 
-class ConnectionInterfacePresence(dbus.service.Interface):
-    """
-    This interface is for services which have a concept of presence which can
-    be published for yourself and monitored on your contacts. Telepathy's
-    definition of presence is based on that used by the Galago project
-    (see http://www.galago-project.org/).
-
-    Presence on an individual (yourself or one of your contacts) is modelled as
-    an last activity time along with a set of zero or more statuses, each of
-    which may have arbitrary key/value parameters. Valid statuses are defined
-    per connection, and a list of them can be obtained with the GetStatuses
-    method.
-
-    Each status has an arbitrary string identifier which should have an agreed
-    meaning between the connection manager and any client which is expected to
-    make use of it. The following well-known values (in common with those in
-    Galago) should be used where possible to allow clients to identify common
-    choices:
-    - available
-    - away
-    - brb (Be Right Back)
-    - busy
-    - dnd (Do Not Disturb),
-    - xa (Extended Away)
-    - hidden (aka Invisible)
-    - offline
-
-    As well as these well-known status identifiers, every status also has a
-    numerical type value which can be used by the client to classify even
-    unknown statuses into different fundamental types:
-    1 - CONNECTION_PRESENCE_TYPE_OFFLINE
-    2 - CONNECTION_PRESENCE_TYPE_AVAILABLE
-    3 - CONNECTION_PRESENCE_TYPE_AWAY
-    4 - CONNECTION_PRESENCE_TYPE_EXTENDED_AWAY
-    5 - CONNECTION_PRESENCE_TYPE_HIDDEN
-
-    These numerical types exist so that even if a client does not understand
-    the string identifier being used, and hence cannot present the presence to
-    the user to set on themselves, it may display an approximation of the
-    presence if it is set on a contact.
-
-    The dictionary of variant types allows the connection manager to exchange
-    further protocol-specific information with the client. It is recommended
-    that the string (s) argument 'message' be interpreted as an optional
-    message which can be associated with a presence status.
-
-    If the connection has a 'subscribe' contact list, PresenceUpdate signals
-    should be emitted to indicate changes of contacts on this list, and should
-    also be emitted for changes in your own presence. Depending on the
-    protocol, the signal may also be emitted for others such as people with
-    whom you are communicating, and any user interface should be updated
-    accordingly.
-
-    On some protocols, RequestPresence may only succeed on contacts on your
-    'subscribe' list, and other contacts will cause a PermissionDenied error.
-    On protocols where there is no 'subscribe' list, and RequestPresence
-    succeeds, a client may poll the server intermittently to update any display
-    of presence information.
-    """
-
-    def __init__(self):
-        self._interfaces.add(CONN_INTERFACE_PRESENCE)
-
-    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='', out_signature='a{s(ubba{ss})}')
-    def GetStatuses(self):
-        """
-        Get a dictionary of the valid presence statuses for this connection.
-        This is only available when online because only some statuses will
-        be available on some servers.
-
-        Returns:
-        a dictionary of string identifiers mapped to a struct for each status, containing:
-        - a type value from one of the values above
-        - a boolean to indicate if this status may be set on yourself
-        - a boolean to indicate if this is an exclusive status which you may not set alongside any other
-        - a dictionary of valid optional string argument names mapped to their types
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='au', out_signature='')
-    def RequestPresence(self, contacts):
-        """
-        Request the presence for contacts on this connection. A PresenceUpdate
-        signal will be emitted when they are received. This is not the same as
-        subscribing to the presence of a contact, which must be done using the
-        'subscription' Channel.Type.ContactList, and on some protocols presence
-        information may not be available unless a subscription exists.
-
-        Parameters:
-        contacts - an array of the contacts whose presence should be obtained
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidHandle, PermissionDenied, NotAvailable (if the presence of the requested contacts is not reported to this connection)
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='au', out_signature='a{u(ua{sa{sv}})}')
-    def GetPresence(self, contacts):
-        """
-        Get presence previously emitted by PresenceUpdate for the given
-        contacts. Data is returned in the same structure as the PresenceUpdate
-        signal. Using this method in favour of RequestPresence has the
-        advantage that it will not wake up each client connected to the
-        PresenceUpdate signal.
-
-        Possible Errors:
-        Disconnected, InvalidHandle, NotAvailable
-        """
-
-    @dbus.service.signal(CONN_INTERFACE_PRESENCE, signature='a{u(ua{sa{sv}})}')
-    def PresenceUpdate(self, presence):
-        """
-        This signal should be emitted when your own presence has been changed,
-        or the presence of the member of any of the connection's channels has
-        been changed, or when the presence requested by RequestPresence is available.
-
-        Parameters:
-        a dictionary of contact handles mapped to a struct containing:
-        - a UNIX timestamp of the last activity time (in UTC)
-        - a dictionary mapping the contact's current status identifiers to:
-          a dictionary of optional parameter names mapped to their 
-          variant-boxed values
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='u', out_signature='')
-    def SetLastActivityTime(self, time):
-        """
-        Request that the recorded last activity time for the user be updated on
-        the server.
-
-        Parameters:
-        time - a UNIX timestamp of the user's last activity time (in UTC)
-
-        Possible Errors:
-        Disconnected, NetworkError, NotImplemented (this protocol has no concept of idle time)
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='a{sa{sv}}', out_signature='')
-    def SetStatus(self, statuses):
-        """
-        Request that the user's presence be changed to the given statuses and
-        desired parameters. Changes will be reflected by PresenceUpdate
-        signals being emitted. On certain protocols, this method may be
-        called on a newly-created connection which is still in the
-        DISCONNECTED state, and will sign on with the requested status.
-        If the requested status is not available after signing on,
-        NotAvailable will be returned and the connection will remain
-        offline, or if the protocol does not support signing on with
-        a certain status, Disconnected will be returned.
-
-        Parameters:
-        a dictionary of status identifiers mapped to:
-            a dictionary of optional parameter names mapped to their variant-boxed values
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidArgument, NotAvailable, PermissionDenied
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='', out_signature='')
-    def ClearStatus(self):
-        """
-        Request that all of a user's presence statuses be removed. Be aware
-        that this request may simply result in the statuses being replaced by a
-        default available status. Changes will be indicated by PresenceUpdate
-        signals being emitted.
-
-        Possible Errors:
-        Disconnected, NetworkError, PermissionDenied
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='sa{sv}', out_signature='')
-    def AddStatus(self, status, parms):
-        """
-        Request that a single presence status is published for the user, along
-        with any desired parameters. Changes will be indicated by PresenceUpdate
-        signals being emitted.
-
-        Parameters:
-        status - the string identifier of the desired status
-        parms - a dictionary of optional parameter names mapped to their variant-boxed values
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidArgument, NotAvailable, PermissionDenied
-        """
-        pass
-
-    @dbus.service.method(CONN_INTERFACE_PRESENCE, in_signature='s', out_signature='')
-    def RemoveStatus(self, status):
-        """
-        Request that the given presence status is no longer published for the
-        user. Changes will be indicated by PresenceUpdate signals being
-        emitted. As with ClearStatus, removing a status may actually result in
-        it being replaced by a default available status.
-
-        Parameters:
-        status - the string identifier of the status not to publish anymore for the user
-
-        Possible Errors:
-        Disconnected, NetworkError, PermissionDenied, InvalidArgument (if the status
-        requested is not currently set)
-        """
-        pass
+from telepathy._generated.Connection_Interface_Presence \
+        import ConnectionInterfacePresence
 
 
-class ConnectionInterfacePrivacy(dbus.service.Interface):
-    """
-    An interface to support getting and setting privacy modes to configure
-    situations such as not being contactable by people who are not on your
-    subscribe list. If this interface is not implemented, the default can be
-    presumed to be allow-all (as defined in GetPrivacyModes).
-    """
+from telepathy._generated.Connection_Interface_Privacy \
+        import ConnectionInterfacePrivacy \
+        as _ConnectionInterfacePrivacy
+
+class ConnectionInterfacePrivacy(_ConnectionInterfacePrivacy):
     def __init__(self, modes):
         """
         Initialise privacy interface.
@@ -1190,100 +332,22 @@ class ConnectionInterfacePrivacy(dbus.service.Interface):
         Parameters:
         modes - a list of privacy modes available on this interface
         """
-        self._interfaces.add(CONN_INTERFACE_PRIVACY)
+        _ConnectionInterfacePrivacy.__init__(self)
         self._privacy_mode = ''
         self._privacy_modes = modes
 
     @dbus.service.method(CONN_INTERFACE_PRIVACY, in_signature='', out_signature='as')
     def GetPrivacyModes(self):
-        """
-        Returns the privacy modes available on this connection. The following
-        well-known names should be used where appropriate:
-         allow-all - any contact may initiate communication
-         allow-specified - only contacts on your 'allow' list may initiate communication
-         allow-subscribed - only contacts on your subscription list may initiate communication
-
-        Returns:
-        an array of valid privacy modes for this connection
-        """
         return self._privacy_modes
 
     @dbus.service.method(CONN_INTERFACE_PRIVACY, in_signature='', out_signature='s')
     def GetPrivacyMode(self):
-        """
-        Return the current privacy mode, which must be one of the values
-        returned by GetPrivacyModes.
-
-        Returns:
-        a string of the current privacy mode
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
         return self._privacy_mode
-
-    @dbus.service.method(CONN_INTERFACE_PRIVACY, in_signature='s', out_signature='')
-    def SetPrivacyMode(self, mode):
-        """
-        Request that the privacy mode be changed to the given value, which
-        must be one of the values returned by GetPrivacyModes. Success is
-        indicated by the method returning and the PrivacyModeChanged
-        signal being emitted.
-
-        Parameters:
-        mode - the desired privacy mode
-
-        Possible Errors:
-        Disconnected, NetworkError, PermissionDenied, InvalidArgument
-        """
-        pass
 
     @dbus.service.signal(CONN_INTERFACE_PRIVACY, signature='s')
     def PrivacyModeChanged(self, mode):
-        """
-        Emitted when the privacy mode is changed or the value has been
-        initially received from the server.
-
-        Parameters:
-        mode - the current privacy mode
-        """
         self._privacy_mode = mode
 
 
-class ConnectionInterfaceRenaming(dbus.service.Interface):
-    """
-    An interface on connections to support protocols where the unique
-    identifiers of contacts can change. Because handles are immutable,
-    this is represented by a pair of handles, that representing the
-    old name, and that representing the new one.
-    """
-    def __init__(self):
-        self._interfaces.add(CONN_INTERFACE_RENAMING)
-
-    @dbus.service.method(CONN_INTERFACE_RENAMING, in_signature='s', out_signature='')
-    def RequestRename(self, name):
-        """
-        Request that the users own identifier is changed on the server. Success
-        is indicated by a Renamed signal being emitted. A new handle will be
-        allocated for the user's new identifier, and remain valid for the
-        lifetime of the connection.
-
-        Parameters:
-        name - a string of the desired identifier
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable, InvalidArgument, PermissionDenied
-        """
-        pass
-
-    @dbus.service.signal(CONN_INTERFACE_RENAMING, signature='uu')
-    def Renamed(self, original, new):
-        """
-        Emitted when the unique identifier of a contact on the server changes.
-
-        Parameters:
-        original - the handle of the original identifier
-        new - the handle of the new identifier
-        """
-        pass
-
+from telepathy._generated.Connection_Interface_Renaming \
+        import ConnectionInterfaceRenaming

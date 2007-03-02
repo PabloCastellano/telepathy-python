@@ -39,40 +39,10 @@ from telepathy.interfaces import (CHANNEL_INTERFACE,
                                   MEDIA_SESSION_HANDLER,
                                   MEDIA_STREAM_HANDLER)
 
-class Channel(dbus.service.Object):
-    """
-    All communication in the Telepathy framework is carried out via channel
-    objects which are created and managed by connections. This interface must
-    be implemented by all channel objects, along with one single channel type,
-    such as Channel.Type.ContactList which represents a list of people (such
-    as a buddy list) or a Channel.Type.Text which represents a channel over
-    which textual messages are sent and received.
+from telepathy._generated.Channel import Channel as _Channel
 
-    Each channel may have an immutable handle associated with it, which may
-    be any handle type, such as a contact, room or list handle, indicating
-    that the channel is for communicating with that handle. If a channel does
-    not have a handle, it means that the channel is defined by some other
-    terms, such as it may be a transient group defined only by its members
-    as visible through the Channel.Interface.Group interface.
+class Channel(_Channel):
 
-    Other optional interfaces can be implemented to indicate other available
-    functionality, such as Channel.Interface.Group if the channel contains
-    a number of contacts, Channel.Interface.Password to indicate
-    that a channel may have a password set to require entry, and
-    Properties for extra data about channels which represent chat
-    rooms or voice calls. The interfaces implemented may not vary after the
-    channel's creation has been signalled to the bus (with the connection's
-    NewChannel signal).
-
-    Specific connection manager implementations may implement channel types and
-    interfaces which are not contained within this specification in order to
-    support further functionality. To aid interoperability between client and
-    connection manager implementations, the interfaces specified here should be
-    used wherever applicable, and new interfaces made protocol-independent
-    wherever possible. Because of the potential for 3rd party interfaces adding
-    methods or signals with conflicting names, the D-Bus interface names should
-    always be used to invoke methods and bind signals.
-    """
     def __init__(self, connection, type, handle):
         """
         Initialise the base channel object.
@@ -84,7 +54,7 @@ class Channel(dbus.service.Object):
         """
         self._conn = connection
         object_path = self._conn.get_channel_path()
-        dbus.service.Object.__init__(self, self._conn._name, object_path)
+        _Channel.__init__(self, self._conn._name, object_path)
 
         self._type = type
         self._handle = handle
@@ -92,34 +62,8 @@ class Channel(dbus.service.Object):
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
-        """
-        Request that the channel be closed. This is not the case until
-        the Closed signal has been emitted, and depending on the connection
-        manager this may simply remove you from the channel on the server,
-        rather than causing it to stop existing entirely. Some channels
-        such as contact list channels may not be closed.
-
-        Possible Errors:
-
-        * Disconnected
-        * NetworkError
-        * NotImplemented - this channel may never be closed, e.g. a contact
-          list
-        * NotAvailable - this channel is not currently in a state where
-          it can be closed, e.g. a non-empty user-defined contact group
-        """
         self.Closed()
         self._conn.remove_channel(self)
-
-    @dbus.service.signal(CHANNEL_INTERFACE, signature='')
-    def Closed(self):
-        """
-        Emitted when the channel has been closed. Method calls on the
-        channel are no longer valid after this signal has been emitted,
-        and the connection manager may then remove the object from the bus
-        at any point.
-        """
-        pass
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='s')
     def GetChannelType(self):
@@ -146,70 +90,18 @@ class Channel(dbus.service.Object):
         """
         return self._interfaces
 
+from telepathy._generated.Channel_Type_Contact_Search \
+        import ChannelTypeContactSearch as _ChannelTypeContactSearchIface
 
-class ChannelTypeContactSearch(Channel):
-    """
-    A channel type for searching server-stored user directories. A new channel
-    should be requested by a client for each search attempt, and it should be
-    closed when the search is completed or the required result has been found
-    in order to free unused handles. The search can be cancelled at any time
-    by calling the channel Close method, although depending upon the protocol
-    the connection manager may not be able to prevent the server from sending
-    further results.
+class ChannelTypeContactSearch(Channel, _ChannelTypeContactSearchIface):
+    __doc__ = _ChannelTypeContactSearchIface.__doc__
 
-    Before searching, the GetSearchKeys method should be used to discover any
-    instructions sent by the server, and the valid search keys which can be
-    provided to the Search method. A search request is then started by
-    providing some of these terms to the Search method, and the search status
-    will be set to CHANNEL_CONTACT_SEARCH_STATE_DURING. When results are
-    returned by the server, the SearchResultReceived signal is emitted for each
-    contact found, and when the search is complete, the search status will be
-    set to CHANNEL_CONTACT_SEARCH_STATE_AFTER.
-    """
     def __init__(self, connection):
         """
         Initialise the contact search channel.
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_SEARCH, 0)
         self._search_state = CHANNEL_CONTACT_SEARCH_STATE_BEFORE
-
-    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='sa{s(bg)}')
-    def GetSearchKeys(self):
-        """
-        Returns any instructions from the server along with a dictionary of
-        search key names to their types, and a boolean indicating if the key is
-        mandatory. The following well-known search key names should be used
-        where appropriate:
-         s:first - the desired contact's given name
-         s:last - the desired contact's family name
-         s:nick - the desired contact's nickname
-         s:email - the e-mail address of the desired contact
-
-        Returns:
-        a string with any instructions from the server
-        a dictionary mapping string search key names to an array of:
-            booleans indicating if the search key is mandatory
-            type signature of the value for this search key
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable
-        """
-        pass
-
-    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='a{sv}', out_signature='')
-    def Search(self, terms):
-        """
-        Send a request to start a search for contacts on this connection. A
-        valid search request will cause the SearchStateChanged signal to be
-        emitted with the status CHANNEL_CONTACT_SEARCH_STATE_DURING.
-
-        Parameters:
-        a dictionary mapping search key names to the desired values
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidArgument
-        """
-        pass
 
     @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='u')
     def GetSearchState(self):
@@ -239,59 +131,12 @@ class ChannelTypeContactSearch(Channel):
         """
         self._search_state = state
 
-    @dbus.service.signal(CHANNEL_TYPE_CONTACT_SEARCH, signature='ua{sv}')
-    def SearchResultReceived(self, contact, values):
-        """
-        Emitted when a search result is received from the server.
 
-        Parameters:
-        an integer handle for the contact
-        a dictionary mapping search key names to values for this contact
-        """
-        pass
+from telepathy._generated.Channel_Type_Contact_List \
+        import ChannelTypeContactList as _ChannelTypeContactListIface
 
-
-class ChannelTypeContactList(Channel):
-    """
-    A channel type for representing a list of people on the server which is
-    not used for communication. This is intended for use with the interface
-    Channel.Interface.Group for managing buddy lists and privacy lists
-    on the server. This channel type has no methods because all of the
-    functionality it represents is available via the group interface.
-
-    There are currently two types of contact list:
-    CONNECTION_HANDLE_TYPE_LIST is a "magic" server-defined list, and
-    CONNECTION_HANDLE_TYPE_USER_CONTACT_GROUP is a user-defined contact group.
-
-    For server-defined lists like the subscribe list, singleton instances
-    of this channel type should be created by the connection manager at
-    connection time if the list exists on the server, or may be requested
-    by using the appropriate handle.  These handles can be obtained using
-    RequestHandle with a handle type of CONNECTION_HANDLE_TYPE_LIST and
-    one of the following identifiers:
-
-    * subscribe - the group of contacts for whom you wish to receive presence
-    * publish - the group of contacts who may receive your presence
-    * hide - a group of contacts who are on the publish list but are temporarily disallowed from receiving your presence
-    * allow - a group of contacts who may send you messages
-    * deny - a group of contacts who may not send you messages
-
-    These contact list channels may not be closed.
-
-    For user-defined contact groups, instances of this channel type should
-    be created by the connection manager at connection time for each group
-    that exists on the server. New, empty groups can be created by calling
-    RequestHandle with a handle type of
-    CONNECTION_HANDLE_TYPE_USER_CONTACT_GROUP and with the name set to the
-    human-readable UTF-8 name of the group.
-
-    User-defined groups may be deleted by closing the channel, but only if
-    the group is already empty. Closing a channel to a non-empty group is
-    not allowed; its members must be set to the empty set first.
-
-    (FIXME: should the user contact groups have a different type?)
-    """
-    _dbus_interfaces = [CHANNEL_TYPE_CONTACT_LIST]
+class ChannelTypeContactList(Channel, _ChannelTypeContactListIface):
+    __doc__ = _ChannelTypeContactListIface.__doc__
 
     def __init__(self, connection, handle):
         """
@@ -303,28 +148,12 @@ class ChannelTypeContactList(Channel):
         Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_LIST, handle)
 
 
-class ChannelTypeStreamedMedia(Channel):
-    """
-    A channel that can send and receive streamed media such as audio or video.
-    Provides a number of methods for listing and requesting new streams, and
-    signals to indicate when streams have been added, removed and changed
-    status.
+from telepathy._generated.Channel_Type_Streamed_Media \
+        import ChannelTypeStreamedMedia as _ChannelTypeStreamedMediaIface
 
-    In general this should always be used in conjunction with the IceSignalling
-    interface to exchange connection candidates and codec choices with
-    whichever component is responsible for the streams. However, in certain
-    applications where no candidate exchange is necessary (eg the streams are
-    handled by specialised hardware which is controlled directly by the
-    connection manager), the signalling interface can be omitted and this
-    channel type used simply to control the streams.
+class ChannelTypeStreamedMedia(Channel, _ChannelTypeStreamedMediaIface):
+    __doc__ = _ChannelTypeStreamedMediaIface.__doc__
 
-    This channel type defines two type-specific capability flags (as used in
-    Connection.Interface.Capabilities):
-      CHANNEL_MEDIA_CAPABILITY_AUDIO = 1
-        The handle is capable of using audio streams within a media channel.
-      CHANNEL_MEDIA_CAPABILITY_VIDEO = 2
-        The handle is capable of using video streams within a media channel.
-    """
     def __init__(self, connection, handle):
         """
         Initialise the channel.
@@ -334,215 +163,13 @@ class ChannelTypeStreamedMedia(Channel):
         """
         Channel.__init__(self, connection, CHANNEL_TYPE_STREAMED_MEDIA, handle)
 
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='',
-                                                      out_signature='a(uuuuuu)')
-    def ListStreams(self):
-        """
-        Returns an array of structs representing the streams currently active
-        within this channel. Each stream is identified by an unsigned integer
-        which is unique for each stream within the channel.
 
-        Stream types are identified by the following values:
-          MEDIA_STREAM_TYPE_AUDIO = 0
-          MEDIA_STREAM_TYPE_VIDEO = 1
+from telepathy._generated.Channel_Type_Room_List \
+        import ChannelTypeRoomList as _ChannelTypeRoomListIface
 
-        Stream states are identified by one of the following values:
-          MEDIA_STREAM_STATE_DISCONNECTED = 0
-            The stream is disconnected.
-          MEDIA_STREAM_STATE_CONNECTING = 1
-            The stream is trying to connect.
-          MEDIA_STREAM_STATE_CONNECTED = 2
-            The stream is connected.
+class ChannelTypeRoomList(Channel, _ChannelTypeRoomListIface):
+    __doc__ = _ChannelTypeRoomListIface.__doc__
 
-        Stream directions are identified by one of the following values:
-          MEDIA_STREAM_DIRECTION_NONE = 0
-          MEDIA_STREAM_DIRECTION_SEND = 1
-          MEDIA_STREAM_DIRECTION_RECEIVE = 2
-          MEDIA_STREAM_DIRECTION_BIDIRECTIONAL = 3
-
-        Pending directionality changes are indicated by a bitwise OR of the
-        following flags:
-          MEDIA_STREAM_PENDING_LOCAL_SEND = 1
-            The local user has been asked to send media by the remote user.
-            Call RequestStreamDirection to indicate whether or not this is
-            acceptable.
-          MEDIA_STREAM_PENDING_REMOTE_SEND = 2
-            The remote user has been asked to send media by the local user.
-            The StreamDirectionChanged signal will be emitted when the remote
-            user accepts or rejects this change.
-
-        Returns:
-        an array of structs containing:
-            the stream identifier
-            the contact handle who the stream is with (or 0 if the stream
-                represents more than a single member)
-            the type of the stream
-            the current stream state
-            the current direction of the stream
-            the current pending send flags
-        """
-        pass
-
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='uau',
-                                                      out_signature='a(uuuuuu)')
-    def RequestStreams(self, contact_handle, types):
-        """
-        Request that streams be established to exchange the given types of
-        media with the given member. In general this will try and establish a
-        bidirectional stream, but on some protocols it may not be possible to
-        indicate to the peer that you would like to receive media, so a
-        send-only stream will be created initially. In the cases where the
-        stream requires remote agreement (eg you wish to receive media from
-        them), the StreamDirectionChanged signal will be emitted with the
-        MEDIA_STREAM_PENDING_REMOTE_SEND flag set, and the signal emitted again
-        with the flag cleared when the remote end has replied.
-
-        Parameters:
-        contact_handle - a contact handle with whom to establish the streams
-        types - an array of stream types (as defined in ListStreams)
-
-        Returns:
-        an array of structs (in the same order as the given stream types)
-        containing:
-            the stream identifier
-            the contact handle who the stream is with (or 0 if the stream
-                represents more than a single member)
-            the type of the stream
-            the current stream state
-            the current direction of the stream
-            the current pending send flags
-
-        Possible Errors:
-        InvalidHandle, InvalidArgument (invalid stream type), NotAvailable (if
-        the contact is not able to do this stream type)
-        """
-        pass
-
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='au',
-                                                      out_signature='')
-    def RemoveStreams(self, streams):
-        """
-        Request that the given streams are removed.
-
-        Parameters:
-        streams - an array of stream identifiers (as defined in ListStreams)
-
-        Possible Errors:
-        InvalidArgument (unknown stream identifier)
-        """
-        pass
-
-    @dbus.service.method(CHANNEL_TYPE_STREAMED_MEDIA, in_signature='uu',
-                                                      out_signature='')
-    def RequestStreamDirection(self, stream_id, stream_direction):
-        """
-        Request a change in the direction of an existing stream. In particular,
-        this might be useful to stop sending media of a particular type,
-        or inform the peer that you are no longer using media that is being
-        sent to you.
-
-        Depending on the protocol, streams which are no longer sending in
-        either direction should be removed and a StreamRemoved signal emitted.
-        Some direction changes can be enforced locally (for example,
-        BIDIRECTIONAL -> RECEIVE can be achieved by merely stopping sending),
-        others may not be possible on some protocols, and some need agreement
-        from the remote end. In this case, the MEDIA_STREAM_PENDING_REMOTE_SEND
-        flag will be set in the StreamDirectionChanged signal, and the signal
-        emitted again without the flag to indicate the resulting direction when
-        the remote end has accepted or rejected the change.
-
-        Parameters:
-        stream_id - the stream identifier (as defined in ListStreams)
-        stream_direction - the desired stream direction (as defined in
-            ListStreams)
-
-        PossibleErrors:
-        InvalidArgument (unknown stream ID), NotAvailable (the requested
-        direction is not available on this stream)
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uuu')
-    def StreamAdded(self, stream_id, contact_handle, stream_type):
-        """
-        Emitted when a new stream has been added to this channel.
-
-        Parameters:
-        stream_id - the stream identifier (as defined in ListStreams)
-        contact_handle - the contact handle who the stream is with (or 0 if it
-            represents more than a single member)
-        stream_type - the stream type (as defined in ListStreams)
-        stream_direction - the stream direction (as defined in ListStreams)
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='u')
-    def StreamRemoved(self, stream_id):
-        """
-        Emitted when a stream has been removed from this channel.
-
-        Parameters:
-        stream_id - the stream identifier (as defined in ListStreams)
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uus')
-    def StreamError(self, stream_id, errno, message):
-        """
-        Emitted when a stream encounters an error.
-
-        Parameters:
-        stream_id - the stream identifier (as defined in ListStreams)
-        errno - a stream error number, one of the following:
-          MEDIA_STREAM_ERROR_UNKNOWN = 0
-            An unknown error occured.
-          MEDIA_STREAM_ERROR_EOS = 1
-            The end of the stream was reached.
-        message - a string describing the error (for debugging purposes only)
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uuu')
-    def StreamDirectionChanged(self, stream_id, stream_direction, pending_flags):
-        """
-        Emitted when the direction or pending flags of a stream are changed. If
-        the MEDIA_STREAM_PENDING_LOCAL_SEND flag is set, the remote user has
-        requested that we begin sending on this stream. RequestStreamDirection
-        should be called to indicate whether or not this change is acceptable.
-
-        Parameters:
-        stream_id - the stream identifier (as defined in ListStreams)
-        stream_direction - the new stream direction (as defined in ListStreams)
-        pending_flags - the new pending send flags (as defined in ListStreams)
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_TYPE_STREAMED_MEDIA, signature='uu')
-    def StreamStateChanged(self, stream_id, stream_state):
-        """
-        Emitted when a member's stream's state changes.
-
-        Parameters:
-        stream_id - the stream identifier (as defined in ListStreams)
-        stream_state - the new stream state (as defined in ListStreams)
-        """
-        pass
-
-
-class ChannelTypeRoomList(Channel):
-    """
-    A channel type for listing named channels available on the server. Once the
-    ListRooms method is called, it emits signals for rooms present on the
-    server, until you Close this channel. In some cases, it may not be possible
-    to stop the deluge of information from the server. This channel should be
-    closed when the room information is no longer being displayed, so that the
-    room handles can be freed.
-
-    This channel type may be implemented as a singleton on some protocols, so
-    clients should be prepared for the eventuality that they are given a
-    channel that is already in the middle of listing channels. The ListingRooms
-    signal, or GetListingRooms method, can be used to check this.
-    """
     def __init__(self, connection):
         """
         Initialise the channel.
@@ -554,99 +181,20 @@ class ChannelTypeRoomList(Channel):
         self._listing_rooms = False
         self._rooms = {}
 
-    @dbus.service.method(CHANNEL_TYPE_ROOM_LIST, in_signature='', out_signature='')
-    def ListRooms(self):
-        """
-        Request the list of rooms from the server. The ListingRooms signal
-        should be emitted when this request is being processed, GotRooms when
-        any room information is received, and ListingRooms when the request
-        is complete.
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable, PermissionDenied
-        """
-        pass
-
     @dbus.service.method(CHANNEL_TYPE_ROOM_LIST, in_signature='', out_signature='b')
     def GetListingRooms(self):
-        """
-        Check to see if there is already a room list request in progress
-        on this channel.
-
-        Returns:
-        a boolean indicating if room listing is in progress
-        """
         return self._listing_rooms
 
     @dbus.service.signal(CHANNEL_TYPE_ROOM_LIST, signature='b')
     def ListingRooms(self, listing):
-        """
-        Emitted to indicate whether or not room listing request is currently
-        in progress.
-
-        Parameters:
-        listing - a boolean indicating if room listing is in progress
-        """
         self._listing_rooms = listing
 
-    @dbus.service.signal(CHANNEL_TYPE_ROOM_LIST, signature='a(usa{sv})')
-    def GotRooms(self, rooms):
-        """
-        Emitted when information about rooms on the server becomes available.
-        The array contains the room handle (as can be passed to the
-        RequestChannel method with CONNECTION_HANDLE_TYPE_ROOM), the channel
-        type, and a dictionary containing further information about the
-        room as available. The following well-known keys and types are
-        recommended for use where appropriate:
-         s:name - the name of the room if different from the handle
-         s:subject - the subject of the room
-         u:members - the number of members of the room
-         b:password - true if the room requires a password to enter
-         b:invite-only - true if you cannot join the room, but must be invited
 
-        Parameters:
-        rooms - an array of structs containing:
-            an integer room handle
-            a string representing the D-Bus interface name of the channel type
-            an dictionary mapping string keys to variant boxed information
-        """
-        pass
+from telepathy._generated.Channel_Type_Text \
+        import ChannelTypeText as _ChannelTypeTextIface
 
-
-class ChannelTypeText(Channel):
-    """
-    A channel type for sending and receiving messages in plain text, with no
-    formatting.
-
-    When a message is received, an identifier is assigned and a Received signal
-    emitted, and the message placed in a pending queue which can be inspected
-    with ListPendingMessages. A client which has handled the message by showing
-    it to the user (or equivalent) should acknowledge the receipt using the
-    AcknowledgePendingMessage method, and the message will then be removed from
-    the pending queue. Numeric identifiers for received messages may be reused
-    over the lifetime of the channel.
-
-    Each message has an associated 'type' value, which should be one of the
-    following:
-    0 - CHANNEL_TEXT_MESSAGE_TYPE_NORMAL
-        a standard message
-    1 - CHANNEL_TEXT_MESSAGE_TYPE_ACTION
-        an action which might be presented to the user as * <sender> <action>
-    2 - CHANNEL_TEXT_MESSAGE_TYPE_NOTICE
-        an one-off or automated message not necessarily expecting a reply
-    3 - CHANNEL_TEXT_MESSAGE_TYPE_AUTO_REPLY
-        an automatically-generated reply message
-
-    Each message also has a flags value, which is a bitwise OR of the
-    following:
-    1 - CHANNEL_TEXT_MESSAGE_FLAG_TRUNCATED
-        The incoming message was truncated to a shorter length by the
-        server or the connection manager.
-
-    Sending messages can be requested using the Send method, which will return
-    and cause the Sent signal to be emitted when the message has been delivered
-    to the server, or SendError if there is a failure.
-    """
+class ChannelTypeText(Channel, _ChannelTypeTextIface):
+    __doc__ = _ChannelTypeTextIface.__doc__
 
     def __init__(self, connection, handle):
         """
@@ -670,21 +218,6 @@ class ChannelTypeText(Channel):
         an array of integer message types as defined above
         """
         return self._message_types
-
-    @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='us', out_signature='')
-    def Send(self, type, text):
-        """
-        Request that a message be sent on this channel. The Sent signal will be
-        emitted when the message has been sent, and this method will return.
-
-        Parameters:
-        type - an integer indicating the type of the message
-        text - the message to send
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidArgument, PermissionDenied
-        """
-        pass
 
     @dbus.service.method(CHANNEL_TYPE_TEXT, in_signature='au', out_signature='')
     def AcknowledgePendingMessages(self, ids):
@@ -733,147 +266,25 @@ class ChannelTypeText(Channel):
         messages.sort(cmp=lambda x,y:cmp(x[1], y[1]))
         return messages
 
-    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uus')
-    def Sent(self, timestamp, type, text):
-        """
-        Signals that a message has been sent on this channel.
-
-        Parameters:
-        timestamp - the unix timestamp indicating when the message was sent
-        type - the message type (normal, action, notice, etc)
-        text - the text of the message
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uuus')
-    def SendError(self, error, timestamp, type, text):
-        """
-        Signals that an outgoing message has failed to send. The error
-        will be one of the following values:
-        0 - CHANNEL_TEXT_SEND_ERROR_UNKNOWN
-            An unknown error occured.
-        1 - CHANNEL_TEXT_SEND_ERROR_OFFLINE
-            The requested contact was offline.
-        2 - CHANNEL_TEXT_SEND_ERROR_INVALID_CONTACT
-            The requested contact is not valid.
-        3 - CHANNEL_TEXT_SEND_ERROR_PERMISSION_DENIED
-            The user does not have permission to speak on this channel.
-        4 - CHANNEL_TEXT_SEND_ERROR_TOO_LONG
-            The outgoing message was too long and was rejected by the
-            server.
-        5 - CHANNEL_TEXT_SEND_ERROR_NOT_IMPLEMENTED
-            The channel doesn't support sending text messages to requested
-            contact.
-
-        Parameters:
-        error - one of the above integer errors
-        timestamp - the unix timestamp indicating when the message was sent
-        type - the message the (normal, action, notice, etc)
-        text - the text of the message
-        """
-        pass
-
     @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='uuuuus')
     def Received(self, id, timestamp, sender, type, flags, text):
-        """
-        Signals that a message with the given id, timestamp, sender, type
-        and text has been received on this channel. Applications that catch
-        this signal and reliably inform the user of the message should
-        acknowledge that they have dealt with the message with the
-        AcknowledgePendingMessage method.
-
-        Parameters:
-        id - a numeric identifier for acknowledging the message
-        timestamp - a unix timestamp indicating when the message was received
-        sender - the handle of the contact who sent the message
-        type - the type of the message (normal, action, notice, etc)
-        flags - a bitwise OR of the message flags as defined above
-        text - the text of the message
-        """
         self._pending_messages[id] = (timestamp, sender, type, flags, text)
 
-    @dbus.service.signal(CHANNEL_TYPE_TEXT, signature='')
-    def LostMessage(self):
-        """
-        This signal is emitted to indicate that an incoming message was
-        not able to be stored and forwarded by the connection manager
-        due to lack of memory.
-        """
-        pass
 
-class ChannelInterfaceDTMF(dbus.service.Interface):
-    """
-    An interface that gives a Channel the ability to send or receive DTMF
-    signalling tones. This usually only makes sense for channels transporting
-    audio.
-    """
+from telepathy._generated.Channel_Interface_Chat_State \
+        import ChannelInterfaceChatState
+
+
+from telepathy._generated.Channel_Interface_DTMF import ChannelInterfaceDTMF
+
+
+from telepathy._generated.Channel_Interface_Group \
+        import ChannelInterfaceGroup as _ChannelInterfaceGroup
+
+class ChannelInterfaceGroup(_ChannelInterfaceGroup):
+
     def __init__(self):
-        self._interfaces.add(CHANNEL_INTERFACE_DTMF)
-
-    @dbus.service.method(CHANNEL_INTERFACE_DTMF, in_signature='uu', out_signature='')
-    def SendDTMF(self, signal, duration):
-        """
-        Requests that a DTMF tone is sent.
-
-        Parameters:
-        signal - a numeric signal number
-        duration - a numeric duration in milliseconds
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable, InvalidArgument
-        """
-        pass
-
-    @dbus.service.signal(CHANNEL_INTERFACE_DTMF, signature='uu')
-    def ReceivedDTMF(self, signal, duration):
-        """
-        Signals that this channel received a DTMF tone.
-
-        Parameters:
-        signal - a numeric signal number
-        duration - a numeric duration in milliseconds
-        """
-        pass
-
-
-class ChannelInterfaceGroup(dbus.service.Interface):
-    """
-    Interface for channels which have multiple members, and where the members
-    of the channel can change during its lifetime. Your presence in the channel
-    cannot be presumed by the channel's existence (for example, a channel you
-    may request membership of but your request may not be granted).
-
-    This interface implements three lists: a list of current members, and two
-    lists of local pending and remote pending members. Contacts on the remote
-    pending list have been invited to the channel, but the remote user has not
-    accepted the invitation. Contacts on the local pending list have requested
-    membership of the channel, but the local user of the framework must accept
-    their request before they may join. A single contact should never appear on
-    more than one of the three lists. The lists are empty when the channel is
-    created, and the MembersChanged signal should be emitted when information
-    is retrieved from the server, or changes occur.
-
-    Addition of members to the channel may be requested by using AddMembers. If
-    remote acknowledgement is required, use of the AddMembers method will cause
-    users to appear on the remote pending list. If no acknowledgement is
-    required, AddMembers will add contacts to the member list directly.  If a
-    contact is awaiting authorisation on the local pending list, AddMembers
-    will grant their membership request.
-
-    Removal of contacts from the channel may be requested by using
-    RemoveMembers.  If a contact is awaiting authorisation on the local pending
-    list, RemoveMembers will refuse their membership request. If a contact is
-    on the remote pending list but has not yet accepted the invitation,
-    RemoveMembers will rescind the request if possible.
-
-    It should not be presumed that the requester of a channel implementing this
-    interface is immediately granted membership, or indeed that they are a
-    member at all, unless they appear in the list. They may, for instance,
-    be placed into the remote pending list until a connection has been
-    established or the request acknowledged remotely.
-    """
-    def __init__(self):
-        self._interfaces.add(CHANNEL_INTERFACE_GROUP)
+        _ChannelInterfaceGroup.__init__(self)
         self._group_flags = 0
         self._members = set()
         self._local_pending = set()
@@ -881,134 +292,19 @@ class ChannelInterfaceGroup(dbus.service.Interface):
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='u')
     def GetGroupFlags(self):
-        """
-        Returns an integer representing the logical or of flags on this
-        channel. The user interface can use this to present information about
-        which operations are currently valid.
-
-        These can be:
-        1 - CHANNEL_GROUP_FLAG_CAN_ADD
-            The AddMembers method can be used to add or invite members who are
-            not already in the local pending list (which is always valid).
-        2 - CHANNEL_GROUP_FLAG_CAN_REMOVE
-            The RemoveMembers method can be used to remove channel members
-            (removing those on the pending local list is always valid).
-        4 - CHANNEL_GROUP_FLAG_CAN_RESCIND
-            The RemoveMembers method can be used on people on the remote
-            pending list.
-        8 - CHANNEL_GROUP_FLAG_MESSAGE_ADD
-            A message may be sent to the server when calling AddMembers on
-            contacts who are not currently pending members.
-        16 - CHANNEL_GROUP_FLAG_MESSAGE_REMOVE
-            A message may be sent to the server when calling RemoveMembers on
-            contacts who are currently channel members.
-        32 - CHANNEL_GROUP_FLAG_MESSAGE_ACCEPT
-            A message may be sent to the server when calling AddMembers on
-            contacts who are locally pending.
-        64 - CHANNEL_GROUP_FLAG_MESSAGE_REJECT
-            A message may be sent to the server when calling RemoveMembers on
-            contacts who are locally pending.
-        128 - CHANNEL_GROUP_FLAG_MESSAGE_RESCIND
-            A message may be sent to the server when calling RemoveMembers on
-            contacts who are remote pending.
-        256 - CHANNEL_GROUP_FLAG_CHANNEL_SPECIFIC_HANDLES
-            The members of this group have handles which are specific to
-            this channel, and are not valid as general-purpose handles on
-            the connection. Depending on the channel, it may be possible to
-            call GetHandleOwners to find the owners of these handles, which
-            should be done if you wish to eg subscribe to the contact's
-            presence.
-        512 - CHANNEL_GROUP_FLAG_ONLY_ONE_GROUP
-            Placing a contact in multiple groups of this type is not allowed
-            and will raise NotAvailable (on services where contacts may only
-            be in one user-defined group, user-defined groups will have
-            this flag).
-
-        Returns:
-        an integer of flags or'd together
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
         return self._group_flags
 
     @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='uu')
     def GroupFlagsChanged(self, added, removed):
-        """
-        Emitted when the flags as returned by GetGroupFlags are changed.
-        The user interface should be updated as appropriate.
-
-        Parameters:
-        added - a logical OR of the flags which have been set
-        removed - a logical OR of the flags which have been cleared
-        """
         self._group_flags |= added
         self._group_flags &= ~removed
 
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='aus', out_signature='')
-    def AddMembers(self, contacts, message):
-        """
-        Invite all the given contacts into the channel, or accept requests for
-        channel membership for contacts on the pending local list. A message
-        may be provided along with the request, which will be sent to the
-        server if supported. See the CHANNEL_GROUP_FLAG_MESSAGE_ADD and
-        CHANNEL_GROUP_FLAG_MESSAGE_ACCEPT flags to see in which cases this
-        message should be provided.
-
-        Parameters:
-        contacts - an array of contact handles to invite to the channel
-        message - a string message, which can be blank if desired
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidHandle,
-        Channel.Full, Channel.InviteOnly, Channel.Banned
-        """
-        pass
-
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='aus', out_signature='')
-    def RemoveMembers(self, contacts, message):
-        """
-        Requests the removal of contacts from a channel, reject their request
-        for channel membership on the pending local list, or rescind their
-        invitation on the pending remote list. A message may be provided along
-        with the request, which will be sent to the server if supported. See
-        the CHANNEL_GROUP_FLAG_MESSAGE_REMOVE,
-        CHANNEL_GROUP_FLAG_MESSAGE_REJECT and
-        CHANNEL_GROUP_FLAG_MESSAGE_RESCIND flags to see in which cases this
-        message should be provided.
-
-        Parameters:
-        contacts - an array of contact handles to remove from the channel
-        message - a string message, which can be blank if desired
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable, PermissionDenied, InvalidHandle
-        """
-        pass
-
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='au')
     def GetMembers(self):
-        """
-        Returns an array of handles for the members of this channel.
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
         return self._members
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='u')
     def GetSelfHandle(self):
-        """
-        Returns the handle for the user on this channel (which can also be a
-        local or remote pending member) or 0 if the user not a member at all
-        (which is likely to be the case, for instance, on Type.ContactList
-        channels). Note that this is different from the connection
-        GetSelfHandle on some protocols, so the value of this handle should
-        always be used with the methods of this interface.
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
         self_handle = self._conn.GetSelfHandle()
         if (self_handle in self._members or
             self_handle in self._local_pending or
@@ -1019,103 +315,18 @@ class ChannelInterfaceGroup(dbus.service.Interface):
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='au')
     def GetLocalPendingMembers(self):
-        """
-        Returns an array of handles representing contacts requesting
-        channel membership and awaiting local approval with AddMembers.
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
         return self._local_pending
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='au')
     def GetRemotePendingMembers(self):
-        """
-        Returns an array of handles representing contacts who have been
-        invited to the channel and are awaiting remote approval.
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
         return self._remote_pending
 
     @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='', out_signature='auauau')
     def GetAllMembers(self):
-        """
-        Returns arrays all current, local and remote pending channel
-        members.
-
-        Returns:
-        array of handles of current members
-        array of handles of local pending members
-        array of handles of remote pending members
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
         return (self._members, self._local_pending, self._remote_pending)
-
-    @dbus.service.method(CHANNEL_INTERFACE_GROUP, in_signature='au',
-                                                  out_signature='au')
-    def GetHandleOwners(self, handles):
-        """
-        If the CHANNEL_GROUP_FLAG_CHANNEL_SPECIFIC_HANDLES flag is set on
-        the channel, then the handles of the group members are specific
-        to this channel, and are not meaningful in a connection-wide
-        context such as contact lists. This method allows you to find
-        the owner of the handle if it can be discovered in this channel,
-        or 0 if the owner is not available.
-
-        Parameters:
-        handles - a list of integer handles representing members of the
-            channel
-
-        Returns:
-        an array of integer handles representing the owner handle of
-            the the given room members, in the same order, or 0 if the
-            owner is not available
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidHandle, InvalidArgument (one
-        of the given handles is not a member)
-        """
-        pass
 
     @dbus.service.signal(CHANNEL_INTERFACE_GROUP, signature='sauauauauuu')
     def MembersChanged(self, message, added, removed, local_pending, remote_pending, actor, reason):
-        """
-        Emitted when contacts join any of the three lists (members, local
-        pending or remote pending).  Contacts are listed in the removed
-        list when they leave any of the three lists. There may also be
-        a message from the server regarding this change, which may be
-        displayed to the user if desired.
-
-        The reason value will be one of the following:
-        0 - CHANNEL_GROUP_CHANGE_REASON_NONE
-            No reason was provided for this change.
-        1 - CHANNEL_GROUP_CHANGE_REASON_OFFLINE
-            The change is due to a user going offline.
-        2 - CHANNEL_GROUP_CHANGE_REASON_KICKED
-            The change is due to a kick operation.
-        3 - CHANNEL_GROUP_CHANGE_REASON_BUSY
-            The change is due to a busy indication.
-        4 - CHANNEL_GROUP_CHANGE_REASON_INVITED
-            The change is due to an invitation.
-        5 - CHANNEL_GROUP_CHANGE_REASON_BANNED
-            The change is due to a kick+ban operation.
-        6 - CHANNEL_GROUP_CHANGE_REASON_ERROR
-            The change is due to an error occurring.
-
-        Parameters:
-        message - a string message from the server, or blank if not
-        added - a list of members added to the channel
-        removed - a list of members removed from the channel
-        local_pending - a list of members who are pending local approval
-        remote_pending - a list of members who are pending remote approval
-        actor - the contact handle of the person who made the change, or 0
-            if not known
-        reason - a reason for the change from one of the above values
-        """
 
         self._members.update(added)
         self._members.difference_update(removed)
@@ -1129,168 +340,29 @@ class ChannelInterfaceGroup(dbus.service.Interface):
         self._remote_pending.difference_update(removed)
 
 
-class ChannelInterfaceHold(dbus.service.Interface):
-    """
-    THIS INTERFACE IS DEPRECATED AND SHOULD NOT BE USED. Hold functionality
-    should be added to the StreamedMedia channel in due course.
+from telepathy._generated.Channel_Interface_Hold import ChannelInterfaceHold
 
-    Interface for channels where members may put you on hold, or you may put
-    members on hold. This usually only makes sense for channels where you are
-    streaming media to or from the members. Hold is defined as requesting
-    that you are not sent any media streams by another, so these states
-    indicate whether or not you are sending and receiving media streams
-    to each member of the channel.
-    """
+
+# ChannelInterfaceMediaSignalling is in telepathy.server.media
+
+
+from telepathy._generated.Channel_Interface_Password \
+        import ChannelInterfacePassword as _ChannelInterfacePassword
+
+class ChannelInterfacePassword(_ChannelInterfacePassword):
     def __init__(self):
-        """ Initialise the interface. """
-        self._interfaces.add(CHANNEL_INTERFACE_HOLD)
-
-    @dbus.service.method(CHANNEL_INTERFACE_HOLD, in_signature='u', out_signature='u')
-    def GetHoldState(self, member):
-        """
-        Given a member of the channel, return their current hold state. This
-        can be one of the following values:
-        0 - CHANNEL_HOLD_STATE_NONE
-            Neither the local user and the remote member are on hold, and media
-            is being sent bidirectionally.
-        1 - CHANNEL_HOLD_STATE_SEND_ONLY
-            The local user has put the remote member on hold, so is sending
-            media but has arranged not to receive any media streams.
-        2 - CHANNEL_HOLD_STATE_RECV_ONLY
-            The user has been put on hold by the remote member, so is receiving
-            media but has arranged not to send any media streams.
-        3 - CHANNEL_HOLD_STATE_BOTH
-            Both the local user and the remote member have agreed not to send
-            any media streams to each other.
-
-        Parameters:
-        member - the handle of a member of the channel
-
-        Returns:
-        state - an integer representing the hold state, as defined above
-
-        Potential Errors:
-        Disconnected, InvalidHandle
-        """
-
-    @dbus.service.signal(CHANNEL_INTERFACE_HOLD, signature='uu')
-    def HoldStateChanged(self, member, state):
-        """
-        Emitted to indicate that the hold state (as defined in GetHoldState
-        above) has changed for a member of this channel. This may occur as
-        a consequence of you requesting a change with RequestHold, or the
-        state changing as a result of a request from the remote member
-        or another process.
-
-        Parameters:
-        member - the integer handle of a member of the channel
-        state - an integer representing the new hold state
-        """
-        pass
-
-    @dbus.service.method(CHANNEL_INTERFACE_HOLD, in_signature='ub', out_signature='')
-    def RequestHold(self, member, hold):
-        """
-        Request that a certain member be put on hold (be instructed not to send
-        any media streams to you) or be taken off hold. Success is indicated
-        by the HoldStateChanged signal being emitted.
-
-        Parameters:
-        member - the integer handle of a member of the channel
-        hold - an boolean indicating whether or not the user should be on hold
-
-        Potential Errors:
-        Disconnected, NetworkError, InvalidHandle
-        """
-        pass
-
-
-class ChannelInterfacePassword(dbus.service.Interface):
-    """
-    Interface for channels that may have a password set that users need
-    to provide before being able to join, or may be able to view or change
-    once they have joined the channel.
-
-    The GetPasswordFlags method and the associated PasswordFlagsChanged
-    signal indicate whether the channel has a password, whether the user
-    must now provide it to join, and whether it can be viewed or changed
-    by the user.
-    """
-    def __init__(self):
-        self._interfaces.add(CHANNEL_INTERFACE_PASSWORD)
+        _ChannelInterfacePassword.__init__(self)
         self._password_flags = 0
         self._password = ''
 
     @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='', out_signature='u')
     def GetPasswordFlags(self):
-        """
-        Returns the logical OR of the flags relevant to the password on this
-        channel.  The user interface can use this to present information about
-        which operations are currently valid.
-
-        These can be:
-        8 - CHANNEL_PASSWORD_FLAG_PROVIDE
-            the ProvidePassword method must be called now for the user to join the channel
-
-        Returns:
-        an integer with the logical OR of all the flags set
-
-        Possible Errors:
-        Disconnected, NetworkError
-        """
         return self._password_flags
 
     @dbus.service.signal(CHANNEL_INTERFACE_PASSWORD, signature='uu')
     def PasswordFlagsChanged(self, added, removed):
-        """
-        Emitted when the flags as returned by GetPasswordFlags are changed.
-        The user interface should be updated as appropriate.
-
-        Parameters:
-        added - a logical OR of the flags which have been set
-        removed - a logical OR of the flags which have been cleared
-        """
         self._password_flags |= added
         self._password_flags &= ~removed
 
-    @dbus.service.method(CHANNEL_INTERFACE_PASSWORD, in_signature='s', out_signature='b')
-    def ProvidePassword(self, password):
-        """
-        Provide the password so that the channel can be joined. Must be
-        called with the correct password in order for channel joining to
-        proceed if the 'provide' password flag is set.
 
-        Parameters:
-        password - the password
-
-        Returns:
-        a boolean indicating whether or not the password was correct
-
-        Possible Errors:
-        Disconnected, NetworkError, InvalidArgument
-        """
-        pass
-
-
-class ChannelInterfaceTransfer(dbus.service.Interface):
-    """
-    An interface for channels where you may request that one of the members
-    connects to somewhere else instead.
-    """
-    def __init__(self):
-        self._interfaces.add(CHANNEL_INTERFACE_TRANSFER)
-
-    @dbus.service.method(CHANNEL_INTERFACE_TRANSFER, in_signature='uu', out_signature='')
-    def Transfer(self, member, destination):
-        """
-        Request that the given channel member instead connects to a different
-        contact ID.
-
-        Parameters:
-        member - the handle of the member to transfer
-        destination - the handle of the destination contact
-
-        Possible Errors:
-        Disconnected, NetworkError, NotAvailable, InvalidHandle, PermissionDenied
-        """
-        pass
+from telepathy._generated.Channel_Interface_Transfer import ChannelInterfaceTransfer
