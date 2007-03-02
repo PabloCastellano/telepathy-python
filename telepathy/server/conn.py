@@ -307,11 +307,9 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
             if spec_caps is None:
                 # channel type no longer supported (provider has gone away)
                 gen_new, spec_new = 0, 0
-                del my_caps[ctype]
             else:
                 # channel type supports new capabilities
                 gen_new, spec_new = gen_old, spec_old | spec_caps
-                my_caps[ctype][1] = spec_new
             if spec_old != gen_old or spec_new != gen_new:
                 caps.append((self._self_handle, ctype, gen_old, gen_new,
                             spec_old, spec_new))
