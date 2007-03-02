@@ -32,7 +32,7 @@ from dbus import DBusException
 __all__ = (
 <xsl:for-each select="tp:error">
   <xsl:value-of select="concat('&quot;', translate(@name, '. ', ''),
-    '&quot;',"/><xsl:text>&#10;</xsl:text>
+    '&quot;,')"/><xsl:text>&#10;</xsl:text>
 </xsl:for-each>)
 
 <xsl:apply-templates select="tp:error"/>
