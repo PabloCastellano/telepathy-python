@@ -310,7 +310,7 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
             else:
                 # channel type supports new capabilities
                 gen_new, spec_new = gen_old, spec_old | spec_caps
-            if spec_old != gen_old or spec_new != gen_new:
+            if spec_old != spec_new or gen_old != gen_new:
                 caps.append((self._self_handle, ctype, gen_old, gen_new,
                             spec_old, spec_new))
 
