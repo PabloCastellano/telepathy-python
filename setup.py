@@ -24,12 +24,13 @@ def ls_spec_basenames():
     names = os.listdir(os.path.join(os.curdir, 'spec'))
     for name in names:
         assert name.endswith('.xml')
-    return [name[:-4] for name in names]
+    # we only want the interfaces, which start with a capital letter
+    return [name[:-4] for name in names if name[0].upper() == name[0]]
 
 
 XSLTPROC = ['xsltproc', '--nonet', '--novalid', '--xinclude']
 ALL_SPEC_XML = ls_spec_xml()
-ALL_SPEC_BASENAMES = ls_spec_basenames()
+SPEC_BASENAMES = ls_spec_basenames()
 
 class build_empty_py(build_py):
     def finalize_options(self):
@@ -59,7 +60,7 @@ class build_gen_py_ifaces(build_py):
         build_py.finalize_options(self)
         self.packages = []
         self.py_modules = ['telepathy._generated.%s' % name
-                           for name in ALL_SPEC_BASENAMES]
+                           for name in SPEC_BASENAMES]
         self.package_data = []
         self.data_files = []
         self.stylesheet = os.path.join(os.curdir, 'tools',
@@ -68,7 +69,7 @@ class build_gen_py_ifaces(build_py):
     def find_modules(self):
         return [('telepathy._generated', name,
                  os.path.join(os.curdir, 'spec', '%s.xml' % name))
-                for name in ALL_SPEC_BASENAMES]
+                for name in SPEC_BASENAMES]
 
     def build_module(self, module, module_file, package):
         # "module_file" is actually the XML
