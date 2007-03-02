@@ -270,32 +270,56 @@ from telepathy._generated.Connection_Interface_Capabilities \
 class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
     def __init__(self):
         _ConnectionInterfaceCapabilities.__init__(self)
-        self._own_caps = set()
+        # { contact handle : { str channel type : [int, int] }}
+        # the first int is the generic caps, the second is the type-specific
         self._caps = {}
 
     @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='au', out_signature='a(usuu)')
     def GetCapabilities(self, handles):
-        if (handle != 0 and handle not in self._handles):
-            raise InvalidHandle
-        elif handle in self._caps:
-            return self._caps[handle]
-        else:
-            return []
+        ret = []
+        for handle in handles:
+            if (handle != 0 and handle not in self._handles):
+                raise InvalidHandle
+            elif handle in self._caps:
+                theirs = self._caps[handle]
+                for type in theirs:
+                    ret.append([handle, type, theirs[0], theirs[1]])
 
-    # FIXME: this looks broken
     @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(usuuuu)')
     def CapabilitiesChanged(self, caps):
-        if handle not in self._caps:
-            self._caps[handle] = set()
+        for handle, ctype, gen_old, gen_new, spec_old, spec_new in caps:
+            self._caps.setdefault(handle, {})[ctype] = [gen_new, spec_new]
 
-        self._caps[handle].update(added)
-        self._caps[handle].difference_update(removed)
-
-    # FIXME: this looks broken
-    @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='a(su)as', out_signature='a(su)')
+    @dbus.service.method(CONN_INTERFACE_CAPABILITIES,
+                         in_signature='a(su)as', out_signature='a(su)')
     def AdvertiseCapabilities(self, add, remove):
-        # no-op implementation
-        self.AdvertisedCapabilitiesChanged(self._self_handle, add, remove)
+        my_caps = self._caps.setdefault(self._self_handle, {})
+
+        changed = {}
+        for ctype, spec_caps in add:
+            changed[ctype] = spec_caps
+        for ctype in remove:
+            changed[ctype] = None
+
+        caps = []
+        for ctype, spec_caps in changed.iteritems():
+            gen_old, spec_old = my_caps.get(ctype, (0, 0))
+            if spec_caps is None:
+                # channel type no longer supported (provider has gone away)
+                gen_new, spec_new = 0, 0
+                del my_caps[ctype]
+            else:
+                # channel type supports new capabilities
+                gen_new, spec_new = gen_old, spec_old | spec_caps
+                my_caps[ctype][1] = spec_new
+            if spec_old != gen_old or spec_new != gen_new:
+                caps.append((self._self_handle, ctype, gen_old, gen_new,
+                            spec_old, spec_new))
+
+        self.CapabilitiesChanged(self._self_handle, caps)
+
+        # return all my capabilities
+        return [(ctype, caps[1]) for ctype, caps in my_caps.iteritems()]
 
 
 from telepathy._generated.Connection_Interface_Contact_Info \
