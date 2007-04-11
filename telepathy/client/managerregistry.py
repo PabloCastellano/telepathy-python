@@ -18,59 +18,8 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 """
-The registry of managers takes the form of any number of .manager files, which
-are searched for in /usr/share/telepathy/services or in ~/.telepathy.
-
-The name of a manager is the filename minus the .manager suffix
-For example a file named gabble.manager implies that:
-  The name of the connmgr is 'gabble'
-  The object path is /org/freedesktop/Telepathy/ConnectionManager/gabble
-  The bus name is org.freedesktop.Telepathy.ConnectionManager.gabble
-
-The object path and bus names are formed by replacing $name with the connmgr
-name in the following templates:
-  Object path: /org/freedesktop/Telepathy/ConnectionManager/$name
-  Bus name: org.freedesktop.Telepathy.ConnectionManager.$name
-
-.manager files should contain any number of proctol support declarators
-of the form:
-
-[Protocol (name of supported protocol)]
-param-(parameter name) = signature flags
-default-(paramater name) = value
-
-Where:
-'signature' is a single complete DBus type signature.
-'flags' is a space-delimited list of flags; valid flags are 'required' and
-'register'.
-default-(paramater name) sets the default value for that parameter. e.g.
-default-port=522 sets te default value of the 'port' parameter to 522.
- 
-All connection managers should register as activatable dbus services. They
-should also close themselves down after an idle time with no open connections.
-
-Clients should use the Protocol sections to query the user for necessary
-information.
-
-Telepathy defines a common subset of paramter names to facilitate GUI design.
-
-s:server - a fully qualified domain name or numeric IPv4 or IPv6 address.
-Using the fully-qualified domain name form is RECOMMENDED whenever possible.
-If this paramter is specified and the user id for that service also specifies
-a server, this parameter should override that in the user id.
-
-q:port - a TCP or UDP port number. If this paramter is specified and the user
-id for that service also specifies a port, this parameter should override that
-in the user id.
-
-s:password - A password associated with the user.
-
-s:proxy-server - a uri for a proxyserver to use for this connection
-
-b:require-encryption - require encryption for this connection. A connection
-should fail if require-encryption is set and encryption is not possible.
-
-UIs should display any default values, but should *not* store them.
+Loads .manager files according to
+http://telepathy.freedesktop.org/wiki/FileFormats.
 """
 
 import ConfigParser, os
@@ -81,6 +30,16 @@ import telepathy
 
 _dbus_py_version = getattr(dbus, 'version', (0,0,0))
 
+def _convert_pathlist(pathlist):
+    dirlist = pathlist.split(":")
+    # Reverse so least-important is first
+    dirlist.reverse()
+    dirs = []
+    for path in dirlist:
+        if len(path):
+            path = os.path.abspath(os.path.expanduser(path))
+            dirs.append(os.path.join(path, "telepathy", "managers"))
+    return dirs
 
 class ManagerRegistry:
     def __init__(self):
@@ -116,11 +75,24 @@ class ManagerRegistry:
         set to the name of the erronous file.
         """
 
-        all_paths = (
-            '/usr/share/telepathy/managers/',
-            '/usr/local/share/telepathy/managers/',
-            os.path.expanduser('~/.telepathy'),
-            )
+        # Later items in the list are _more_ important
+        all_paths = []
+        if os.environ.has_key("XDG_DATA_DIRS"):
+            all_paths += _convert_pathlist(os.environ["XDG_DATA_DIRS"])
+        else:
+            all_paths.append(os.path.join("usr", "share", "telepathy", \
+                "managers"))
+            all_paths.append(os.path.join("usr", "local", "share", \
+                "telepathy", "managers"))
+
+        home = os.path.expanduser("~")
+        if os.environ.has_key("XDG_DATA_HOME"):
+            all_paths += _convert_pathlist(os.environ["XDG_DATA_HOME"])
+        else:
+            all_paths.append(os.path.join(home, ".local", "share", \
+                "telepathy", "managers"))
+
+        all_paths.append(os.path.join(home, ".telepathy"))
 
         for path in all_paths:
             if os.path.exists(path):
