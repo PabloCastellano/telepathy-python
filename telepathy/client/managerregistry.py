@@ -80,10 +80,10 @@ class ManagerRegistry:
         if os.environ.has_key("XDG_DATA_DIRS"):
             all_paths += _convert_pathlist(os.environ["XDG_DATA_DIRS"])
         else:
-            all_paths.append(os.path.join("usr", "share", "telepathy", \
-                "managers"))
-            all_paths.append(os.path.join("usr", "local", "share", \
-                "telepathy", "managers"))
+            all_paths.append(os.path.abspath(
+                os.path.join("usr", "share", "telepathy", "managers"))
+            all_paths.append(os.path.abspath(
+                os.path.join("usr", "local", "share", "telepathy", "managers"))
 
         home = os.path.expanduser("~")
         if os.environ.has_key("XDG_DATA_HOME"):
