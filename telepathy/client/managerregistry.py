@@ -92,7 +92,7 @@ class ManagerRegistry:
             all_paths.append(os.path.join(home, ".local", "share", \
                 "telepathy", "managers"))
 
-        all_paths.append(os.path.join(home, ".telepathy"))
+        all_paths.append(os.path.join(home, ".telepathy", "managers"))
 
         for path in all_paths:
             if os.path.exists(path):
