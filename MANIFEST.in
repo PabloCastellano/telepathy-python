@@ -4,4 +4,4 @@ include TODO-PROTO
 include TODO-SPEC
 recursive-include examples *.py
 recursive-include spec *.xml
-recursive-include tools *.py *.def *.xsl
+recursive-include tools *.xsl
