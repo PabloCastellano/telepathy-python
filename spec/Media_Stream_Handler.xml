@@ -65,7 +65,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</p>
         the relevant channel, and remove the stream from the session.
       </tp:docstring>
     </method>
-    <tp:enum name="Media_Stream_Error">
+    <tp:enum name="Media_Stream_Error" type="u">
       <tp:enumvalue suffix="Unknown" value="0">
         <tp:docstring>
         An unknown error occured.
@@ -91,9 +91,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</p>
         has been discovered and streaming is in progress.
       </tp:docstring>
     </method>
-    <tp:enum name="Media_Stream_Base_Proto">
-      <tp:enumvalue suffix="UDP" value="0"/>
-      <tp:enumvalue suffix="TCP" value="1"/>
+    <tp:enum name="Media_Stream_Base_Proto" type="u">
+      <tp:enumvalue suffix="UDP" value="0">
+        <tp:docstring>UDP (User Datagram Protocol)</tp:docstring>
+      </tp:enumvalue>
+      <tp:enumvalue suffix="TCP" value="1">
+        <tp:docstring>TCP (Transmission Control Protocol)</tp:docstring>
+      </tp:enumvalue>
     </tp:enum>
     <method name="NewNativeCandidate">
       <arg direction="in" name="candidate_id" type="s">
@@ -124,7 +128,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</p>
         has been ascertained.
       </tp:docstring>
     </method>
-    <tp:enum name="Media_Stream_Transport_Type">
+    <tp:enum name="Media_Stream_Transport_Type" type="u">
       <tp:enumvalue suffix="Local" value="0">
         <tp:docstring>
           A local address
@@ -219,6 +223,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</p>
       <tp:docstring>
         Signal emitted when the connection manager wishes to set whether or not
         the stream sends to the remote end.
+      </tp:docstring>
+    </signal>
+    <signal name="StartTelephonyEvent">
+      <arg name="event" type="y">
+        <tp:docstring>
+          A telephony event code as defined by RFC 4733.
+        </tp:docstring>
+      </arg>
+      <tp:docstring>
+        Request that a telephony event (as defined by RFC 4733) is transmitted
+        over this stream until StopTelephonyEvent is called.
+      </tp:docstring>
+    </signal>
+    <signal name="StopTelephonyEvent">
+      <tp:docstring>
+        Request that any ongoing telephony events (as defined by RFC 4733)
+        being transmitted over this stream are stopped.
       </tp:docstring>
     </signal>
     <method name="StreamState">
