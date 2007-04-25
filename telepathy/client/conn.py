@@ -19,6 +19,7 @@
 
 import dbus
 
+from telepathy.client.channel import Channel
 from telepathy.client.interfacefactory import (
     InterfaceFactory, default_error_handler)
 from telepathy.interfaces import CONN_INTERFACE
@@ -82,4 +83,9 @@ class Connection(InterfaceFactory):
                 connections.append(connection)
 
         return connections
+
+    def request_channel(self, type, handle_type, handle, suppress_handler):
+        path = self.RequestChannel(type, handle_type, handle,
+            suppress_handler)
+        return Channel(self.service_name, path)
 
