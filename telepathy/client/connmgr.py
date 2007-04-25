@@ -19,6 +19,7 @@
 
 import dbus
 
+from telepathy.client.conn import Connection
 from telepathy.client.interfacefactory import InterfaceFactory
 from telepathy.interfaces import CONN_MGR_INTERFACE
 
@@ -31,3 +32,7 @@ class ConnectionManager(InterfaceFactory):
         self.object_path = object_path
         object = bus.get_object(service_name, object_path)
         InterfaceFactory.__init__(self, object, CONN_MGR_INTERFACE)
+
+    def request_connection(self, proto, parameters):
+        name, path = self.RequestConnection(proto, parameters)
+        return Connection(name, path)
