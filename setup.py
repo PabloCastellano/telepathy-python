@@ -1,11 +1,14 @@
 #!/usr/bin/python
 
 import os
+import sys
 from distutils import log
 from distutils.command.build import build as _build
+from distutils.command.sdist import sdist
 from distutils.command.build_py import build_py
 from distutils.core import setup
 from distutils.dep_util import newer_group
+from distutils import dir_util
 from distutils.spawn import spawn
 
 # can't import telepathy._version because that imports telepathy,
@@ -130,10 +133,77 @@ class build(_build):
                        ('build_gen_py_ifaces', (lambda self: True)),
                        ('build_empty_py', (lambda self: True))])
 
+class distcheck(sdist):
+
+    def run(self):
+        sdist.run(self)
+
+        if self.dry_run:
+            return
+
+        base_dir = self.distribution.get_fullname()
+        distcheck_dir = os.path.join(self.dist_dir, 'distcheck')
+        self.mkpath(distcheck_dir)
+        self.mkpath(os.path.join(distcheck_dir, 'again'))
+
+        cwd = os.getcwd()
+        os.chdir(distcheck_dir)
+
+        if os.path.isdir(base_dir):
+            dir_util.remove_tree(base_dir)
+
+        for archive in self.archive_files:
+            if archive.endswith('.tar.gz'):
+                cmd = ['tar', '-xzf',
+                       os.path.join(os.pardir, os.pardir, archive), base_dir]
+                spawn(cmd)
+                break
+        else:
+            raise ValueError('No supported archives were created')
+
+        # make sdist again, then make clean
+        os.chdir(cwd)
+        os.chdir(os.path.join(distcheck_dir, base_dir))
+        cmd = [sys.executable, 'setup.py', 'sdist', '--formats', 'gztar']
+        spawn(cmd)
+
+        # make sure the two tarballs have the same contents
+        os.chdir(cwd)
+        os.chdir(os.path.join(distcheck_dir, 'again'))
+        cmd = ['tar', '-xzf',
+               os.path.join(os.pardir, base_dir, 'dist', base_dir + '.tar.gz'),
+               base_dir]
+        spawn(cmd)
+
+        os.chdir(cwd)
+        os.chdir(os.path.join(distcheck_dir, base_dir))
+        dir_util.remove_tree('dist')
+        os.remove('MANIFEST')
+
+        os.chdir(cwd)
+        cmd = ['diff', '-ru',
+               os.path.join(distcheck_dir, base_dir),
+               os.path.join(distcheck_dir, 'again', base_dir)]
+        spawn(cmd)
+
+        # make sure the whole spec was included
+        from xml.dom.minidom import parse
+        dom = parse(os.path.join(distcheck_dir, base_dir, 'spec', 'all.xml'))
+        inclusions = dom.getElementsByTagName('xi:include')
+        for inclusion in inclusions:
+            filename = inclusion.getAttribute('href')
+            if not os.path.isfile(os.path.join(distcheck_dir, base_dir, 'spec',
+                                               filename)):
+                if not inclusion.getElementsByTagName('xi:fallback'):
+                    raise AssertionError('%s was not packaged' % filename)
+        dom.unlink()
+
+
 setup(
     cmdclass={'build': build,
               'build_gen_py': build_gen_py,
               'build_empty_py': build_empty_py,
+              'distcheck': distcheck,
               'build_gen_py_ifaces': build_gen_py_ifaces},
     name='telepathy-python',
     version=__version__,
