@@ -1,5 +1,6 @@
 include AUTHORS
 include COPYING
+include MANIFEST.in
 include TODO-PROTO
 include TODO-SPEC
 recursive-include examples *.py
