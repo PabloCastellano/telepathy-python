@@ -86,7 +86,7 @@ class Call:
             self.conn.service_name,
             self.conn.object_path,
             CHANNEL_TYPE_STREAMED_MEDIA,
-            self.conn.object_path,
+            channel.object_path,
             self.chan_handle_type,
             self.chan_handle)
 
