@@ -30,7 +30,7 @@ class AliasesClient:
         chan_path = self.conn[CONN_INTERFACE].RequestChannel(
             CHANNEL_TYPE_CONTACT_LIST, CONNECTION_HANDLE_TYPE_LIST,
             handle, True)
-        channel = Channel(self.conn._dbus_object._named_service, chan_path)
+        channel = Channel(self.conn.service_name, chan_path)
         # hack
         channel._valid_interfaces.add(CHANNEL_INTERFACE_GROUP)
         return channel

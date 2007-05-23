@@ -72,8 +72,7 @@ class Message:
             return
 
         print 'got text channel with handle (%d,%d)' % (handle_type, handle)
-        channel = TextChannel(
-            self.conn._dbus_object._named_service, object_path)
+        channel = TextChannel(self.conn.service_name, object_path)
 
         channel[CHANNEL_TYPE_TEXT].connect_to_signal('Sent', self.sent_cb)
         channel[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.recvd_cb)

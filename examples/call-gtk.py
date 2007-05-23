@@ -9,8 +9,7 @@ import gobject
 import gtk
 
 from account import connection_from_file
-from call import IncomingCall, OutgoingCall, get_stream_engine,\
-                 proxy_get_object_path, proxy_get_service_name
+from call import IncomingCall, OutgoingCall, get_stream_engine
 
 from telepathy.interfaces import CONN_INTERFACE
 
@@ -74,7 +73,7 @@ class BaseGtkCall:
     def add_output_window(self):
         se = dbus.Interface(get_stream_engine(),
             'org.freedesktop.Telepathy.StreamEngine')
-        chan_path = proxy_get_object_path(self.channel._dbus_object)
+        chan_path = self.channel.object_path
         se.SetOutputWindow(chan_path, 2, self.window.output.get_id())
 
         return False

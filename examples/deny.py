@@ -46,7 +46,7 @@ class DenyClient:
         chan_path = self.conn[CONN_INTERFACE].RequestChannel(
             CHANNEL_TYPE_CONTACT_LIST, CONNECTION_HANDLE_TYPE_LIST,
             deny_handle, True)
-        chan = Channel(self.conn._dbus_object._named_service, chan_path)
+        chan = Channel(self.conn.service_name, chan_path)
         # hack
         chan._valid_interfaces.add(CHANNEL_INTERFACE_GROUP)
 

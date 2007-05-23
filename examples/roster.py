@@ -39,7 +39,7 @@ class RosterClient:
         chan_path = self.conn[CONN_INTERFACE].RequestChannel(
             CHANNEL_TYPE_CONTACT_LIST, CONNECTION_HANDLE_TYPE_LIST,
             handle, True)
-        return Channel(self.conn._dbus_object._named_service, chan_path)
+        return Channel(self.conn.service_name, chan_path)
 
     def status_changed_cb(self, state, reason):
         if state == CONNECTION_STATUS_DISCONNECTED:

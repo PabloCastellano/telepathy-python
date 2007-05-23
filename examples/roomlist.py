@@ -69,8 +69,7 @@ class RoomListExample:
     def request_channel_cb(self, object_path):
         print "Got requested channel:", object_path
 
-        channel = RoomListChannel(
-            self.conn._dbus_object._named_service, object_path)
+        channel = RoomListChannel(self.conn.service_name, object_path)
 
         print "Connecting to ListingRooms"
         channel[CHANNEL_TYPE_ROOM_LIST].connect_to_signal('ListingRooms',
