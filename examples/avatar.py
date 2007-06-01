@@ -1,4 +1,3 @@
-
 """
 Telepathy example which requests the avatar for the user's own handle and
 displays it in a Gtk window.
@@ -17,13 +16,11 @@ from account import connection_from_file
 def window_closed_cb(window):
     gtk.main_quit()
 
-def status_changed_cb(state, reason):
-    print 'status changed'
+def connection_ready_cb(connection):
+    # The connection's status has changed to CONNECTED and its supported
+    # interfaces have been checked
 
-    if state != CONNECTION_STATUS_CONNECTED:
-        return
-
-    print 'connected'
+    print 'connected and ready'
     handle = conn[CONN_INTERFACE].GetSelfHandle()
     tokens = conn[CONN_INTERFACE_AVATARS].GetAvatarTokens([handle])
     print 'token:', tokens[0]
@@ -50,10 +47,6 @@ def status_changed_cb(state, reason):
 
 if __name__ == '__main__':
     conn = connection_from_file(sys.argv[1])
-
-    # XXX: hack!
-    conn._valid_interfaces = [CONN_INTERFACE, CONN_INTERFACE_AVATARS]
-    conn[CONN_INTERFACE].connect_to_signal('StatusChanged', status_changed_cb)
 
     print 'connecting'
     conn[CONN_INTERFACE].Connect()
