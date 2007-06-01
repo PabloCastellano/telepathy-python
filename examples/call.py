@@ -153,7 +153,6 @@ class IncomingCall(Call):
         if state == CONNECTION_STATUS_CONNECTED:
             print "waiting for incoming call"
 
-            self.conn._valid_interfaces.add(CONN_INTERFACE_CAPABILITIES)
             self.conn[CONN_INTERFACE_CAPABILITIES].AdvertiseCapabilities(
                 [(CHANNEL_TYPE_STREAMED_MEDIA, 3)], [])
 
