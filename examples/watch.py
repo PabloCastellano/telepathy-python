@@ -22,7 +22,7 @@ class Watcher:
         for conn in connections:
             self._watch_conn(conn)
             status = connection_status[conn[CONN_INTERFACE].GetStatus()]
-            print 'found connection: %s (%s)' % (name, status)
+            print 'found connection: %s (%s)' % (conn.service_name, status)
 
         dbus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
         dbus.connect_to_signal('NameOwnerChanged', self._name_owner_changed_cb)
