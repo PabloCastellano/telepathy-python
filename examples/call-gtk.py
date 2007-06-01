@@ -79,8 +79,8 @@ class BaseGtkCall:
         return False
 
 class GtkOutgoingCall(GtkLoopMixin, BaseGtkCall, OutgoingCall):
-    def __init__(self, conn, contact, options):
-        OutgoingCall.__init__(self, conn, contact, options)
+    def __init__(self, conn, contact):
+        OutgoingCall.__init__(self, conn, contact)
         BaseGtkCall.__init__(self)
 
     def members_changed_cb(self, message, added, removed, local_pending,
@@ -93,8 +93,8 @@ class GtkOutgoingCall(GtkLoopMixin, BaseGtkCall, OutgoingCall):
             gobject.timeout_add(5000, self.add_preview_window)
 
 class GtkIncomingCall(GtkLoopMixin, BaseGtkCall, IncomingCall):
-    def __init__(self, conn, options):
-        IncomingCall.__init__(self, conn, options)
+    def __init__(self, conn):
+        IncomingCall.__init__(self, conn)
         BaseGtkCall.__init__(self)
 
     def members_changed_cb(self, message, added, removed, local_pending,
@@ -107,24 +107,16 @@ class GtkIncomingCall(GtkLoopMixin, BaseGtkCall, IncomingCall):
             gobject.timeout_add(5000, self.add_preview_window)
 
 if __name__ == '__main__':
-    from optparse import OptionParser
-    parser = OptionParser()
-    parser.add_option('--directed', dest='directed', default=False,
-                      action='store_true',
-                      help='Make the call by creating a channel to a contact; '
-                           'if not given, create a channel then add the '
-                           'desired contact')
-
-    (options, args) = parser.parse_args()
+    args = sys.argv[1:]
 
     assert len(args) in (1, 2)
     conn = connection_from_file(args[0])
 
     if len(args) > 1:
         contact = args[1]
-        call = GtkOutgoingCall(conn, args[1], options)
+        call = GtkOutgoingCall(conn, args[1])
     else:
-        call = GtkIncomingCall(conn, options)
+        call = GtkIncomingCall(conn)
 
     print "connecting"
     conn[CONN_INTERFACE].Connect()
