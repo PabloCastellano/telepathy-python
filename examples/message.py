@@ -15,11 +15,6 @@ from telepathy.interfaces import CHANNEL_TYPE_TEXT, CONN_INTERFACE
 
 logging.basicConfig()
 
-class TextChannel(Channel):
-    def __init__(self, *stuff):
-        Channel.__init__(self, *stuff)
-        self.get_valid_interfaces().add(CHANNEL_TYPE_TEXT)
-
 class Message:
     def __init__(self, conn, *stuff):
         self.conn = conn
@@ -72,7 +67,7 @@ class Message:
             return
 
         print 'got text channel with handle (%d,%d)' % (handle_type, handle)
-        channel = TextChannel(self.conn.service_name, object_path)
+        channel = Channel(self.conn.service_name, object_path)
 
         channel[CHANNEL_TYPE_TEXT].connect_to_signal('Sent', self.sent_cb)
         channel[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.recvd_cb)
