@@ -79,8 +79,8 @@ class BaseGtkCall:
         return False
 
 class GtkOutgoingCall(GtkLoopMixin, BaseGtkCall, OutgoingCall):
-    def __init__(self, conn, contact):
-        OutgoingCall.__init__(self, conn, contact)
+    def __init__(self, account_file, contact):
+        OutgoingCall.__init__(self, account_file, contact)
         BaseGtkCall.__init__(self)
 
     def members_changed_cb(self, message, added, removed, local_pending,
@@ -93,8 +93,8 @@ class GtkOutgoingCall(GtkLoopMixin, BaseGtkCall, OutgoingCall):
             gobject.timeout_add(5000, self.add_preview_window)
 
 class GtkIncomingCall(GtkLoopMixin, BaseGtkCall, IncomingCall):
-    def __init__(self, conn):
-        IncomingCall.__init__(self, conn)
+    def __init__(self, account_file):
+        IncomingCall.__init__(self, account_file)
         BaseGtkCall.__init__(self)
 
     def members_changed_cb(self, message, added, removed, local_pending,
@@ -110,13 +110,12 @@ if __name__ == '__main__':
     args = sys.argv[1:]
 
     assert len(args) in (1, 2)
-    conn = connection_from_file(args[0])
 
     if len(args) > 1:
         contact = args[1]
-        call = GtkOutgoingCall(conn, args[1])
+        call = GtkOutgoingCall(args[0], args[1])
     else:
-        call = GtkIncomingCall(conn)
+        call = GtkIncomingCall(args[0])
 
     print "connecting"
     conn[CONN_INTERFACE].Connect()

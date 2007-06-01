@@ -25,16 +25,20 @@ def get_stream_engine():
         '/org/freedesktop/Telepathy/StreamEngine')
 
 class Call:
-    def __init__(self, conn):
-        self.conn = conn
+    def __init__(self, account_file):
+        self.conn = connection_from_file(account_file,
+            ready_handler=self.ready_cb)
         self.channel = None
 
-        conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
+        self.conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             self.status_changed_cb)
-        conn[CONN_INTERFACE].connect_to_signal('NewChannel',
+        self.conn[CONN_INTERFACE].connect_to_signal('NewChannel',
             self.new_channel_cb)
 
     def run(self):
+        print "connecting"
+        self.conn[CONN_INTERFACE].Connect()
+
         self.loop = gobject.MainLoop()
 
         try:
@@ -46,6 +50,12 @@ class Call:
                 print "closing channel"
                 self.channel[CHANNEL_INTERFACE].Close()
 
+        try:
+            print "disconnecting"
+            self.conn[CONN_INTERFACE].Disconnect()
+        except dbus.DBusException:
+            pass
+
     def quit(self):
         if self.loop:
             self.loop.quit()
@@ -55,6 +65,9 @@ class Call:
         if state == CONNECTION_STATUS_DISCONNECTED:
             print 'connection closed'
             self.quit()
+
+    def ready_cb(self, conn):
+        pass
 
     def request_channel_error_cb(self, exception):
         print 'error:', exception
@@ -101,29 +114,26 @@ class Call:
             added, removed, local_pending, remote_pending, actor, reason)
 
 class OutgoingCall(Call):
-    def __init__(self, conn, contact):
-        Call.__init__(self, conn)
+    def __init__(self, account_file, contact):
+        Call.__init__(self, account_file)
         self.contact = contact
 
-    def status_changed_cb (self, state, reason):
-        if state == CONNECTION_STATUS_CONNECTED:
-            handle = self.conn[CONN_INTERFACE].RequestHandles(
-                CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
-            self.handle = handle
+    def ready_cb(self, conn):
+        handle = self.conn[CONN_INTERFACE].RequestHandles(
+            CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
+        self.handle = handle
 
-            print 'got handle %d for %s' % (handle, self.contact)
+        print 'got handle %d for %s' % (handle, self.contact)
 
-            # hack
-            import time
-            time.sleep(5)
+        # hack - wait for capabilities to come in
+        import time
+        time.sleep(5)
 
-            self.conn[CONN_INTERFACE].RequestChannel(
-                CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
-                0, True,
-                reply_handler=lambda *stuff: None,
-                error_handler=self.request_channel_error_cb)
-
-        Call.status_changed_cb(self, state, reason)
+        self.conn[CONN_INTERFACE].RequestChannel(
+            CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
+            0, True,
+            reply_handler=lambda *stuff: None,
+            error_handler=self.request_channel_error_cb)
 
     def channel_ready_cb(self, channel):
         Call.channel_ready_cb(self, channel)
@@ -149,14 +159,9 @@ class OutgoingCall(Call):
                 self.quit()
 
 class IncomingCall(Call):
-    def status_changed_cb (self, state, reason):
-        if state == CONNECTION_STATUS_CONNECTED:
-            print "waiting for incoming call"
-
-            self.conn[CONN_INTERFACE_CAPABILITIES].AdvertiseCapabilities(
-                [(CHANNEL_TYPE_STREAMED_MEDIA, 3)], [])
-
-        Call.status_changed_cb(self, state, reason)
+    def ready_cb(self, conn):
+        self.conn[CONN_INTERFACE_CAPABILITIES].AdvertiseCapabilities(
+            [(CHANNEL_TYPE_STREAMED_MEDIA, 3)], [])
 
     def channel_ready_cb(self, channel):
         Call.channel_ready_cb(self, channel)
@@ -169,20 +174,11 @@ if __name__ == '__main__':
     args = sys.argv[1:]
 
     assert len(args) in (1, 2)
-    conn = connection_from_file(args[0])
 
     if len(args) > 1:
         contact = args[1]
-        call = OutgoingCall(conn, args[1])
+        call = OutgoingCall(args[0], args[1])
     else:
-        call = IncomingCall(conn)
+        call = IncomingCall(args[0])
 
-    print "connecting"
-    conn[CONN_INTERFACE].Connect()
     call.run()
-
-    try:
-        print "disconnecting"
-        conn[CONN_INTERFACE].Disconnect()
-    except dbus.DBusException:
-        pass
