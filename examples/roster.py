@@ -36,10 +36,9 @@ class RosterClient:
     def _request_list_channel(self, name):
         handle = self.conn[CONN_INTERFACE].RequestHandles(
             CONNECTION_HANDLE_TYPE_LIST, [name])[0]
-        chan_path = self.conn[CONN_INTERFACE].RequestChannel(
+        return self.conn.request_channel(
             CHANNEL_TYPE_CONTACT_LIST, CONNECTION_HANDLE_TYPE_LIST,
             handle, True)
-        return Channel(self.conn.service_name, chan_path)
 
     def status_changed_cb(self, state, reason):
         if state == CONNECTION_STATUS_DISCONNECTED:
@@ -58,9 +57,6 @@ class RosterClient:
             except dbus.DBusException:
                 print "'%s' channel is not available" % name
                 continue
-
-            # hack
-            chan._valid_interfaces.add(CHANNEL_INTERFACE_GROUP)
 
             print '%s: members' % name
             print_members(self.conn, chan)
