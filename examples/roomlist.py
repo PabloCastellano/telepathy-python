@@ -17,19 +17,12 @@ from telepathy.interfaces import CHANNEL_TYPE_ROOM_LIST, CONN_INTERFACE
 
 logging.basicConfig()
 
-class RoomListChannel(Channel):
-    def __init__(self, *stuff):
-        Channel.__init__(self, *stuff)
-        self.get_valid_interfaces().add(CHANNEL_TYPE_ROOM_LIST)
-
 class RoomListExample:
     def __init__(self, conn):
         self.conn = conn
 
         conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             self.status_changed_cb)
-        conn[CONN_INTERFACE].connect_to_signal('NewChannel',
-            self.new_channel_cb)
 
     def run(self):
         print "main loop running"
@@ -47,29 +40,12 @@ class RoomListExample:
         print "connection became ready, requesting channel"
 
         try:
-            conn[CONN_INTERFACE].RequestChannel(
-                CHANNEL_TYPE_ROOM_LIST, HANDLE_TYPE_NONE, 0, True,
-                reply_handler=self.request_channel_cb,
-                error_handler=self.request_channel_error_cb)
+            channel = conn.request_channel(
+                CHANNEL_TYPE_ROOM_LIST, HANDLE_TYPE_NONE, 0, True)
         except Exception, e:
             print e
             self.quit()
-
-    def request_channel_error_cb(self, exception):
-        print 'error returned by RequestChannel:', exception
-        self.quit()
-
-    def new_channel_cb(self, object_path, channel_type, handle_type, handle,
-            suppress_handler):
-        if channel_type != CHANNEL_TYPE_ROOM_LIST:
             return
-
-        print 'New room-list channel created'
-
-    def request_channel_cb(self, object_path):
-        print "Got requested channel:", object_path
-
-        channel = RoomListChannel(self.conn.service_name, object_path)
 
         print "Connecting to ListingRooms"
         channel[CHANNEL_TYPE_ROOM_LIST].connect_to_signal('ListingRooms',
