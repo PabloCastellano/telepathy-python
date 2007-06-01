@@ -47,8 +47,6 @@ class DenyClient:
             CHANNEL_TYPE_CONTACT_LIST, CONNECTION_HANDLE_TYPE_LIST,
             deny_handle, True)
         chan = Channel(self.conn.service_name, chan_path)
-        # hack
-        chan._valid_interfaces.add(CHANNEL_INTERFACE_GROUP)
 
         print_members(self.conn, chan)
         print 'denying %s' % self.contact
