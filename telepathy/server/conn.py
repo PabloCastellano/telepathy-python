@@ -59,11 +59,11 @@ class Connection(_Connection):
         _Connection.__init__(self, bus_name, object_path)
 
         # monitor clients dying so we can release handles
-        self._bus.add_signal_receiver(self.name_owner_changed_callback,
-                                      'NameOwnerChanged',
-                                      'org.freedesktop.DBus',
-                                      'org.freedesktop.DBus',
-                                      '/org/freedesktop/DBus')
+        dbus.SessionBus().add_signal_receiver(self.name_owner_changed_callback,
+                                              'NameOwnerChanged',
+                                              'org.freedesktop.DBus',
+                                              'org.freedesktop.DBus',
+                                              '/org/freedesktop/DBus')
 
         self._proto = proto
 
