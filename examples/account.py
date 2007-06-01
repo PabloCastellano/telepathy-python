@@ -1,4 +1,3 @@
-
 import telepathy
 from telepathy.interfaces import CONN_MGR_INTERFACE
 import dbus
@@ -36,16 +35,17 @@ def parse_account(s):
 def read_account(path):
     return parse_account(file(path).read())
 
-def connect(manager, protocol, account):
+def connect(manager, protocol, account, ready_handler=None):
     reg = telepathy.client.ManagerRegistry()
     reg.LoadManagers()
 
     mgr = reg.GetManager(manager)
     conn_bus_name, conn_object_path = \
         mgr[CONN_MGR_INTERFACE].RequestConnection(protocol, account)
-    return telepathy.client.Connection(conn_bus_name, conn_object_path)
+    return telepathy.client.Connection(conn_bus_name, conn_object_path,
+        ready_handler=ready_handler)
 
-def connection_from_file(path):
+def connection_from_file(path, ready_handler=None):
     manager, protocol, account = read_account(path)
-    return connect(manager, protocol, account)
+    return connect(manager, protocol, account, ready_handler=ready_handler)
 
