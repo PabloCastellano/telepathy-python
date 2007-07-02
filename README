@@ -1,15 +1,20 @@
-D-Bus Version
--------------
-Currently you need D-Bus from CVS HEAD, for new features and bug fixes to the
-Python bindings. These patches should be included in version 0.51, and
-snapshots and .debs for Ubuntu Breezy are available here:
- http://telepathy.freedesktop.org/dbus
+Requirements
+------------
+telepathy-python requires dbus-python version >= 0.71; version >= 0.80 is
+recommended.
 
-Specification
--------------
-Type 'make' in the doc/ directory to generate a spec.html with the latest
-version of the D-Bus interface specification, from the base classes in
-telepathy/.
+Using an uninstalled version
+----------------------------
+Because telepathy-python contains generated code, the telepathy directory
+does not contain a complete build. To run this version of telepathy-python
+without installing it, you'll have to run ``python setup.py build``
+and arrange for build/lib to be on your ``sys.path``, for instance:
+
+    python setup.py build
+    PYTHONPATH=$PWD/build/lib python examples/call.py a.account b@example.com
+
+(See ``examples/README`` for details of the .account files used by the
+examples.)
 
 Server Base Classes
 -------------------
