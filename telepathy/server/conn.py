@@ -22,7 +22,7 @@ import dbus.service
 import re
 import weakref
 
-from telepathy.constants import (CONNECTION_STATUS_CONNECTING,
+from telepathy.constants import (CONNECTION_STATUS_DISCONNECTED,
                                  CONNECTION_STATUS_CONNECTED,
                                  CONNECTION_HANDLE_TYPE_CONTACT,
                                  CONNECTION_HANDLE_TYPE_LIST)
@@ -85,7 +85,7 @@ class Connection(_Connection):
 
         self._proto = proto
 
-        self._status = CONNECTION_STATUS_CONNECTING
+        self._status = CONNECTION_STATUS_DISCONNECTED
         self._interfaces = set()
 
         self._handles = weakref.WeakValueDictionary()
