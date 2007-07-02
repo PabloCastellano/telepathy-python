@@ -41,11 +41,6 @@ from telepathy.server.handle import Handle
 
 from telepathy._generated.Connection import Connection as _Connection
 
-def _is_bad_identifier_char(c, is_first):
-    return ((c < 'a' or c > 'z') and
-            (c < 'A' or c > 'Z') and
-            (c < '0' or c > '9' or is_first))
-
 _BAD = re.compile(r'(?:^[0-9])|(?:[^A-Za-z0-9])')
 
 def _escape_as_identifier(name):
