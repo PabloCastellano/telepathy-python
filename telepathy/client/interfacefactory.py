@@ -37,6 +37,11 @@ class InterfaceFactory(object):
         if default_interface:
             self._valid_interfaces.add(default_interface)
 
+    @property
+    def dbus_proxy(self):
+        """The underlying `dbus.proxies.ProxyObject`"""
+        return self._dbus_object
+
     def get_valid_interfaces(self):
         return self._valid_interfaces
 
@@ -54,4 +59,3 @@ class InterfaceFactory(object):
 
     def __getattr__(self, name):
         return self[self._default_interface].__getattr__(name)
-
