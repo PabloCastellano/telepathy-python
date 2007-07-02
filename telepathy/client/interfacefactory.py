@@ -28,19 +28,39 @@ def default_error_handler(exception):
     logger.warning('Exception from asynchronous method call:\n%s', exception)
 
 class InterfaceFactory(object):
+    """Base class for an object wrapping the D-Bus interfaces of a Telepathy
+    object.
+
+    This object acts like a dict where the keys are D-Bus interface names,
+    and the values are `dbus.Interface` objects. In addition, D-Bus methods
+    called directly on this object (``interface_factory_subclass.GetFoo()``)
+    can be treated like calls to a default interface.
+    """
+
     def __init__(self, dbus_object, default_interface=None):
+        """Constructor.
+
+        :Parameters:
+            `dbus_object` : dbus.proxies.ProxyObject
+                The underlying D-Bus object
+            `default_interface` : str
+                The D-Bus interface to be used for method calls made
+                directly on this object
+        """
+        #: The underlying `dbus.proxies.ProxyObject`. Read-only attribute.
+        #: :Since: 0.13.13.
+        self.dbus_proxy = dbus_object
+
+        # backwards compat for people using pre-public API
+        # FIXME: remove this in 0.14?
         self._dbus_object = dbus_object
+
         self._interfaces = {}
         self._valid_interfaces = set()
         self._default_interface = default_interface
 
         if default_interface:
             self._valid_interfaces.add(default_interface)
-
-    @property
-    def dbus_proxy(self):
-        """The underlying `dbus.proxies.ProxyObject`"""
-        return self._dbus_object
 
     def get_valid_interfaces(self):
         return self._valid_interfaces
