@@ -55,13 +55,20 @@ class Connection(_Connection):
     _optional_parameters = {}
     _mandatory_parameters = {}
 
-    def __init__(self, proto, account, manager='python'):
+    def __init__(self, proto, account, manager=None):
         """
         Parameters:
         proto - the name of the protcol this conection should be handling.
         account - a protocol-specific account name
         manager - the name of the connection manager
         """
+
+        if manager is None:
+            import warnings
+            warnings.warn(DeprecationWarning, 'The manager parameter to '
+                'Connection.__init__ should be supplied')
+            manager = 'python'
+
         clean_account = _escape_as_identifier(account)
         bus_name = u'org.freedesktop.Telepathy.Connection.%s.%s.%s' % \
                 (manager, proto, clean_account)
