@@ -41,21 +41,45 @@ from telepathy.server.handle import Handle
 
 from telepathy._generated.Connection import Connection as _Connection
 
+def _is_bad_identifier_char(c, is_first):
+    return ((c < 'a' or c > 'z') and
+            (c < 'A' or c > 'Z') and
+            (c < '0' or c > '9' or is_first))
+
+def _escape_as_identifier(name):
+    try:
+        name = str(name)
+    except UnicodeEncodeError:
+        name = unicode(name).encode('utf-8')
+    is_first = True
+    result = ''
+    for ch in name:
+        if _is_bad_identifier_char(ch, is_first):
+            result += '_%02x' % ord(ch)
+        else:
+            result += ch
+        is_first = False
+    return result
+
 class Connection(_Connection):
 
     _optional_parameters = {}
     _mandatory_parameters = {}
 
-    def __init__(self, proto, account):
+    def __init__(self, proto, account, manager='python'):
         """
         Parameters:
         proto - the name of the protcol this conection should be handling.
         account - a protocol-specific account name
-        account - a unique identifier for this account which is used to identify this connection
+        manager - the name of the connection manager
         """
-        clean_account = re.sub('[^a-zA-Z0-9_]', '_', account)
-        bus_name = dbus.service.BusName('org.freedesktop.Telepathy.Connection.' + clean_account)
-        object_path = '/org/freedesktop/Telepathy/Connection/' + clean_account
+        clean_account = _escape_as_identifier(account)
+        bus_name = u'org.freedesktop.Telepathy.Connection.%s.%s.%s' % \
+                (manager, proto, clean_account)
+        bus_name = dbus.service.BusName(bus_name)
+
+        object_path = '/org/freedesktop/Telepathy/Connection/%s/%s/%s' % \
+                (manager, proto, clean_account)
         _Connection.__init__(self, bus_name, object_path)
 
         # monitor clients dying so we can release handles
