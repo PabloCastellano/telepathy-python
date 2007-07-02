@@ -65,8 +65,8 @@ class Connection(_Connection):
 
         if manager is None:
             import warnings
-            warnings.warn(DeprecationWarning, 'The manager parameter to '
-                'Connection.__init__ should be supplied')
+            warnings.warn('The manager parameter to Connection.__init__ '
+                          'should be supplied', DeprecationWarning)
             manager = 'python'
 
         clean_account = _escape_as_identifier(account)
