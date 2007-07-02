@@ -17,12 +17,15 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-from sys import stderr
-
 import dbus
+import logging
+
+
+logger = logging.getLogger('telepathy.client.interfacefactory')
 
 def default_error_handler(exception):
-    stderr.write('Exception from asynchronous method call:\n%s\n' % exception)
+    logging.basicConfig()
+    logger.warning('Exception from asynchronous method call:\n%s', exception)
 
 class InterfaceFactory(object):
     def __init__(self, dbus_object, default_interface=None):
