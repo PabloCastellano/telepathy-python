@@ -46,20 +46,14 @@ def _is_bad_identifier_char(c, is_first):
             (c < 'A' or c > 'Z') and
             (c < '0' or c > '9' or is_first))
 
+_BAD = re.compile(r'(?:^[0-9])|(?:[^A-Za-z0-9])')
+
 def _escape_as_identifier(name):
-    try:
-        name = str(name)
-    except UnicodeEncodeError:
-        name = unicode(name).encode('utf-8')
-    is_first = True
-    result = ''
-    for ch in name:
-        if _is_bad_identifier_char(ch, is_first):
-            result += '_%02x' % ord(ch)
-        else:
-            result += ch
-        is_first = False
-    return result
+    if isinstance(name, unicode):
+        name = name.encode('utf-8')
+    if not name:
+        return '_'
+    return _BAD.sub(lambda match: '_%02x' % ord(match.group(0)), name)
 
 class Connection(_Connection):
 
