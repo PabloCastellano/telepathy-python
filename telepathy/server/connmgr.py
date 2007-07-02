@@ -55,6 +55,9 @@ class ConnectionManager(_ConnectionManager):
         Remove a connection from the list of connections.
         """
         self._connections.remove(conn)
+        if hasattr(conn, 'remove_from_connection'):
+            # requires dbus-python >= 0.81.1
+            conn.remove_from_connection()
         del conn
 
         return False # when called in an idle callback
