@@ -40,7 +40,7 @@ class ChatroomClient:
         print '<%s> %s' % (contact, text)
 
     def stdin_cb(self, fd, condition):
-        text = fd.readline()
+        text = fd.readline()[:-1]
         self.channel[telepathy.CHANNEL_TYPE_TEXT].Send(
             telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, text)
         return True
