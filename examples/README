@@ -1,7 +1,8 @@
 
-These examples all take as their first parameter a file which contains account
-details. An account file contains a set of key/value pairs, where the key and
-the value are separated by a colon and a space.
+These examples (except generate-manager-file.py) all take as their first
+parameter a file which contains account details. An account file contains a set
+of key/value pairs, where the key and the value are separated by a colon and a
+space.
 
 The keys "manager" and "protocol" must be present. Other values are passed to
 RequestConnection().
@@ -17,3 +18,8 @@ port: 5223
 old-ssl: true
 ignore-ssl-errors: true
 
+---
+
+generate-manager-file.py takes one argument: the name of a connection manager
+(such as "gabble"), defaulting to "haze" if the argument is not found.  It
+spits out suitable contents for a .manager file for that protocol.
