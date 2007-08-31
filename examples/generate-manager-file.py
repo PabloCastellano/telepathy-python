@@ -18,7 +18,9 @@ print "BusName=%s" % service_name
 print "ObjectPath=%s" % object_path
 print
 
-for protocol in manager.ListProtocols():
+protocols = manager.ListProtocols()
+protocols.sort()
+for protocol in protocols:
     print "[Protocol %s]" % protocol
     for param in manager.GetParameters(protocol):
         print "param-%s=%s" % (param[0], param[2]),
