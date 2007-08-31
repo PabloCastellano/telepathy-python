@@ -10,17 +10,17 @@ else:
 service_name = "org.freedesktop.Telepathy.ConnectionManager.%s" % manager_name
 object_path = "/org/freedesktop/Telepathy/ConnectionManager/%s" % manager_name
 
-haze = telepathy.client.ConnectionManager(service_name, object_path)
-haze_mgr = haze[CONN_MGR_INTERFACE]
+object = telepathy.client.ConnectionManager(service_name, object_path)
+manager = object[CONN_MGR_INTERFACE]
 
 print "[ConnectionManager]"
 print "BusName=%s" % service_name
 print "ObjectPath=%s" % object_path
 print
 
-for protocol in haze_mgr.ListProtocols():
+for protocol in manager.ListProtocols():
     print "[Protocol %s]" % protocol
-    for param in haze_mgr.GetParameters(protocol):
+    for param in manager.GetParameters(protocol):
         print "param-%s=%s" % (param[0], param[2]),
         # FIXME: deal with the "register" flag
         if param[1] == 1L:
