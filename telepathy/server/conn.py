@@ -24,8 +24,7 @@ import weakref
 
 from telepathy.constants import (CONNECTION_STATUS_DISCONNECTED,
                                  CONNECTION_STATUS_CONNECTED,
-                                 CONNECTION_HANDLE_TYPE_CONTACT,
-                                 CONNECTION_HANDLE_TYPE_LIST)
+                                 LAST_HANDLE_TYPE)
 from telepathy.errors import (Disconnected, InvalidArgument,
                               InvalidHandle, NotAvailable)
 from telepathy.interfaces import (CONN_INTERFACE,
@@ -146,8 +145,7 @@ class Connection(_Connection):
                 (handle, handle_type))
 
     def check_handle_type(self, type):
-        if (type < CONNECTION_HANDLE_TYPE_CONTACT or
-            type > CONNECTION_HANDLE_TYPE_LIST):
+        if (type > LAST_HANDLE_TYPE):
             raise InvalidArgument('handle type %s not known' % type)
 
     def get_handle_id(self):
