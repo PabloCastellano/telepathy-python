@@ -3,7 +3,8 @@ import sys
 import telepathy
 from telepathy.interfaces import CONN_MGR_INTERFACE
 from telepathy.constants import CONN_MGR_PARAM_FLAG_REQUIRED, \
-                                CONN_MGR_PARAM_FLAG_REGISTER
+                                CONN_MGR_PARAM_FLAG_REGISTER, \
+                                CONN_MGR_PARAM_FLAG_HAS_DEFAULT
 
 if len(sys.argv) >= 2:
     manager_name = sys.argv[1]
@@ -35,8 +36,7 @@ for protocol in protocols:
             print "register",
         print
 
-        if default != "": # FIXME: is there a better way to check if a default
-                          #        exists?
+        if flags & CONN_MGR_PARAM_FLAG_HAS_DEFAULT:
             defaults.append( (name, type, default) )
     for default in defaults:
         if default[1] == "b":
