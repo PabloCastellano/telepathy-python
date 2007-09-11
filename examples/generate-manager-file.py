@@ -23,6 +23,7 @@ print
 protocols = manager.ListProtocols()
 protocols.sort()
 for protocol in protocols:
+    defaults = []
     print "[Protocol %s]" % protocol
     for param in manager.GetParameters(protocol):
         (name, flags, type, default) = param
@@ -33,4 +34,17 @@ for protocol in protocols:
         if flags & CONN_MGR_PARAM_FLAG_REGISTER:
             print "register",
         print
+
+        if default != "": # FIXME: is there a better way to check if a default
+                          #        exists?
+            defaults.append( (name, type, default) )
+    for default in defaults:
+        if default[1] == "b":
+            if default[2]:
+                value = "true"
+            else:
+                value = "false"
+        else:
+            value = str(default[2])
+        print "default-%s=%s" % (default[0], value)
     print
