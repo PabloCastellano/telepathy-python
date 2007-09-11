@@ -2,6 +2,8 @@
 import sys
 import telepathy
 from telepathy.interfaces import CONN_MGR_INTERFACE
+from telepathy.constants import CONN_MGR_PARAM_FLAG_REQUIRED, \
+                                CONN_MGR_PARAM_FLAG_REGISTER
 
 if len(sys.argv) >= 2:
     manager_name = sys.argv[1]
@@ -23,9 +25,12 @@ protocols.sort()
 for protocol in protocols:
     print "[Protocol %s]" % protocol
     for param in manager.GetParameters(protocol):
-        print "param-%s=%s" % (param[0], param[2]),
-        # FIXME: deal with the "register" flag
-        if param[1] == 1L:
+        (name, flags, type, default) = param
+
+        print "param-%s=%s" % (name, type),
+        if flags & CONN_MGR_PARAM_FLAG_REQUIRED:
             print "required",
+        if flags & CONN_MGR_PARAM_FLAG_REGISTER:
+            print "register",
         print
     print
