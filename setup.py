@@ -14,7 +14,7 @@ from distutils.spawn import spawn
 # can't import telepathy._version because that imports telepathy,
 # which needs telepathy._generated, which we haven't yet built...
 loc = {}
-execfile(os.path.join(os.curdir, 'telepathy', '_version.py'),
+execfile(os.path.join(os.curdir, 'src', '_version.py'),
          globals(), loc)
 __version__ = loc['__version__']
 
@@ -207,6 +207,7 @@ setup(
               'build_gen_py_ifaces': build_gen_py_ifaces},
     name='telepathy-python',
     version=__version__,
+    package_dir={'telepathy': 'src'},
     packages=[
         'telepathy',
         'telepathy.client',
