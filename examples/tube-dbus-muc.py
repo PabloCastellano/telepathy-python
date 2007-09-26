@@ -98,18 +98,17 @@ class Client:
             self.channel_tubes = Channel(self.conn._dbus_object._named_service,
                     object_path)
 
+            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
+                    "TubeStateChanged", self.tube_state_changed_cb)
+            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
+                    "NewTube", self.new_tube_cb)
+            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
+                    "TubeClosed", self.tube_closed_cb)
+
             for tube in self.channel_tubes[CHANNEL_TYPE_TUBES].ListTubes():
                 id, initiator, type, service, params, state = (tube[0],
                         tube[1], tube[2], tube[3], tube[4], tube[5])
                 self.new_tube_cb(id, initiator, type, service, params, state)
-
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
-                    "NewTube", self.new_tube_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
-                    "TubeStateChanged", self.tube_state_changed_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
-                    "TubeClosed", self.tube_closed_cb)
-
 
     def new_tube_cb(self, id, initiator, type, service, params, state):
         initiator_id = self.conn[CONN_INTERFACE].InspectHandles(
