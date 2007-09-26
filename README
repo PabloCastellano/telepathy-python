@@ -5,10 +5,10 @@ recommended.
 
 Using an uninstalled version
 ----------------------------
-Because telepathy-python contains generated code, the telepathy directory
-does not contain a complete build. To run this version of telepathy-python
-without installing it, you'll have to run ``python setup.py build``
-and arrange for build/lib to be on your ``sys.path``, for instance:
+Because telepathy-python contains generated code, the src directory
+is incomplete. To run this version of telepathy-python without installing it,
+you'll have to run ``python setup.py build`` and arrange for build/lib to be
+on your ``sys.path``, for instance:
 
     python setup.py build
     PYTHONPATH=$PWD/build/lib python examples/call.py a.account b@example.com
