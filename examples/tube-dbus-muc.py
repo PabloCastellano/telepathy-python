@@ -5,8 +5,7 @@ import sys
 import time
 import random
 import pprint
-from dbus.gobject_service import ExportedGObject
-from dbus.service import method, signal
+from dbus.service import method, signal, Object
 from dbus import Interface
 
 from telepathy.client import (
@@ -201,7 +200,7 @@ class JoinerClient(Client):
         print "call remote Say"
         self.test.tube.get_object(sender, PATH).Say(text, dbus_interface=IFACE)
 
-class Test(ExportedGObject):
+class Test(Object):
     def __init__(self, tube, conn):
         super(Test, self).__init__(tube, PATH)
         self.tube = tube
