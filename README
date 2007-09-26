@@ -18,23 +18,14 @@ examples.)
 
 Server Base Classes
 -------------------
-telepathy/server/ implements base classes and mixins for implementing all of
+telepathy.server implements base classes and mixins for implementing all of
 the D-Bus interfaces in Telepathy. Many methods are abstract and they are
 intended to be overridden in mixins for the concrete implementations, but some
 perform housekeeping for you and maintain structures with some of the state
 necessary to answer Get* calls. The API for implementing managers needs some
 fixing really.
 
-Swiss
------
-swiss.py is the pyxmpp-based connection manager. Currently, you should copy
-swiss.manager into ~/.telepathy/ so the client can discover it, but it needs to
-be executed manually.
-
 Client Library
 --------------
-The client lib in telepathy/client/ has some base classes to help with
-implementing a client in python. For examples, see ./test-client.py and
-./scw-client.py, both of which will read .manager files from ~/.telepathy/ and
-start a connection for you. The latter, scw-client, has a simple UI to show
-your subscribe list and allow text messages to your contacts.
+The client lib in telepathy.client has some base classes to help with
+implementing a client in python.
