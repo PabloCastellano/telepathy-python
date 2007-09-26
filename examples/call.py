@@ -35,14 +35,16 @@ class Call:
         self.conn[CONN_INTERFACE].connect_to_signal('NewChannel',
             self.new_channel_cb)
 
+    def run_main_loop():
+        self.loop = gobject.MainLoop()
+        self.loop.run()
+
     def run(self):
         print "connecting"
         self.conn[CONN_INTERFACE].Connect()
 
-        self.loop = gobject.MainLoop()
-
         try:
-            self.loop.run()
+            self.run_main_loop()
         except KeyboardInterrupt:
             print "killed"
 

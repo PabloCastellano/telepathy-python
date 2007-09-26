@@ -47,12 +47,8 @@ class CallWindow(gtk.Window):
         pass
 
 class GtkLoopMixin:
-    def run(self):
-        try:
-            gtk.main()
-        except KeyboardInterrupt:
-            print "killed"
-            self.quit()
+    def run_main_loop(self):
+        gtk.main()
 
     def quit(self):
         gtk.main_quit()
@@ -117,12 +113,4 @@ if __name__ == '__main__':
     else:
         call = GtkIncomingCall(args[0])
 
-    print "connecting"
-    conn[CONN_INTERFACE].Connect()
     call.run()
-
-    try:
-        print "disconnecting"
-        conn[CONN_INTERFACE].Disconnect()
-    except dbus.DBusException:
-        pass
