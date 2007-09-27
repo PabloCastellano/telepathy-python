@@ -74,6 +74,10 @@ class Client:
         self.self_handle = self.conn[CONN_INTERFACE].GetSelfHandle()
 
     def join_muc(self):
+        # workaround to be sure that the muc service is fully resolved in
+        # Salut.
+        time.sleep(2)
+
         print "join muc", self.muc_id
         handle = self.conn[CONN_INTERFACE].RequestHandles(
             CONNECTION_HANDLE_TYPE_ROOM, [self.muc_id])[0]
