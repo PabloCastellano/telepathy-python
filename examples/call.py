@@ -35,7 +35,7 @@ class Call:
         self.conn[CONN_INTERFACE].connect_to_signal('NewChannel',
             self.new_channel_cb)
 
-    def run_main_loop():
+    def run_main_loop(self):
         self.loop = gobject.MainLoop()
         self.loop.run()
 
