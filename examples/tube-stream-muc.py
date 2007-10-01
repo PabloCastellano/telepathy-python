@@ -38,7 +38,7 @@ SERVICE = "http"
 
 loop = None
 
-class Client:
+class StreamTubeClient:
     def __init__(self, account_file, muc_id):
         self.conn = connection_from_file(account_file)
         self.muc_id = muc_id
@@ -139,9 +139,9 @@ class Client:
                self.conn[CONN_INTERFACE].InspectHandles(
                    CONNECTION_HANDLE_TYPE_CONTACT, [handle])[0])
 
-class InitiatorClient(Client):
+class StreamTubeInitiatorClient(StreamTubeClient):
     def __init__(self, account_file, muc_id, socket_path=None):
-        Client.__init__(self, account_file, muc_id)
+        StreamTubeClient.__init__(self, account_file, muc_id)
 
         if socket_path is None:
             self.server = TrivialStreamServer()
@@ -152,13 +152,13 @@ class InitiatorClient(Client):
             self.socket_path = socket_path
 
     def connected_cb(self):
-        Client.connected_cb(self)
+        StreamTubeClient.connected_cb(self)
 
         self.join_muc()
         self.offer_tube()
 
     def tube_opened (self, id):
-        Client.tube_opened(self, id)
+        StreamTubeClient.tube_opened(self, id)
 
     def offer_tube(self):
         params = {"login": "badger", "a_int" : 69}
@@ -167,20 +167,20 @@ class InitiatorClient(Client):
                 params, SOCKET_ADDRESS_TYPE_UNIX, dbus.ByteArray(self.socket_path),
                 SOCKET_ACCESS_CONTROL_LOCALHOST, "")
 
-class JoinerClient(Client):
+class StreamTubeJoinerClient(StreamTubeClient):
     def __init__(self, account_file, muc_id, connect_trivial_client):
-        Client.__init__(self, account_file, muc_id)
+        StreamTubeClient.__init__(self, account_file, muc_id)
 
         self.tube_accepted = False
         self.connect_trivial_client = connect_trivial_client
 
     def connected_cb(self):
-        Client.connected_cb(self)
+        StreamTubeClient.connected_cb(self)
 
         self.join_muc()
 
     def new_tube_cb(self, id, initiator, type, service, params, state):
-        Client.new_tube_cb(self, id, initiator, type, service, params, state)
+        StreamTubeClient.new_tube_cb(self, id, initiator, type, service, params, state)
 
         if state == TUBE_STATE_LOCAL_PENDING and service == SERVICE and\
                 not self.tube_accepted:
@@ -190,7 +190,7 @@ class JoinerClient(Client):
                     SOCKET_ADDRESS_TYPE_UNIX, SOCKET_ACCESS_CONTROL_LOCALHOST, "")
 
     def tube_opened (self, id):
-        Client.tube_opened(self, id)
+        StreamTubeClient.tube_opened(self, id)
 
         address_type, address = self.channel_tubes[CHANNEL_TYPE_TUBES].GetStreamTubeSocketAddress(id)
         assert (address_type == SOCKET_ADDRESS_TYPE_UNIX)
@@ -280,13 +280,13 @@ if __name__ == '__main__':
     args = sys.argv[1:]
 
     if len(args) == 3 and args[2] == '--initiator':
-        client = InitiatorClient(args[0], args[1])
+        client = StreamTubeInitiatorClient(args[0], args[1])
     elif len(args) == 2:
-        client = JoinerClient(args[0], args[1], True)
+        client = StreamTubeJoinerClient(args[0], args[1], True)
     elif len(args) == 4 and args[2] == '--initiator':
-        client = InitiatorClient(args[0], args[1], args[3])
+        client = StreamTubeInitiatorClient(args[0], args[1], args[3])
     elif len(args) == 3 and args[2] == '--no-trivial-client':
-        client = JoinerClient(args[0], args[1], False)
+        client = StreamTubeJoinerClient(args[0], args[1], False)
     else:
         usage()
         sys.exit(0)
