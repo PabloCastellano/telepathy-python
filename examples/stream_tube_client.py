@@ -33,7 +33,7 @@ tube_state = {TUBE_STATE_LOCAL_PENDING : 'local pending',\
               TUBE_STATE_REMOTE_PENDING : 'remote pending',\
               TUBE_STATE_OPEN : 'open'}
 
-SERVICE = "http"
+SERVICE = "x-example"
 
 loop = None
 
