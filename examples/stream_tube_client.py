@@ -160,36 +160,6 @@ class StreamTubeInitiatorClient(StreamTubeClient):
                 params, SOCKET_ADDRESS_TYPE_UNIX, dbus.ByteArray(self.socket_path),
                 SOCKET_ACCESS_CONTROL_LOCALHOST, "")
 
-class StreamTubeInitiatorMucClient(StreamTubeInitiatorClient):
-    def __init__(self, account_file, muc_id, socket_path=None):
-        StreamTubeInitiatorClient.__init__(self, account_file, muc_id, None, socket_path)
-
-    def connected_cb(self):
-        StreamTubeInitiatorClient.connected_cb(self)
-
-        self.join_muc()
-        self.offer_tube()
-
-class StreamTubeInitiatorPrivateClient(StreamTubeInitiatorClient):
-    def __init__(self, account_file, contact_id, socket_path=None):
-        StreamTubeInitiatorClient.__init__(self, account_file, None, contact_id, socket_path)
-
-    def connected_cb(self):
-        StreamTubeInitiatorClient.connected_cb(self)
-
-        self.tubes_with_contact()
-        self.offer_tube()
-
-    def tubes_with_contact(self):
-        handle = self.conn[CONN_INTERFACE].RequestHandles(
-                CONNECTION_HANDLE_TYPE_CONTACT, [self.contact_id])[0]
-
-        chan_path = self.conn[CONN_INTERFACE].RequestChannel(
-            CHANNEL_TYPE_TUBES, CONNECTION_HANDLE_TYPE_CONTACT,
-            handle, True)
-        self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name, chan_path)
-
-
 class StreamTubeJoinerClient(StreamTubeClient):
     def __init__(self, account_file, muc_id, contact_id, connect_trivial_client):
         StreamTubeClient.__init__(self, account_file, muc_id, contact_id)
@@ -218,26 +188,6 @@ class StreamTubeJoinerClient(StreamTubeClient):
         if self.connect_trivial_client:
             self.client = TrivialStreamClient(address)
             self.client.connect()
-
-class StreamTubeJoinerMucClient(StreamTubeJoinerClient):
-    def __init__(self, account_file, muc_id, connect_trivial_client):
-        StreamTubeJoinerClient.__init__(self, account_file, muc_id, None,
-                connect_trivial_client)
-
-    def connected_cb(self):
-        StreamTubeJoinerClient.connected_cb(self)
-
-        self.join_muc()
-
-class StreamTubeJoinerPrivateClient(StreamTubeJoinerClient):
-    def __init__(self, account_file, connect_trivial_client):
-        StreamTubeJoinerClient.__init__(self, account_file, None, None,
-                connect_trivial_client)
-
-    def connected_cb(self):
-        StreamTubeJoinerClient.connected_cb(self)
-
-        print "waiting for a tube offer from contacts"
 
 class TrivialStream:
     def __init__(self, socket_path):

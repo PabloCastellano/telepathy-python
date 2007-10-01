@@ -1,7 +1,28 @@
 import sys
 
-from stream_tube_client import StreamTubeJoinerMucClient, \
-        StreamTubeInitiatorMucClient
+from stream_tube_client import StreamTubeJoinerClient, \
+        StreamTubeInitiatorClient
+
+class StreamTubeInitiatorMucClient(StreamTubeInitiatorClient):
+    def __init__(self, account_file, muc_id, socket_path=None):
+        StreamTubeInitiatorClient.__init__(self, account_file, muc_id, None, socket_path)
+
+    def connected_cb(self):
+        StreamTubeInitiatorClient.connected_cb(self)
+
+        self.join_muc()
+        self.offer_tube()
+
+class StreamTubeJoinerMucClient(StreamTubeJoinerClient):
+    def __init__(self, account_file, muc_id, connect_trivial_client):
+        StreamTubeJoinerClient.__init__(self, account_file, muc_id, None,
+                connect_trivial_client)
+
+    def connected_cb(self):
+        StreamTubeJoinerClient.connected_cb(self)
+
+        self.join_muc()
+
 
 def usage():
     print "Usage:\n" \
