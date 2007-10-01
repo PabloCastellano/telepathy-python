@@ -86,19 +86,17 @@ class Client:
             CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_ROOM,
             handle, True)
 
-        self.channel_text = Channel(self.conn._dbus_object._named_service,
-                chan_path)
+        self.channel_text = Channel(self.conn.dbus_proxy.bus_name, chan_path)
 
         chan_path = self.conn[CONN_INTERFACE].RequestChannel(
             CHANNEL_TYPE_TUBES, CONNECTION_HANDLE_TYPE_ROOM,
             handle, True)
-        self.channel_tubes = Channel(self.conn._dbus_object._named_service,
-                chan_path)
+        self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name, chan_path)
 
     def new_channel_cb(self, object_path, channel_type, handle_type, handle,
         suppress_handler):
       if channel_type == CHANNEL_TYPE_TUBES:
-            self.channel_tubes = Channel(self.conn._dbus_object._named_service,
+            self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name,
                     object_path)
 
             self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
