@@ -234,6 +234,11 @@ class StreamTubeJoinerPrivateClient(StreamTubeJoinerClient):
         StreamTubeJoinerClient.__init__(self, account_file, None, None,
                 connect_trivial_client)
 
+    def connected_cb(self):
+        StreamTubeJoinerClient.connected_cb(self)
+
+        print "waiting for a tube offer from contacts"
+
 class TrivialStream:
     def __init__(self, socket_path):
         self.socket_path = socket_path
