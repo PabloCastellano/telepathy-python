@@ -210,13 +210,13 @@ class StreamTubeJoinerClient(StreamTubeClient):
     def tube_opened (self, id):
         StreamTubeClient.tube_opened(self, id)
 
-        address_type, address = self.channel_tubes[CHANNEL_TYPE_TUBES].GetStreamTubeSocketAddress(id)
+        address_type, address = self.channel_tubes[CHANNEL_TYPE_TUBES].GetStreamTubeSocketAddress(
+                id, byte_arrays=True)
         assert (address_type == SOCKET_ADDRESS_TYPE_UNIX)
-        socket_path = ''.join([chr(byte) for byte in address])
-        print "tube opened. Clients can connect to %s" % socket_path
+        print "tube opened. Clients can connect to %s" % address
 
         if self.connect_trivial_client:
-            self.client = TrivialStreamClient(socket_path)
+            self.client = TrivialStreamClient(address)
             self.client.connect()
 
 class StreamTubeJoinerMucClient(StreamTubeJoinerClient):
