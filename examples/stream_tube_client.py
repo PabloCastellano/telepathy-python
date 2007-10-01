@@ -38,9 +38,12 @@ SERVICE = "x-example"
 loop = None
 
 class StreamTubeClient:
-    def __init__(self, account_file, muc_id):
+    def __init__(self, account_file, muc_id, contact_id):
         self.conn = connection_from_file(account_file)
         self.muc_id = muc_id
+        self.contact_id = contact_id
+
+        assert self.muc_id is None or self.contact_id is None
 
         self.conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             self.status_changed_cb)
@@ -139,8 +142,8 @@ class StreamTubeClient:
                    CONNECTION_HANDLE_TYPE_CONTACT, [handle])[0])
 
 class StreamTubeInitiatorClient(StreamTubeClient):
-    def __init__(self, account_file, muc_id, socket_path=None):
-        StreamTubeClient.__init__(self, account_file, muc_id)
+    def __init__(self, account_file, muc_id, contact_id, socket_path=None):
+        StreamTubeClient.__init__(self, account_file, muc_id, contact_id)
 
         if socket_path is None:
             self.server = TrivialStreamServer()
@@ -150,15 +153,6 @@ class StreamTubeInitiatorClient(StreamTubeClient):
             print "Will export UNIX socket %s" % socket_path
             self.socket_path = socket_path
 
-    def connected_cb(self):
-        StreamTubeClient.connected_cb(self)
-
-        self.join_muc()
-        self.offer_tube()
-
-    def tube_opened (self, id):
-        StreamTubeClient.tube_opened(self, id)
-
     def offer_tube(self):
         params = {"login": "badger", "a_int" : 69}
         print "offer tube"
@@ -166,17 +160,22 @@ class StreamTubeInitiatorClient(StreamTubeClient):
                 params, SOCKET_ADDRESS_TYPE_UNIX, dbus.ByteArray(self.socket_path),
                 SOCKET_ACCESS_CONTROL_LOCALHOST, "")
 
+class StreamTubeInitiatorMucClient(StreamTubeInitiatorClient):
+    def __init__(self, account_file, muc_id, socket_path=None):
+        StreamTubeInitiatorClient.__init__(self, account_file, muc_id, None, socket_path)
+
+    def connected_cb(self):
+        StreamTubeInitiatorClient.connected_cb (self)
+
+        self.join_muc()
+        self.offer_tube()
+
 class StreamTubeJoinerClient(StreamTubeClient):
-    def __init__(self, account_file, muc_id, connect_trivial_client):
-        StreamTubeClient.__init__(self, account_file, muc_id)
+    def __init__(self, account_file, muc_id, contact_id, connect_trivial_client):
+        StreamTubeClient.__init__(self, account_file, muc_id, contact_id)
 
         self.tube_accepted = False
         self.connect_trivial_client = connect_trivial_client
-
-    def connected_cb(self):
-        StreamTubeClient.connected_cb(self)
-
-        self.join_muc()
 
     def new_tube_cb(self, id, initiator, type, service, params, state):
         StreamTubeClient.new_tube_cb(self, id, initiator, type, service, params, state)
@@ -199,6 +198,16 @@ class StreamTubeJoinerClient(StreamTubeClient):
         if self.connect_trivial_client:
             self.client = TrivialStreamClient(socket_path)
             self.client.connect()
+
+class StreamTubeJoinerMucClient(StreamTubeJoinerClient):
+    def __init__(self, account_file, muc_id, connect_trivial_client):
+        StreamTubeJoinerClient.__init__(self, account_file, muc_id, None,
+                connect_trivial_client)
+
+    def connected_cb(self):
+        StreamTubeJoinerClient.connected_cb(self)
+
+        self.join_muc()
 
 class TrivialStream:
     def __init__(self, socket_path):

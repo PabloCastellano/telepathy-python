@@ -1,7 +1,7 @@
 import sys
 
-from stream_tube_client import StreamTubeJoinerClient, \
-        StreamTubeInitiatorClient
+from stream_tube_client import StreamTubeJoinerMucClient, \
+        StreamTubeInitiatorMucClient
 
 def usage():
     print "Usage:\n" \
@@ -19,13 +19,13 @@ if __name__ == '__main__':
     args = sys.argv[1:]
 
     if len(args) == 3 and args[2] == '--initiator':
-        client = StreamTubeInitiatorClient(args[0], args[1])
+        client = StreamTubeInitiatorMucClient(args[0], args[1])
     elif len(args) == 2:
-        client = StreamTubeJoinerClient(args[0], args[1], True)
+        client = StreamTubeJoinerMucClient(args[0], args[1], True)
     elif len(args) == 4 and args[2] == '--initiator':
-        client = StreamTubeInitiatorClient(args[0], args[1], args[3])
+        client = StreamTubeInitiatorMucClient(args[0], args[1], args[3])
     elif len(args) == 3 and args[2] == '--no-trivial-client':
-        client = StreamTubeJoinerClient(args[0], args[1], False)
+        client = StreamTubeJoinerMucClient(args[0], args[1], False)
     else:
         usage()
         sys.exit(0)
