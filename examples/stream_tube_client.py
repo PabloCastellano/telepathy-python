@@ -47,7 +47,7 @@ class StreamTubeClient:
 
         self.conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             self.status_changed_cb)
-        self.conn[CONN_INTERFACE].connect_to_signal ("NewChannel",
+        self.conn[CONN_INTERFACE].connect_to_signal("NewChannel",
                 self.new_channel_cb)
 
     def run(self):
@@ -101,13 +101,13 @@ class StreamTubeClient:
             self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name,
                     object_path)
 
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
+            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal(
                     "TubeStateChanged", self.tube_state_changed_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
+            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal(
                     "NewTube", self.new_tube_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
+            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal(
                     "TubeClosed", self.tube_closed_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
+            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal(
                    "StreamTubeNewConnection",
                    self.stream_tube_new_connection_cb)
 
@@ -124,16 +124,16 @@ class StreamTubeClient:
                 tube_type[type], id, initiator_id, service, tube_state[state])
 
         if state == TUBE_STATE_OPEN:
-            self.tube_opened (id)
+            self.tube_opened(id)
 
-    def tube_opened (self, id):
+    def tube_opened(self, id):
         pass
 
     def tube_state_changed_cb(self, id, state):
         if state == TUBE_STATE_OPEN:
             self.tube_opened(id)
 
-    def tube_closed_cb (self, id):
+    def tube_closed_cb(self, id):
         print "tube closed", id
 
     def stream_tube_new_connection_cb(self, id, handle):
@@ -165,7 +165,7 @@ class StreamTubeInitiatorMucClient(StreamTubeInitiatorClient):
         StreamTubeInitiatorClient.__init__(self, account_file, muc_id, None, socket_path)
 
     def connected_cb(self):
-        StreamTubeInitiatorClient.connected_cb (self)
+        StreamTubeInitiatorClient.connected_cb(self)
 
         self.join_muc()
         self.offer_tube()
@@ -175,7 +175,7 @@ class StreamTubeInitiatorPrivateClient(StreamTubeInitiatorClient):
         StreamTubeInitiatorClient.__init__(self, account_file, None, contact_id, socket_path)
 
     def connected_cb(self):
-        StreamTubeInitiatorClient.connected_cb (self)
+        StreamTubeInitiatorClient.connected_cb(self)
 
         self.tubes_with_contact()
         self.offer_tube()
@@ -207,12 +207,12 @@ class StreamTubeJoinerClient(StreamTubeClient):
             self.channel_tubes[CHANNEL_TYPE_TUBES].AcceptStreamTube(id,
                     SOCKET_ADDRESS_TYPE_UNIX, SOCKET_ACCESS_CONTROL_LOCALHOST, "")
 
-    def tube_opened (self, id):
+    def tube_opened(self, id):
         StreamTubeClient.tube_opened(self, id)
 
         address_type, address = self.channel_tubes[CHANNEL_TYPE_TUBES].GetStreamTubeSocketAddress(
                 id, byte_arrays=True)
-        assert (address_type == SOCKET_ADDRESS_TYPE_UNIX)
+        assert address_type == SOCKET_ADDRESS_TYPE_UNIX
         print "tube opened. Clients can connect to %s" % address
 
         if self.connect_trivial_client:
