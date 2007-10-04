@@ -142,22 +142,22 @@ class StreamTubeClient:
                    CONNECTION_HANDLE_TYPE_CONTACT, [handle])[0])
 
 class StreamTubeInitiatorClient(StreamTubeClient):
-    def __init__(self, account_file, muc_id, contact_id, socket_path=None):
+    def __init__(self, account_file, muc_id, contact_id, socket_address=None):
         StreamTubeClient.__init__(self, account_file, muc_id, contact_id)
 
-        if socket_path is None:
+        if socket_address is None:
             self.server = TrivialStreamServer()
             self.server.run()
-            self.socket_path = self.server.socket_path
+            self.socket_address = self.server.socket_address
         else:
-            print "Will export UNIX socket %s" % socket_path
-            self.socket_path = socket_path
+            print "Will export socket", socket_address
+            self.socket_address = socket_address
 
     def offer_tube(self):
         params = {"login": "badger", "a_int" : 69}
         print "offer tube"
         id = self.channel_tubes[CHANNEL_TYPE_TUBES].OfferStreamTube(SERVICE,
-                params, SOCKET_ADDRESS_TYPE_UNIX, dbus.ByteArray(self.socket_path),
+                params, SOCKET_ADDRESS_TYPE_IPV4, self.socket_address,
                 SOCKET_ACCESS_CONTROL_LOCALHOST, "")
 
 class StreamTubeJoinerClient(StreamTubeClient):
@@ -175,23 +175,22 @@ class StreamTubeJoinerClient(StreamTubeClient):
             print "accept tube", id
             self.tube_accepted = True
             self.channel_tubes[CHANNEL_TYPE_TUBES].AcceptStreamTube(id,
-                    SOCKET_ADDRESS_TYPE_UNIX, SOCKET_ACCESS_CONTROL_LOCALHOST, "")
+                    SOCKET_ADDRESS_TYPE_IPV4, SOCKET_ACCESS_CONTROL_LOCALHOST, "")
 
     def tube_opened(self, id):
         StreamTubeClient.tube_opened(self, id)
 
         address_type, address = self.channel_tubes[CHANNEL_TYPE_TUBES].GetStreamTubeSocketAddress(
                 id, byte_arrays=True)
-        assert address_type == SOCKET_ADDRESS_TYPE_UNIX
-        print "tube opened. Clients can connect to %s" % address
+        print "tube opened. Clients can connect to", address
 
         if self.connect_trivial_client:
             self.client = TrivialStreamClient(address)
             self.client.connect()
 
 class TrivialStream:
-    def __init__(self, socket_path):
-        self.socket_path = socket_path
+    def __init__(self, socket_address=None):
+        self.socket_address = socket_address
 
     def read_socket(self, s):
         try:
@@ -212,18 +211,16 @@ class TrivialStream:
 
 class TrivialStreamServer(TrivialStream):
     def __init__(self):
-        # generate a socket path
-        letters = [random.choice(string.ascii_letters) for i in range(10)]
-        socket_path = os.path.join(tempfile.gettempdir(), ''.join(letters))
-
-        TrivialStream.__init__(self, socket_path)
+        TrivialStream.__init__(self)
 
     def run(self):
-        print "launch server on socket: %s" % self.socket_path
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setblocking(1)
         s.settimeout(0.1)
-        s.bind(self.socket_path)
+        s.bind(("127.0.0.1", 0))
+
+        self.socket_address = s.getsockname()
+        print "server lauched on socket", self.socket_address
         s.listen(1)
 
         gobject.timeout_add(1000, self.accept_client, s)
@@ -242,12 +239,11 @@ class TrivialStreamServer(TrivialStream):
         gobject.timeout_add(5000, self.write_socket, s, "hi !")
 
 class TrivialStreamClient(TrivialStream):
-    def __init__(self, socket_path):
-        TrivialStream.__init__(self, socket_path)
+    def __init__(self, socket_address):
+        TrivialStream.__init__(self, socket_address)
 
     def connect(self):
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.setblocking(0.1)
-        s.connect(self.socket_path)
-        print "connected to", self.socket_path
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(self.socket_address)
+        print "connected to", self.socket_address
         gobject.timeout_add(1000, self.read_socket, s)
