@@ -220,7 +220,7 @@ class TrivialStreamServer(TrivialStream):
         s.bind(("127.0.0.1", 0))
 
         self.socket_address = s.getsockname()
-        print "server lauched on socket", self.socket_address
+        print "Trivial Server lauched on socket", self.socket_address
         s.listen(1)
 
         gobject.timeout_add(1000, self.accept_client, s)
@@ -245,5 +245,5 @@ class TrivialStreamClient(TrivialStream):
     def connect(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(self.socket_address)
-        print "connected to", self.socket_address
+        print "Trivial client connected to", self.socket_address
         gobject.timeout_add(1000, self.read_socket, s)
