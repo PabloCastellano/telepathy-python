@@ -30,8 +30,8 @@ def usage():
             "\tpython %s [account-file] [muc] --initiator\n" \
             "Accept a stream tube from [muc] and connect it to the trivial stream client:\n" \
             "\tpython %s [account-file] [muc]\n" \
-            "Offer a stream tube to [muc] using the UNIX socket [socket]:\n" \
-            "\tpython %s [account-file] [muc] --initiator [socket]\n" \
+            "Offer a stream tube to [muc] using the socket [IP]:[port]:\n" \
+            "\tpython %s [account-file] [muc] [IP] [port]\n" \
             "Accept a stream tube from [muc] and wait for connections from an external client:\n" \
             "\tpython %s [account-file] [muc] --no-trivial-client\n" \
             % (sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0])
@@ -43,8 +43,8 @@ if __name__ == '__main__':
         client = StreamTubeInitiatorMucClient(args[0], args[1])
     elif len(args) == 2:
         client = StreamTubeJoinerMucClient(args[0], args[1], True)
-    elif len(args) == 4 and args[2] == '--initiator':
-        client = StreamTubeInitiatorMucClient(args[0], args[1], args[3])
+    elif len(args) == 4:
+        client = StreamTubeInitiatorMucClient(args[0], args[1], (args[2], int (args[3])))
     elif len(args) == 3 and args[2] == '--no-trivial-client':
         client = StreamTubeJoinerMucClient(args[0], args[1], False)
     else:
