@@ -1,4 +1,5 @@
 import sys
+import dbus
 
 from stream_tube_client import StreamTubeJoinerClient, \
         StreamTubeInitiatorClient
@@ -44,7 +45,7 @@ if __name__ == '__main__':
     elif len(args) == 2:
         client = StreamTubeJoinerMucClient(args[0], args[1], True)
     elif len(args) == 4:
-        client = StreamTubeInitiatorMucClient(args[0], args[1], (args[2], int (args[3])))
+        client = StreamTubeInitiatorMucClient(args[0], args[1], (args[2], dbus.UInt16(args[3])))
     elif len(args) == 3 and args[2] == '--no-trivial-client':
         client = StreamTubeJoinerMucClient(args[0], args[1], False)
     else:

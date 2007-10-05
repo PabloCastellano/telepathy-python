@@ -148,7 +148,9 @@ class StreamTubeInitiatorClient(StreamTubeClient):
         if socket_address is None:
             self.server = TrivialStreamServer()
             self.server.run()
-            self.socket_address = self.server.socket_address
+            socket_address = self.server.socket_address
+            self.socket_address = (socket_address[0],
+                    dbus.UInt16(socket_address[1]))
         else:
             print "Will export socket", socket_address
             self.socket_address = socket_address

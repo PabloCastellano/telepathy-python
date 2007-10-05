@@ -1,4 +1,5 @@
 import sys
+import dbus
 from telepathy.client import (Connection, Channel)
 from telepathy.interfaces import (CONN_INTERFACE, CHANNEL_TYPE_TUBES)
 from telepathy.constants import (CONNECTION_HANDLE_TYPE_CONTACT)
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     elif len(args) == 1:
         client = StreamTubeJoinerPrivateClient(args[0], True)
     elif len(args) == 4:
-        client = StreamTubeInitiatorPrivateClient(args[0], args[1], (args[2], int(args[3])))
+        client = StreamTubeInitiatorPrivateClient(args[0], args[1], (args[2], dbus.UInt16(args[3])))
     elif len(args) == 2 and args[1] == '--no-trivial-client':
         client = StreamTubeJoinerPrivateClient(args[0], False)
     else:
