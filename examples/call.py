@@ -92,6 +92,8 @@ class Call:
         channel[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
         channel[CHANNEL_INTERFACE_GROUP].connect_to_signal('MembersChanged',
             self.members_changed_cb)
+        channel[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal(
+            'StreamError', self.stream_error_cb)
 
         stream_engine = get_stream_engine()
         handler = dbus.Interface(stream_engine,
@@ -105,6 +107,10 @@ class Call:
             self.chan_handle)
 
         self.channel = channel
+
+    def stream_error_cb(self, *foo):
+        print 'error: %r' % (foo,)
+        self.channel.close()
 
     def closed_cb(self):
         print "channel closed"
