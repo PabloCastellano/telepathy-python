@@ -172,6 +172,10 @@ class IncomingCall(Call):
         pending = channel[CHANNEL_INTERFACE_GROUP].GetLocalPendingMembers()
         channel[CHANNEL_INTERFACE_GROUP].AddMembers(pending, "")
 
+    def closed_cb(self):
+        print "channel closed"
+        print "waiting for incoming call"
+
 if __name__ == '__main__':
     args = sys.argv[1:]
 
