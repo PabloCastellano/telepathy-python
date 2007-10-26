@@ -188,7 +188,6 @@ if __name__ == '__main__':
     assert len(args) in (1, 2)
 
     if len(args) > 1:
-        contact = args[1]
         call = OutgoingCall(args[0], args[1])
     else:
         call = IncomingCall(args[0])
