@@ -33,7 +33,9 @@ class ConnectionManager(_ConnectionManager):
         """
         bus_name = 'org.freedesktop.Telepathy.ConnectionManager.%s' % name
         object_path = '/org/freedesktop/Telepathy/ConnectionManager/%s' % name
-        _ConnectionManager.__init__(self, dbus.service.BusName(bus_name), object_path)
+        _ConnectionManager.__init__(self,
+                                    dbus.service.BusName(bus_name, dbus.Bus()),
+                                    object_path)
 
         self._connections = set()
         self._protos = {}
