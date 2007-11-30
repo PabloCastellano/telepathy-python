@@ -43,6 +43,8 @@ class StreamTubeClient:
         self.muc_id = muc_id
         self.contact_id = contact_id
 
+        self.joined = False
+
         assert self.muc_id is None or self.contact_id is None
 
         self.conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
@@ -90,10 +92,18 @@ class StreamTubeClient:
 
         self.channel_text = Channel(self.conn.dbus_proxy.bus_name, chan_path)
 
+        self.self_handle = self.channel_text[CHANNEL_INTERFACE_GROUP].GetSelfHandle()
+        self.channel_text[CHANNEL_INTERFACE_GROUP].connect_to_signal(
+                "MembersChanged", self.text_channel_members_changed_cb)
+
         chan_path = self.conn[CONN_INTERFACE].RequestChannel(
             CHANNEL_TYPE_TUBES, CONNECTION_HANDLE_TYPE_ROOM,
             handle, True)
         self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name, chan_path)
+
+        if self.self_handle in self.channel_text[CHANNEL_INTERFACE_GROUP].GetMembers():
+            self.joined = True
+            self.muc_joined()
 
     def new_channel_cb(self, object_path, channel_type, handle_type, handle,
         suppress_handler):
@@ -115,6 +125,15 @@ class StreamTubeClient:
                 id, initiator, type, service, params, state = (tube[0],
                         tube[1], tube[2], tube[3], tube[4], tube[5])
                 self.new_tube_cb(id, initiator, type, service, params, state)
+
+    def text_channel_members_changed_cb(self, message, added, removed,
+            local_pending, remote_pending, actor, reason):
+        if self.self_handle in added and not self.joined:
+            self.joined = True
+            self.muc_joined()
+
+    def muc_joined(self):
+        pass
 
     def new_tube_cb(self, id, initiator, type, service, params, state):
         initiator_id = self.conn[CONN_INTERFACE].InspectHandles(

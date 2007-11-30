@@ -12,6 +12,11 @@ class StreamTubeInitiatorMucClient(StreamTubeInitiatorClient):
         StreamTubeInitiatorClient.connected_cb(self)
 
         self.join_muc()
+
+    def muc_joined(self):
+        StreamTubeInitiatorClient.muc_joined(self)
+
+        print "muc joined. Offer the tube"
         self.offer_tube()
 
 class StreamTubeJoinerMucClient(StreamTubeJoinerClient):
@@ -23,7 +28,6 @@ class StreamTubeJoinerMucClient(StreamTubeJoinerClient):
         StreamTubeJoinerClient.connected_cb(self)
 
         self.join_muc()
-
 
 def usage():
     print "Usage:\n" \
