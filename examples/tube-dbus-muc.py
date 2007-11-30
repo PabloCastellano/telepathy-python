@@ -47,6 +47,7 @@ class Client:
                 self.new_channel_cb)
 
         self.test = None
+        self.joined = False
 
     def run(self):
         self.conn[CONN_INTERFACE].Connect()
@@ -88,10 +89,18 @@ class Client:
 
         self.channel_text = Channel(self.conn.dbus_proxy.bus_name, chan_path)
 
+        self.self_handle = self.channel_text[CHANNEL_INTERFACE_GROUP].GetSelfHandle()
+        self.channel_text[CHANNEL_INTERFACE_GROUP].connect_to_signal(
+                "MembersChanged", self.text_channel_members_changed_cb)
+
         chan_path = self.conn[CONN_INTERFACE].RequestChannel(
             CHANNEL_TYPE_TUBES, CONNECTION_HANDLE_TYPE_ROOM,
             handle, True)
         self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name, chan_path)
+
+        if self.self_handle in self.channel_text[CHANNEL_INTERFACE_GROUP].GetMembers():
+            self.joined = True
+            self.muc_joined()
 
     def new_channel_cb(self, object_path, channel_type, handle_type, handle,
         suppress_handler):
@@ -137,6 +146,14 @@ class Client:
     def tube_closed_cb (self, id):
         print "tube closed", id
 
+    def text_channel_members_changed_cb(self, message, added, removed,
+            local_pending, remote_pending, actor, reason):
+        if self.self_handle in added and not self.joined:
+            self.joined = True
+            self.muc_joined()
+
+    def muc_joined(self):
+        pass
 
 class InitiatorClient(Client):
     def __init__(self, account_file, muc_id):
@@ -146,6 +163,11 @@ class InitiatorClient(Client):
         Client.connected_cb(self)
 
         self.join_muc()
+
+    def muc_joined(self):
+        Client.muc_joined(self)
+
+        print "muc joined. Offer the tube"
         self.offer_tube()
 
     def tube_opened (self, id):
