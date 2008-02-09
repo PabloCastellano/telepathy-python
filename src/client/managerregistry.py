@@ -46,7 +46,7 @@ class ManagerRegistry:
         self.services = {}
 
     def LoadManager(self, path):
-        config = ConfigParser.SafeConfigParser()
+        config = ConfigParser.RawConfigParser()
         config.read(path)
 
         cm_name = os.path.basename(path)[:-len(".manager")]
