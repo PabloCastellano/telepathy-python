@@ -1,7 +1,6 @@
 # telepathy-python - Base classes defining the interfaces of the Telepathy framework
 #
-# Copyright (C) 2005, 2006 Collabora Limited
-# Copyright (C) 2005, 2006 Nokia Corporation
+# Copyright (C) 2008 Collabora Limited
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -17,20 +16,4 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from telepathy._generated.interfaces import *
-
-# Backwards compatibility
-CONN_MGR_INTERFACE = CONNECTION_MANAGER
-CONN_INTERFACE = CONNECTION
-CHANNEL_INTERFACE = CHANNEL
-CHANNEL_HANDLER_INTERFACE = CHANNEL_HANDLER
-
-# More backwards compatibility
-CONN_INTERFACE_ALIASING = CONNECTION_INTERFACE_ALIASING
-CONN_INTERFACE_AVATARS = CONNECTION_INTERFACE_AVATARS
-CONN_INTERFACE_CAPABILITIES = CONNECTION_INTERFACE_CAPABILITIES
-CONN_INTERFACE_CONTACT_INFO = CONNECTION_INTERFACE_CONTACT_INFO
-CONN_INTERFACE_FORWARDING = CONNECTION_INTERFACE_FORWARDING
-CONN_INTERFACE_PRESENCE = CONNECTION_INTERFACE_PRESENCE
-CONN_INTERFACE_PRIVACY = CONNECTION_INTERFACE_PRIVACY
-CONN_INTERFACE_RENAMING = CONNECTION_INTERFACE_RENAMING
+from telepathy._generated.Channel_Handler import ChannelHandler

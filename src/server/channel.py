@@ -271,6 +271,10 @@ class ChannelTypeText(Channel, _ChannelTypeTextIface):
         self._pending_messages[id] = (timestamp, sender, type, flags, text)
 
 
+from telepathy._generated.Channel_Interface_Call_Merging \
+        import ChannelInterfaceCallMerging
+
+
 from telepathy._generated.Channel_Interface_Chat_State \
         import ChannelInterfaceChatState
 
