@@ -20,6 +20,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
   </tp:license>
   <interface name="org.freedesktop.Telepathy.Channel.Interface.Group">
     <tp:requires interface="org.freedesktop.Telepathy.Channel"/>
+
+    <tp:struct name="Local_Pending_Info" array-name="Local_Pending_Info_List">
+      <tp:docstring>A struct (handle to be added, handle of contact
+        requesting the change, reason code, optional message)
+        representing a contact whose attempt to join a group is to be confirmed
+        by the local user, as returned by GetLocalPendingMembersWithInfo
+        on the Group interface.</tp:docstring>
+      <tp:member type="u" tp:type="Contact_Handle" name="To_Be_Added"/>
+      <tp:member type="u" tp:type="Contact_Handle" name="Actor"/>
+      <tp:member type="u" tp:type="Channel_Group_Change_Reason" name="Reason"/>
+      <tp:member type="s" name="Message"/>
+    </tp:struct>
+
     <method name="AddMembers">
       <arg direction="in" name="contacts" type="au" tp:type="Contact_Handle[]">
         <tp:docstring>
@@ -34,11 +47,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
       <tp:docstring xmlns="http://www.w3.org/1999/xhtml">
         <p>Invite all the given contacts into the channel, or accept requests for
           channel membership for contacts on the pending local list.</p>
-        
+
         <p>A message may be provided along with the request, which will be sent
         to the server if supported. See the CHANNEL_GROUP_FLAG_MESSAGE_ADD and
         CHANNEL_GROUP_FLAG_MESSAGE_ACCEPT flags to see in which cases this
         message should be provided.</p>
+
+        <p>Attempting to add contacts who are already members is allowed;
+          connection managers must silently accept this, without error.</p>
       </tp:docstring>
       <tp:possible-errors>
         <tp:error name="org.freedesktop.Telepathy.Error.Disconnected"/>
@@ -233,7 +249,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
         requesting channel membership and awaiting local approval with
         AddMembers.
       </tp:docstring>
-      <arg direction="out" type="a(uuus)">
+      <arg direction="out" type="a(uuus)" tp:type="Local_Pending_Info[]">
         <tp:docstring>
           An array of structs containing:
           <ul>
