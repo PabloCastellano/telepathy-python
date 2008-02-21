@@ -1,8 +1,9 @@
 include AUTHORS
 include COPYING
 include MANIFEST.in
-include TODO-PROTO
-include TODO-SPEC
+include NEWS
+include README
+include examples/README
 recursive-include examples *.py
 recursive-include spec *.xml
 recursive-include tools *.xsl
