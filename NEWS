@@ -1,0 +1,11 @@
+telepathy-python 0.15.0 (unreleased)
+====================================
+
+Enhancements:
+
+* Some improvements to Tubes examples
+
+Fixes:
+
+* Don't crash on % in .manager files (e.g. in haze.manager's Zephyr entry)
+* Avoid a DeprecationWarning from dbus-python >= 0.82.1
