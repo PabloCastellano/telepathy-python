@@ -4,6 +4,7 @@ include MANIFEST.in
 include NEWS
 include README
 include examples/README
+include telepathy-inspect
 recursive-include examples *.py
 recursive-include spec *.xml
 recursive-include tools *.xsl
