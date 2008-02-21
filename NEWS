@@ -1,8 +1,9 @@
-telepathy-python 0.15.0 (unreleased)
+telepathy-python 0.15.0 (2008-02-21)
 ====================================
 
 Enhancements:
 
+* Specification 0.17.1
 * Some improvements to Tubes examples
 
 Fixes:
