@@ -22,7 +22,7 @@ def status_changed_cb(state, reason):
         conn[CONN_INTERFACE].Disconnect()
     elif state == CONNECTION_STATUS_DISCONNECTED:
         if not registered:
-            print 'failed'
+            print 'failed (reason %d)' % reason
 
         loop.quit()
 
