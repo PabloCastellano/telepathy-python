@@ -71,8 +71,6 @@ class Client:
             self.connected_cb()
         elif state == CONNECTION_STATUS_DISCONNECTED:
             print 'disconnected'
-
-            global loop
             loop.quit()
 
     def connected_cb(self):
