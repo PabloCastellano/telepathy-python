@@ -50,6 +50,8 @@ class Client:
         self.joined = False
 
     def run(self):
+        global loop
+
         self.conn[CONN_INTERFACE].Connect()
 
         loop = gobject.MainLoop()
@@ -69,8 +71,9 @@ class Client:
             self.connected_cb()
         elif state == CONNECTION_STATUS_DISCONNECTED:
             print 'disconnected'
-            if loop is not None:
-               loop.quit()
+
+            global loop
+            loop.quit()
 
     def connected_cb(self):
         self.self_handle = self.conn[CONN_INTERFACE].GetSelfHandle()
