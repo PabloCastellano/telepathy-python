@@ -337,9 +337,6 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
         return [(ctype, caps[1]) for ctype, caps in my_caps.iteritems()]
 
 
-from telepathy._generated.Connection_Interface_Contact_Info \
-        import ConnectionInterfaceContactInfo
-
 from telepathy._generated.Connection_Interface_Presence \
         import ConnectionInterfacePresence
 
