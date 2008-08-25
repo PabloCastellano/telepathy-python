@@ -33,7 +33,6 @@ from telepathy.interfaces import (CONN_INTERFACE,
                                   CONN_INTERFACE_AVATARS,
                                   CONN_INTERFACE_CAPABILITIES,
                                   CONN_INTERFACE_PRESENCE,
-                                  CONN_INTERFACE_PRIVACY,
                                   CONN_INTERFACE_RENAMING)
 from telepathy.server.handle import Handle
 
@@ -339,36 +338,6 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
 
 from telepathy._generated.Connection_Interface_Presence \
         import ConnectionInterfacePresence
-
-
-from telepathy._generated.Connection_Interface_Privacy \
-        import ConnectionInterfacePrivacy \
-        as _ConnectionInterfacePrivacy
-
-class ConnectionInterfacePrivacy(_ConnectionInterfacePrivacy):
-    def __init__(self, modes):
-        """
-        Initialise privacy interface.
-
-        Parameters:
-        modes - a list of privacy modes available on this interface
-        """
-        _ConnectionInterfacePrivacy.__init__(self)
-        self._privacy_mode = ''
-        self._privacy_modes = modes
-
-    @dbus.service.method(CONN_INTERFACE_PRIVACY, in_signature='', out_signature='as')
-    def GetPrivacyModes(self):
-        return self._privacy_modes
-
-    @dbus.service.method(CONN_INTERFACE_PRIVACY, in_signature='', out_signature='s')
-    def GetPrivacyMode(self):
-        return self._privacy_mode
-
-    @dbus.service.signal(CONN_INTERFACE_PRIVACY, signature='s')
-    def PrivacyModeChanged(self, mode):
-        self._privacy_mode = mode
-
 
 from telepathy._generated.Connection_Interface_Renaming \
         import ConnectionInterfaceRenaming
