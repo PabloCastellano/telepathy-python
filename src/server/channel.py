@@ -20,7 +20,6 @@
 import dbus.service
 
 from telepathy.constants import (CONNECTION_HANDLE_TYPE_NONE,
-                                 CHANNEL_CONTACT_SEARCH_STATE_BEFORE,
                                  CHANNEL_TEXT_MESSAGE_TYPE_NORMAL)
 
 from telepathy.errors import InvalidArgument
@@ -30,8 +29,6 @@ from telepathy.interfaces import (CHANNEL_INTERFACE,
                                   CHANNEL_INTERFACE_GROUP,
                                   CHANNEL_INTERFACE_HOLD,
                                   CHANNEL_INTERFACE_PASSWORD,
-                                  CHANNEL_INTERFACE_TRANSFER,
-                                  CHANNEL_TYPE_CONTACT_SEARCH,
                                   CHANNEL_TYPE_CONTACT_LIST,
                                   CHANNEL_TYPE_ROOM_LIST,
                                   CHANNEL_TYPE_STREAMED_MEDIA,
@@ -89,48 +86,6 @@ class Channel(_Channel):
         an array of the D-Bus interface names
         """
         return self._interfaces
-
-from telepathy._generated.Channel_Type_Contact_Search \
-        import ChannelTypeContactSearch as _ChannelTypeContactSearchIface
-
-class ChannelTypeContactSearch(Channel, _ChannelTypeContactSearchIface):
-    __doc__ = _ChannelTypeContactSearchIface.__doc__
-
-    def __init__(self, connection):
-        """
-        Initialise the contact search channel.
-        """
-        Channel.__init__(self, connection, CHANNEL_TYPE_CONTACT_SEARCH, 0)
-        self._search_state = CHANNEL_CONTACT_SEARCH_STATE_BEFORE
-
-    @dbus.service.method(CHANNEL_TYPE_CONTACT_SEARCH, in_signature='', out_signature='u')
-    def GetSearchState(self):
-        """
-        Returns the current state of this search channel object. One of the
-        following values:
-        0 - CHANNEL_CONTACT_SEARCH_STATE_BEFORE
-            the search has not started
-        1 - CHANNEL_CONTACT_SEARCH_STATE_DURING
-            the search is in progress
-        2 - CHANNEL_CONTACT_SEARCH_STATE_AFTER
-            the search has been completed
-
-        Returns:
-        an integer representing the search state
-        """
-        return self._search_state
-
-    @dbus.service.signal(CHANNEL_TYPE_CONTACT_SEARCH, signature='u')
-    def SearchStateChanged(self, state):
-        """
-        Emitted when the search state (as returned by the GetSearchState
-        method) changes.
-
-        Parameters:
-        state - an integer representing the new search state
-        """
-        self._search_state = state
-
 
 from telepathy._generated.Channel_Type_Contact_List \
         import ChannelTypeContactList as _ChannelTypeContactListIface
