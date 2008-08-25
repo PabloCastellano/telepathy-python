@@ -20,6 +20,41 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
   </tp:license>
   <interface name="org.freedesktop.Telepathy.ConnectionManager">
 
+    <tp:simple-type name="Connection_Manager_Name" type="s">
+      <tp:docstring xmlns="http://www.w3.org/1999/xhtml">
+        <p>The name of a connection manager, found in its well-known
+          bus name and object path. This must be a non-empty string of
+          ASCII letters, digits and underscores, starting with a letter.
+          This is typically the name of the executable with any "telepathy-"
+          prefix removed, and any hyphen/minus signs replaced by
+          underscores.</p>
+
+        <p>Connection manager names SHOULD NOT be the same as the name of
+          the protocol they implement.</p>
+
+        <tp:rationale>
+          <p>This is likely to lead to conflicts between different
+            implementations of the same protocol (or indeed inability
+            to distinguish between the different implementations!). The
+            Telepathy project traditionally uses some sort of pun (Haze is
+            based on libpurple, Salut implements a protocol often called
+            Bonjour, and Wilde implements the OSCAR protocol).</p>
+        </tp:rationale>
+
+        <p>Connection manager names SHOULD NOT be the same as the name of
+          a library on which they are based.</p>
+
+        <tp:rationale>
+          <p>We often abbreviate, for instance, telepathy-haze as "Haze",
+            but abbreviating telepathy-sofiasip to "Sofia-SIP" would cause
+            confusion between the connection manager and the library it
+            uses. Please don't repeat that mistake.</p>
+        </tp:rationale>
+      </tp:docstring>
+      <tp:changed version="0.17.1">Prior to version 0.17.1, the allowed
+        characters were not specified</tp:changed>
+    </tp:simple-type>
+
     <tp:simple-type name="Protocol" type="s">
       <tp:docstring xmlns="http://www.w3.org/1999/xhtml">
         <p>An instant messaging protocol. It must consist only of ASCII
@@ -47,6 +82,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
           <li>zephyr - Zephyr</li>
         </ul>
       </tp:docstring>
+      <tp:changed version="0.17.1">Prior to version 0.17.1, the allowed
+        characters were not specified</tp:changed>
     </tp:simple-type>
 
     <tp:struct name="Param_Spec" array-name="Param_Spec_List">
@@ -88,7 +125,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
           providing the default.
         </tp:docstring>
       </tp:flag>
+      <tp:flag suffix="Secret" value="8">
+        <tp:docstring xmlns="http://www.w3.org/1999/xhtml">
+          <p>This parameter should be considered private or secret; for
+            instance, clients should store it in a "password safe" like
+            gnome-keyring or kwallet, omit it from debug logs, and use a
+            text input widget that hides the value of the parameter.</p>
+
+          <p>(Clients that support older connection managers may also treat
+            any parameter whose name contains "password" as though it had this
+            flag.)</p>
+        </tp:docstring>
+        <tp:added version="0.17.2"/>
+      </tp:flag>
     </tp:flags>
+
     <method name="GetParameters">
       <arg direction="in" name="proto" type="s" tp:type="Protocol">
         <tp:docstring>
@@ -112,18 +163,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
         </tp:error>
       </tp:possible-errors>
     </method>
+
     <method name="ListProtocols">
       <arg direction="out" type="as" tp:type="Protocol[]">
         <tp:docstring>
           A array of string protocol identifiers supported by this manager
         </tp:docstring>
       </arg>
-      <tp:docstring xmlns="http://www.w3.org/1999/xhtml">
+      <tp:docstring>
         Get a list of protocol identifiers that are implemented by this
-        connection manager. The following well-known values should be used
-        when applicable:
+        connection manager.
       </tp:docstring>
     </method>
+
     <signal name="NewConnection">
       <arg name="bus_name" type="s" tp:type="DBus_Bus_Name">
         <tp:docstring>
@@ -144,6 +196,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
         Emitted when a new Connection object is created.
       </tp:docstring>
     </signal>
+
     <method name="RequestConnection">
       <arg direction="in" name="proto" type="s" tp:type="Protocol">
         <tp:docstring>
@@ -156,7 +209,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
           A dictionary mapping parameter name to the variant boxed value
         </tp:docstring>
       </arg>
-      <arg direction="out" type="s">
+      <arg direction="out" type="s" tp:type="DBus_Bus_Name">
         <tp:docstring>
           A D-Bus service name where the new Connection object can be found
         </tp:docstring>
@@ -266,15 +319,38 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
         </tp:error>
       </tp:possible-errors>
     </method>
+
+    <property name="Interfaces" type="as" access="read">
+      <tp:docstring xmlns="http://www.w3.org/1999/xhtml">
+        <p>A list of the extra interfaces provided by this connection manager
+          (i.e. extra functionality that can be provided even before a
+          connection has been created).</p>
+
+        <p>No interfaces suitable for listing in this property are currently
+          defined; it's provided as a hook for possible future
+          functionality.</p>
+
+        <p>To be compatible with older connection managers, if retrieving
+          this property fails, clients SHOULD assume that its value is
+          an empty list.</p>
+      </tp:docstring>
+      <tp:added version="0.17.8"/>
+    </property>
+
+    <!-- FIXME: One thing we could perhaps use Interfaces for would be a
+    ConnectionManager.Interface.Capabilities that can give hints regarding
+    the capabilities (in the sense of
+    Connection.Interface.Requests.AvailableChannelClasses and/or
+    Connection.GetInterfaces()) that a Connection from this CM is likely
+    to have -->
+
     <tp:docstring xmlns="http://www.w3.org/1999/xhtml">
     <p>A D-Bus service which allows connections to be created. The manager
       processes are intended to be started by D-Bus service activation.</p>
 
     <p>For service discovery, each Telepathy connection manager must have
-      a <em>connection manager name</em>, which is a non-empty string of
-      ASCII letters, digits and underscores, starting with a letter. This
-      is typically the name of the executable with any "telepathy-" prefix
-      removed.</p>
+      a <em>connection manager name</em> (see
+      <tp:type>Connection_Manager_Name</tp:type> for syntax).</p>
 
     <p>The connection manager must then provide a well-known bus name of
       <code>org.freedesktop.Telepathy.ConnectionManager.<em>cmname</em></code>
@@ -313,7 +389,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
       <code>telepathy/managers/<em>cmname</em>.manager</code> that can be
       read without error. This file has the same syntax as a
       <a href="http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html">freedesktop.org Desktop Entry file</a>.</p>
-    
+
+    <p>Clients must still support connection managers for which no
+      <code>.manager</code> file can be found, which they can do by activating
+      the connection manager and calling its methods; the
+      <code>.manager</code> file is merely an optimization. Connection managers
+      whose list of protocols can change at any time (for instance, via
+      a plugin architecture) should not install a <code>.manager</code>
+      file.</p>
+
     <p>For each protocol name <em>proto</em> that would be returned by
       ListProtocols, the .manager file contains a group
       headed <code>[Protocol <em>proto</em>]</code>. For each parameter
@@ -321,10 +405,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
       .manager file contains a key <code>param-<em>p</em></code> with a value
       consisting of a D-Bus signature (a single complete type), optionally
       followed by a space and a space-separated list of flags. The supported
-      flags are <code>required</code>, corresponding to
-      Conn_Mgr_Param_Flag_Required, and <code>register</code>, corresponding
-      to Conn_Mgr_Param_Flag_Register.
-    </p>
+      flags are:</p>
+
+    <ul>
+      <li><code>required</code>, corresponding to
+        Conn_Mgr_Param_Flag_Required</li>
+      <li><code>register</code>, corresponding
+        to Conn_Mgr_Param_Flag_Register</li>
+      <li><code>secret</code>, corresponding
+        to Conn_Mgr_Param_Flag_Secret</li>
+    </ul>
 
     <p>The group may also contain a key <code>default-<em>p</em></code>
       whose value is a string form of the default value for the parameter.
@@ -360,6 +450,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
     well-known bus name, causing a new connection manager to be activated when
     somebody attempts to make a new connection.</p>
     </tp:docstring>
+
+    <tp:changed version="0.17.2">Prior to version 0.17.2, support for
+      CMs with no .manager file was not explicitly required.</tp:changed>
   </interface>
 </node>
 <!-- vim:set sw=2 sts=2 et ft=xml: -->

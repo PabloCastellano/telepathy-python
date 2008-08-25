@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
   <interface name="org.freedesktop.Telepathy.Channel.Type.ContactList">
     <tp:requires interface="org.freedesktop.Telepathy.Channel"/>
     <tp:requires interface="org.freedesktop.Telepathy.Channel.Interface.Group"/>
+
     <tp:docstring xmlns="http://www.w3.org/1999/xhtml">
       <p>A channel type for representing a list of people on the server which is
     not used for communication. This is intended for use with the interface
@@ -36,7 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
     of this channel type should be created by the connection manager at
     connection time if the list exists on the server, or may be requested
     by using the appropriate handle.  These handles can be obtained using
-    RequestHandle with a handle type of HANDLE_TYPE_LIST and
+    RequestHandles with a handle type of HANDLE_TYPE_LIST and
     one of the following identifiers:</p>
 
     <ul>
@@ -52,7 +53,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
     <p>For user-defined contact groups, instances of this channel type should
     be created by the connection manager at connection time for each group
     that exists on the server. New, empty groups can be created by calling
-    RequestHandle with a handle type of
+    RequestHandles with a handle type of
     HANDLE_TYPE_GROUP and with the name set to the
     human-readable UTF-8 name of the group.</p>
 
@@ -64,6 +65,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
     server, so disconnecting from the server and reconnecting might cause
     empty groups to vanish.</p>
     </tp:docstring>
+
   </interface>
 </node>
 <!-- vim:set sw=2 sts=2 et ft=xml: -->
