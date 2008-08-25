@@ -1,3 +1,17 @@
+telepathy-python 0.16.0 (2008-08-25)
+====================================
+
+The "Welcome to the git house" release.
+
+Enhancements:
+
+* Specification 0.17.9
+* Add example for discovering existing connections (examples/connections.py)
+
+Fixes:
+* Fix a crash in the MUC D-Bus tube example
+
+
 telepathy-python 0.15.0 (2008-02-21)
 ====================================
 
