@@ -32,7 +32,6 @@ from telepathy.interfaces import (CONN_INTERFACE,
                                   CONN_INTERFACE_ALIASING,
                                   CONN_INTERFACE_AVATARS,
                                   CONN_INTERFACE_CAPABILITIES,
-                                  CONN_INTERFACE_FORWARDING,
                                   CONN_INTERFACE_PRESENCE,
                                   CONN_INTERFACE_PRIVACY,
                                   CONN_INTERFACE_RENAMING)
@@ -340,25 +339,6 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
 
 from telepathy._generated.Connection_Interface_Contact_Info \
         import ConnectionInterfaceContactInfo
-
-
-from telepathy._generated.Connection_Interface_Forwarding \
-        import ConnectionInterfaceForwarding \
-        as _ConnectionInterfaceForwarding
-
-class ConnectionInterfaceForwarding(_ConnectionInterfaceForwarding):
-    def __init__(self):
-        _ConnectionInterfaceForwarding.__init__(self)
-        self._forwarding_handle = 0
-
-    @dbus.service.method(CONN_INTERFACE_FORWARDING, in_signature='', out_signature='u')
-    def GetForwardingHandle(self):
-        return self._forwarding_handle
-
-    @dbus.service.signal(CONN_INTERFACE_FORWARDING, signature='u')
-    def ForwardingChanged(self, forward_to):
-        self._forwarding_handle = forward_to
-
 
 from telepathy._generated.Connection_Interface_Presence \
         import ConnectionInterfacePresence
