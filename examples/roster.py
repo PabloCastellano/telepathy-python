@@ -99,6 +99,6 @@ if __name__ == '__main__':
 
     try:
         conn[CONN_INTERFACE].Disconnect()
-    except dbus.dbus_bindings.DBusException:
+    except dbus.DBusException:
         pass
 

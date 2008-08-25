@@ -79,7 +79,7 @@ class AliasesClient:
         print "disconnecting"
         try:
             self.conn[CONN_INTERFACE].Disconnect()
-        except dbus.dbus_bindings.DBusException:
+        except dbus.DBusException:
             pass
 
 
