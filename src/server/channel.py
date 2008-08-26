@@ -325,3 +325,5 @@ class ChannelInterfacePassword(_ChannelInterfacePassword):
 
 
 from telepathy._generated.Channel_Interface_Transfer import ChannelInterfaceTransfer
+
+from telepathy._generated.Channel_Interface_Call_State import ChannelInterfaceCallState
