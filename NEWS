@@ -1,3 +1,27 @@
+telepathy-python 0.15.1 (2008-08-26)
+====================================
+
+The "Welcome to the git house" release.
+
+Enhancements:
+
+* Specification 0.17.9
+* Add example for discovering existing connections (examples/connections.py)
+
+API changes:
+
+* Add ConnectionInterfaceSimplePresence and ConnectionInterfaceContacts to
+  telepathy.server.conn
+* Remove ConnectionInterfaceForwarding, ConnectionInterfaceContactInfo,
+  ConnectionInterfacePrivacy from telepathy.server.conn and ChannelTypeContactSearch
+  from telepathy.server.channel. These interfaces have been removed from the
+  specification.
+
+Fixes:
+
+* Fix a crash in the MUC D-Bus tube example
+
+
 telepathy-python 0.15.0 (2008-02-21)
 ====================================
 
