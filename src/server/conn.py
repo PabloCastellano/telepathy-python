@@ -344,3 +344,6 @@ from telepathy._generated.Connection_Interface_Renaming \
 
 from telepathy._generated.Connection_Interface_Simple_Presence \
         import ConnectionInterfaceSimplePresence
+
+from telepathy._generated.Connection_Interface_Contacts \
+        import ConnectionInterfaceContacts
