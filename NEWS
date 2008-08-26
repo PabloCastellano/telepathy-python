@@ -11,11 +11,11 @@ Enhancements:
 API changes:
 
 * Add ConnectionInterfaceSimplePresence and ConnectionInterfaceContacts to
-telepathy.server.conn
+  telepathy.server.conn
 * Remove ConnectionInterfaceForwarding, ConnectionInterfaceContactInfo,
-ConnectionInterfacePrivacy from telepathy.server.conn and ChannelTypeContactSearch
-from telepathy.server.channel. These interfaces has been removed from the
-specification.
+  ConnectionInterfacePrivacy from telepathy.server.conn and ChannelTypeContactSearch
+  from telepathy.server.channel. These interfaces have been removed from the
+  specification.
 
 Fixes:
 
