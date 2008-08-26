@@ -9,6 +9,9 @@ def parse_account(s):
     protocol = None
 
     for line in lines:
+        if not line.strip():
+            continue
+
         k, v = line.split(':', 1)
         k = k.strip()
         v = v.strip()
