@@ -29,7 +29,9 @@ class Connection(InterfaceFactory):
     def __init__(self, service_name, object_path=None, bus=None,
             ready_handler=None, error_handler=default_error_handler):
         if not bus:
-            bus = dbus.Bus()
+            self.bus = dbus.Bus()
+        else:
+            self.bus = bus
 
         if object_path is None:
             object_path = '/' + service_name.replace('.', '/')
@@ -38,7 +40,7 @@ class Connection(InterfaceFactory):
         self.object_path = object_path
         self._ready_handler = ready_handler
         self._error_handler = error_handler
-        object = bus.get_object(service_name, object_path)
+        object = self.bus.get_object(service_name, object_path)
         InterfaceFactory.__init__(self, object, CONN_INTERFACE)
 
         # note: old dbus-python returns None from connect_to_signal
@@ -84,8 +86,6 @@ class Connection(InterfaceFactory):
 
         return connections
 
-    def request_channel(self, type, handle_type, handle, suppress_handler, bus=None):
-        path = self.RequestChannel(type, handle_type, handle,
-            suppress_handler)
-        return Channel(self.service_name, path, bus)
-
+    def request_channel(self, type, handle_type, handle, suppress_handler):
+        path = self.RequestChannel(type, handle_type, handle, suppress_handler)
+        return Channel(self.service_name, path, self.bus)
