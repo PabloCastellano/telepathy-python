@@ -84,8 +84,8 @@ class Connection(InterfaceFactory):
 
         return connections
 
-    def request_channel(self, type, handle_type, handle, suppress_handler):
+    def request_channel(self, type, handle_type, handle, suppress_handler, bus=None):
         path = self.RequestChannel(type, handle_type, handle,
             suppress_handler)
-        return Channel(self.service_name, path)
+        return Channel(self.service_name, path, bus)
 
