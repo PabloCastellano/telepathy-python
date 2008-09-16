@@ -79,7 +79,7 @@ class Connection(InterfaceFactory):
 
         for service in bus_object.ListNames(dbus_interface='org.freedesktop.DBus'):
             if service.startswith('org.freedesktop.Telepathy.Connection.'):
-                connection = Connection(service, "/%s" % service.replace(".", "/"))
+                connection = Connection(service, "/%s" % service.replace(".", "/"), bus)
                 connections.append(connection)
 
         return connections
