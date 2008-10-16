@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
     </tp:docstring>
     <tp:added version="0.17.2"/>
 
-    <method name="GetCallStates">
+    <method name="GetCallStates" tp:name-for-bindings="Get_Call_States">
       <tp:docstring>
         Get the current call states for all contacts involved in this call.
       </tp:docstring>
@@ -43,18 +43,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
       </arg>
     </method>
 
-    <signal name="CallStateChanged">
+    <signal name="CallStateChanged" tp:name-for-bindings="Call_State_Changed">
       <tp:docstring>
         Emitted when the state of a member of the channel has changed.
       </tp:docstring>
 
-      <arg name="contact" type="u" tp:type="Contact_Handle">
+      <arg name="Contact" type="u" tp:type="Contact_Handle">
         <tp:docstring>
           An integer handle for the contact.
         </tp:docstring>
       </arg>
 
-      <arg name="state" type="u" tp:type="Channel_Call_State_Flags">
+      <arg name="State" type="u" tp:type="Channel_Call_State_Flags">
         <tp:docstring>
           The new state for this contact.
         </tp:docstring>
@@ -99,6 +99,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
           The contact has placed the call on hold, and will not receive
           media from the local user or any other participants until they
           unhold the call again.
+        </tp:docstring>
+      </tp:flag>
+
+      <tp:flag suffix="Forwarded" value="8">
+        <tp:docstring>
+          The initiator of the call originally called a contact other than the
+          current recipient of the call, but the call was then forwarded or
+          diverted.
         </tp:docstring>
       </tp:flag>
     </tp:flags>
