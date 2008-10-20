@@ -76,7 +76,7 @@ class Connection(InterfaceFactory):
         self.get_valid_interfaces().update(interfaces)
 
         if self._ready_handler is not None:
-           self._ready_handler(self)
+            self._ready_handler(self)
 
     @staticmethod
     def get_connections(bus=None):
