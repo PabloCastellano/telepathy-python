@@ -40,6 +40,8 @@ class Connection(InterfaceFactory):
         self.object_path = object_path
         self._ready_handler = ready_handler
         self._error_handler = error_handler
+        self._ready = False
+
         object = self.bus.get_object(service_name, object_path)
         InterfaceFactory.__init__(self, object, CONN_INTERFACE)
 
@@ -66,10 +68,15 @@ class Connection(InterfaceFactory):
             error_handler=self._error_handler)
 
     def _get_interfaces_reply_cb(self, interfaces):
+        if self._ready:
+            return
+
+        self._ready = True
+
         self.get_valid_interfaces().update(interfaces)
 
         if self._ready_handler is not None:
-            self._ready_handler(self)
+           self._ready_handler(self)
 
     @staticmethod
     def get_connections(bus=None):
