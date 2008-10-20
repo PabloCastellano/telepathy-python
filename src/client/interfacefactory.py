@@ -20,6 +20,7 @@
 import dbus
 import logging
 
+from dbus import PROPERTIES_IFACE
 
 logger = logging.getLogger('telepathy.client.interfacefactory')
 
@@ -57,6 +58,8 @@ class InterfaceFactory(object):
 
         self._interfaces = {}
         self._valid_interfaces = set()
+        # add the D-Bus properties interface
+        self._valid_interfaces.add(PROPERTIES_IFACE)
         self._default_interface = default_interface
 
         if default_interface:
