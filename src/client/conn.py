@@ -38,7 +38,9 @@ class Connection(InterfaceFactory):
 
         self.service_name = service_name
         self.object_path = object_path
-        self._ready_handler = ready_handler
+        self._ready_handlers = []
+        if ready_handler is not None:
+            self._ready_handlers.append(ready_handler)
         self._error_handler = error_handler
         self._ready = False
 
@@ -75,8 +77,8 @@ class Connection(InterfaceFactory):
 
         self.get_valid_interfaces().update(interfaces)
 
-        if self._ready_handler is not None:
-            self._ready_handler(self)
+        for ready_handler in self._ready_handlers:
+            ready_handler(self)
 
     @staticmethod
     def get_connections(bus=None):
