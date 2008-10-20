@@ -98,3 +98,9 @@ class Connection(InterfaceFactory):
     def request_channel(self, type, handle_type, handle, suppress_handler):
         path = self.RequestChannel(type, handle_type, handle, suppress_handler)
         return Channel(self.service_name, path, self.bus)
+
+    def call_when_ready(self, handler):
+        if self._ready:
+            handler(self)
+        else:
+            self._ready_handlers.append(handler)
