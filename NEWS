@@ -1,3 +1,16 @@
+telepathy-python 0.15.3 (2008-10-21)
+====================================
+
+Enhancements:
+
+* Client side objects can now use the D-Bus Properties interface.
+* Add client.conn.call_when_ready() method.
+
+Fixes:
+
+* Fix a race in client/conn.py making the ready handler called twice.
+
+
 telepathy-python 0.15.2 (2008-10-17)
 ====================================
 
