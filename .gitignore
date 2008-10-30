@@ -3,3 +3,4 @@ os
 MANIFEST
 dist
 *.swp
+*.pyc
