@@ -131,6 +131,8 @@ class FTReceiverClient(FTClient):
             else:
                 out = file(path, 'a')
 
+            # FIXME: Should use GIOchannel or an async API to not block the
+            # client (idem for the reading side).
             read = offset
             while read < self.file_size:
                 data = s.recv(self.file_size - read)
