@@ -91,6 +91,8 @@ class FTClient:
 
                 self.ft_channel[CHANNEL_TYPE_FILE_TRANSFER].connect_to_signal('FileTransferStateChanged',
                         self.ft_state_changed_cb)
+                self.ft_channel[CHANNEL_TYPE_FILE_TRANSFER].connect_to_signal('TransferredBytesChanged',
+                        self.ft_transferred_bytes_changed_cb)
                 self.got_ft_channel()
 
                 self.file_name = props[CHANNEL_TYPE_FILE_TRANSFER + '.Filename']
@@ -98,6 +100,10 @@ class FTClient:
 
     def ft_state_changed_cb(self, state, reason):
         print "file transfer is now in state %s" % ft_states[state]
+
+    def ft_transferred_bytes_changed_cb(self, count):
+        per_cent = (float(count) / self.file_size) * 100
+        print "%.u%s transferred" % (per_cent, '%')
 
 class FTReceiverClient(FTClient):
     def connected_cb(self):
