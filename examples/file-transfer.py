@@ -115,12 +115,17 @@ class FTReceiverClient(FTClient):
 
         if state == FT_STATE_OPEN:
             # receive file
+            offset = self.ft_channel[PROPERTIES_IFACE].Get(CHANNEL_TYPE_FILE_TRANSFER, 'InitialOffset')
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.connect(self.sock_addr)
 
             path = self.create_output_path()
-            out = file(path, 'w')
-            read = 0
+            if offset == 0:
+                out = file(path, 'w')
+            else:
+                out = file(path, 'a')
+
+            read = offset
             while read < self.file_size:
                 data = s.recv(self.file_size - read)
                 read += len(data)
@@ -176,10 +181,11 @@ class FTSenderClient(FTClient):
 
         if state == FT_STATE_OPEN:
             # receive file
+            offset = self.ft_channel[PROPERTIES_IFACE].Get(CHANNEL_TYPE_FILE_TRANSFER, 'InitialOffset')
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.connect(self.sock_addr)
 
-            s.send(file(self.file_to_offer).read())
+            s.send(file(self.file_to_offer).read()[offset:])
 
 def usage():
     print "Usage:\n" \
