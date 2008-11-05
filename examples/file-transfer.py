@@ -20,15 +20,13 @@ loop = None
 CHANNEL_TYPE_FILE_TRANSFER = 'org.freedesktop.Telepathy.Channel.Type.FileTransfer.DRAFT'
 
 FT_STATE_NONE = 0
-FT_STATE_NOT_OFFERED = 1
+FT_STATE_PENDING = 1
 FT_STATE_ACCEPTED = 2
-FT_STATE_LOCAL_PENDING = 3
-FT_STATE_REMOTE_PENDING = 4
-FT_STATE_OPEN = 5
-FT_STATE_COMPLETED = 6
-FT_STATE_CANCELLED = 7
+FT_STATE_OPEN = 3
+FT_STATE_COMPLETED = 4
+FT_STATE_CANCELLED = 5
 
-ft_states = ['none', 'not offered', 'accepted', 'local pending', 'remote pending', 'open', 'completed', 'cancelled']
+ft_states = ['none','pending', 'accepted', 'open', 'completed', 'cancelled']
 
 class FTClient:
     def __init__(self, account_file):
@@ -93,6 +91,8 @@ class FTClient:
                         self.ft_state_changed_cb)
                 self.ft_channel[CHANNEL_TYPE_FILE_TRANSFER].connect_to_signal('TransferredBytesChanged',
                         self.ft_transferred_bytes_changed_cb)
+                self.ft_channel[CHANNEL_TYPE_FILE_TRANSFER].connect_to_signal('InitialOffsetDefined',
+                        self.ft_initial_offset_defined_cb)
                 self.got_ft_channel()
 
                 self.file_name = props[CHANNEL_TYPE_FILE_TRANSFER + '.Filename']
@@ -104,6 +104,9 @@ class FTClient:
     def ft_transferred_bytes_changed_cb(self, count):
         per_cent = (float(count) / self.file_size) * 100
         print "%.u%s transferred" % (per_cent, '%')
+
+    def ft_initial_offset_defined_cb(self, offset):
+        self.initial_offset = offset
 
 class FTReceiverClient(FTClient):
     def connected_cb(self):
@@ -120,20 +123,18 @@ class FTReceiverClient(FTClient):
         FTClient.ft_state_changed_cb(self, state, reason)
 
         if state == FT_STATE_OPEN:
-            # receive file
-            offset = self.ft_channel[PROPERTIES_IFACE].Get(CHANNEL_TYPE_FILE_TRANSFER, 'InitialOffset')
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.connect(self.sock_addr)
 
             path = self.create_output_path()
-            if offset == 0:
+            if self.initial_offset == 0:
                 out = file(path, 'w')
             else:
                 out = file(path, 'a')
 
             # FIXME: Should use GIOchannel or an async API to not block the
             # client (idem for the reading side).
-            read = offset
+            read = self.initial_offset
             while read < self.file_size:
                 data = s.recv(self.file_size - read)
                 read += len(data)
@@ -181,7 +182,7 @@ class FTSenderClient(FTClient):
 
     def got_ft_channel(self):
         print "Offer %s to %s" % (self.file_to_offer, self.contact)
-        self.sock_addr = self.ft_channel[CHANNEL_TYPE_FILE_TRANSFER].OfferFile(SOCKET_ADDRESS_TYPE_UNIX,
+        self.sock_addr = self.ft_channel[CHANNEL_TYPE_FILE_TRANSFER].ProvideFile(SOCKET_ADDRESS_TYPE_UNIX,
             SOCKET_ACCESS_CONTROL_LOCALHOST, "")
 
     def ft_state_changed_cb(self, state, reason):
@@ -189,11 +190,10 @@ class FTSenderClient(FTClient):
 
         if state == FT_STATE_OPEN:
             # receive file
-            offset = self.ft_channel[PROPERTIES_IFACE].Get(CHANNEL_TYPE_FILE_TRANSFER, 'InitialOffset')
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.connect(self.sock_addr)
 
-            s.send(file(self.file_to_offer).read()[offset:])
+            s.send(file(self.file_to_offer).read()[self.initial_offset:])
 
 def usage():
     print "Usage:\n" \
