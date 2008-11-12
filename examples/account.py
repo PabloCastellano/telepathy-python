@@ -22,8 +22,10 @@ def parse_account(s):
             protocol = v
         else:
             if k not in ("account", "password"):
-                if v.lower() in ("false", "true"):
-                    v = bool(v)
+                if v.lower() == "false":
+                    v = False
+                elif v.lower() == "true":
+                    v = True
                 else:
                     try:
                         v = dbus.UInt32(int(v))
