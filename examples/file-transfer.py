@@ -5,6 +5,7 @@ import gobject
 import socket
 import os
 import sys
+import fcntl
 
 from dbus import PROPERTIES_IFACE
 from telepathy.client import (Connection, Channel)
@@ -132,14 +133,16 @@ class FTReceiverClient(FTClient):
             else:
                 out = file(path, 'a')
 
-            # FIXME: Should use GIOchannel or an async API to not block the
-            # client (idem for the reading side).
+            # Set non-blocking
+            fcntl.fcntl(out, fcntl.F_SETFL, os.O_NONBLOCK)
+
             read = self.initial_offset
             while read < self.file_size:
                 data = s.recv(self.file_size - read)
                 read += len(data)
                 out.write(data)
 
+            out.close()
             print "received file: %s" % path
 
     def create_output_path(self):
@@ -193,7 +196,12 @@ class FTSenderClient(FTClient):
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.connect(self.sock_addr)
 
-            s.send(file(self.file_to_offer).read()[self.initial_offset:])
+            f = file(self.file_to_offer, 'r')
+            f.seek(self.initial_offset)
+
+            fcntl.fcntl(f, fcntl.F_SETFL, os.O_NONBLOCK)
+            s.send(f.read())
+            f.close()
 
 def usage():
     print "Usage:\n" \
