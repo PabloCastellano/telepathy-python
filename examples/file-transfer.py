@@ -31,14 +31,10 @@ ft_states = ['none', 'pending', 'accepted', 'open', 'completed', 'cancelled']
 
 class FTClient:
     def __init__(self, account_file):
-        self.conn = connection_from_file(account_file)
+        self.conn = connection_from_file(account_file, ready_handler=self.ready_cb)
 
         self.conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             self.status_changed_cb)
-        # hack
-        self.conn._valid_interfaces.add(CONNECTION_INTERFACE_REQUESTS)
-        self.conn[CONNECTION_INTERFACE_REQUESTS].connect_to_signal('NewChannels',
-            self.new_channels_cb)
 
     def run(self):
         self.conn[CONN_INTERFACE].Connect()
@@ -57,12 +53,15 @@ class FTClient:
             print 'connecting'
         elif state == CONNECTION_STATUS_CONNECTED:
             print 'connected'
-            self.connected_cb()
         elif state == CONNECTION_STATUS_DISCONNECTED:
             print 'disconnected'
             loop.quit()
 
-    def connected_cb(self):
+    def ready_cb(self, conn):
+        print "ready"
+        self.conn[CONNECTION_INTERFACE_REQUESTS].connect_to_signal('NewChannels',
+            self.new_channels_cb)
+
         self.self_handle = self.conn[CONN_INTERFACE].GetSelfHandle()
         self.self_id = self.conn[CONN_INTERFACE].InspectHandles(CONNECTION_HANDLE_TYPE_CONTACT,
             [self.self_handle])[0]
@@ -110,8 +109,8 @@ class FTClient:
         self.initial_offset = offset
 
 class FTReceiverClient(FTClient):
-    def connected_cb(self):
-        FTClient.connected_cb(self)
+    def ready_cb(self, conn):
+        FTClient.ready_cb(self, conn)
 
         print "waiting for file transfer offer"
 
@@ -161,8 +160,8 @@ class FTSenderClient(FTClient):
         self.contact = contact
         self.file_to_offer = filename
 
-    def connected_cb(self):
-        FTClient.connected_cb(self)
+    def ready_cb(self, conn):
+        FTClient.ready_cb(self, conn)
 
         handle = self.conn.RequestHandles(CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
 
