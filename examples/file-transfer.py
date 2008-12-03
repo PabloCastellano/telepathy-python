@@ -9,14 +9,15 @@ import sys
 from dbus import PROPERTIES_IFACE
 from telepathy.client import (Connection, Channel)
 from telepathy.interfaces import (CONN_INTERFACE, CONNECTION_INTERFACE_REQUESTS, CHANNEL)
-from telepathy.constants import (CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_STATUS_CONNECTING, CONNECTION_STATUS_CONNECTED,
-        CONNECTION_STATUS_DISCONNECTED, SOCKET_ADDRESS_TYPE_UNIX, SOCKET_ACCESS_CONTROL_LOCALHOST)
+from telepathy.constants import (CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_STATUS_CONNECTING,
+    CONNECTION_STATUS_CONNECTED, CONNECTION_STATUS_DISCONNECTED, SOCKET_ADDRESS_TYPE_UNIX,
+    SOCKET_ACCESS_CONTROL_LOCALHOST)
 
 from account import connection_from_file
 
 loop = None
 
-# FIXME: use constants from tp-python
+# FIXME: use constants from tp-python once the spec is undrafted
 CHANNEL_TYPE_FILE_TRANSFER = 'org.freedesktop.Telepathy.Channel.Type.FileTransfer.DRAFT'
 
 FT_STATE_NONE = 0
@@ -26,7 +27,7 @@ FT_STATE_OPEN = 3
 FT_STATE_COMPLETED = 4
 FT_STATE_CANCELLED = 5
 
-ft_states = ['none','pending', 'accepted', 'open', 'completed', 'cancelled']
+ft_states = ['none', 'pending', 'accepted', 'open', 'completed', 'cancelled']
 
 class FTClient:
     def __init__(self, account_file):
