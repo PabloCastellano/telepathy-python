@@ -46,7 +46,7 @@ def connection_ready_cb(connection):
     window.connect('destroy', gtk.main_quit)
 
 if __name__ == '__main__':
-    conn = connection_from_file(sys.argv[1])
+    conn = connection_from_file(sys.argv[1], connection_ready_cb)
 
     print 'connecting'
     conn[CONN_INTERFACE].Connect()
