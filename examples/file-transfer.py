@@ -30,7 +30,7 @@ FT_STATE_CANCELLED = 5
 
 ft_states = ['none', 'pending', 'accepted', 'open', 'completed', 'cancelled']
 
-class FTClient:
+class FTClient(object):
     def __init__(self, account_file):
         self.conn = connection_from_file(account_file, ready_handler=self.ready_cb)
 
