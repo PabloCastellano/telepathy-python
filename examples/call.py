@@ -125,23 +125,36 @@ class OutgoingCall(Call):
     def __init__(self, account_file, contact):
         Call.__init__(self, account_file)
         self.contact = contact
+        self.calling = False
+
+    def got_handle_capabilities(self, caps):
+        if self.calling:
+            return
+        for c in caps:
+            if c[1] == CHANNEL_TYPE_STREAMED_MEDIA:
+                self.calling = True
+                self.conn[CONN_INTERFACE].RequestChannel(
+                    CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
+                    0, True,
+                    reply_handler=lambda *stuff: None,
+                    error_handler=self.request_channel_error_cb)
+                return
+        print "No media capabilities found, waiting...."
+
+    def capabilities_changed_cb(self, caps):
+        for x in caps:
+            if x[0] == self.handle:
+                self.got_handle_capabilities([[x[0],x[1],x[3],x[5]]])
 
     def ready_cb(self, conn):
         handle = self.conn[CONN_INTERFACE].RequestHandles(
             CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
         self.handle = handle
 
-        print 'got handle %d for %s' % (handle, self.contact)
-
-        # hack - wait for capabilities to come in
-        import time
-        time.sleep(5)
-
-        self.conn[CONN_INTERFACE].RequestChannel(
-            CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
-            0, True,
-            reply_handler=lambda *stuff: None,
-            error_handler=self.request_channel_error_cb)
+        self.conn[CONN_INTERFACE_CAPABILITIES].connect_to_signal(
+            'CapabilitiesChanged', self.capabilities_changed_cb)
+        self.got_handle_capabilities(
+            self.conn[CONN_INTERFACE_CAPABILITIES].GetCapabilities([handle]))
 
     def channel_ready_cb(self, channel):
         Call.channel_ready_cb(self, channel)
