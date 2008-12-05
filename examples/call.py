@@ -2,6 +2,10 @@ import dbus
 import dbus.glib
 import gobject
 import sys
+import gst
+
+import tpfarsight
+import farsight
 
 from account import connection_from_file
 
@@ -17,23 +21,24 @@ from telepathy.interfaces import (
 import logging
 logging.basicConfig()
 
-
-def get_stream_engine():
-    bus = dbus.Bus()
-    return bus.get_object(
-        'org.freedesktop.Telepathy.StreamEngine',
-        '/org/freedesktop/Telepathy/StreamEngine')
-
 class Call:
     def __init__(self, account_file):
         self.conn = connection_from_file(account_file,
             ready_handler=self.ready_cb)
         self.channel = None
+        self.fschannel = None
+        self.pipeline = gst.Pipeline()
+        self.pipeline.get_bus().add_watch(self.async_handler)
 
         self.conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             self.status_changed_cb)
         self.conn[CONN_INTERFACE].connect_to_signal('NewChannel',
             self.new_channel_cb)
+
+    def async_handler (self, bus, message):
+        if self.tfchannel != None:
+            self.tfchannel.bus_message(message)
+        return True
 
     def run_main_loop(self):
         self.loop = gobject.MainLoop()
@@ -87,6 +92,44 @@ class Call:
         Channel(self.conn.service_name, object_path,
                 ready_handler=self.channel_ready_cb)
 
+    def request_resource (self, stream, direction):
+        # We get and hook up src and sinks as soon as the session is created,
+        # so our resources are always ready :)
+        return True
+
+    def src_pad_added (self, stream, pad, codec):
+        type = stream.get_property ("media-type")
+        if type == farsight.MEDIA_TYPE_AUDIO:
+            sink = gst.element_factory_make ("autoaudiosink")
+        elif type == farsight.MEDIA_TYPE_VIDEO:
+            sink = gst.element_factory_make ("autovideosink")
+
+        self.pipeline.add(sink)
+        pad.link(sink.get_pad("sink"))
+        sink.set_state(gst.STATE_PLAYING)
+
+    def stream_created(self, channel, stream):
+        stream.connect ("src-pad-added", self.src_pad_added)
+        stream.connect ("request-resource", self.request_resource)
+        srcpad = stream.get_property ("sink-pad")
+
+        type = stream.get_property ("media-type")
+
+        if type == farsight.MEDIA_TYPE_AUDIO:
+            src = gst.element_factory_make ("audiotestsrc")
+            src.set_property("is-live", True)
+        elif type == farsight.MEDIA_TYPE_VIDEO:
+            src = gst.element_factory_make ("videotestsrc")
+            src.set_property("is-live", True)
+
+        self.pipeline.add(src)
+        src.get_pad("src").link(srcpad)
+        src.set_state(gst.STATE_PLAYING)
+
+    def session_created (self, channel, conference, participant):
+        self.pipeline.add(conference)
+        self.pipeline.set_state(gst.STATE_PLAYING)
+
     def channel_ready_cb(self, channel):
         print "channel ready"
         channel[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
@@ -95,18 +138,16 @@ class Call:
         channel[CHANNEL_TYPE_STREAMED_MEDIA].connect_to_signal(
             'StreamError', self.stream_error_cb)
 
-        stream_engine = get_stream_engine()
-        handler = dbus.Interface(stream_engine,
-            'org.freedesktop.Telepathy.ChannelHandler')
-        handler.HandleChannel(
-            self.conn.service_name,
-            self.conn.object_path,
-            CHANNEL_TYPE_STREAMED_MEDIA,
-            channel.object_path,
-            self.chan_handle_type,
-            self.chan_handle)
-
         self.channel = channel
+
+        tfchannel = tpfarsight.Channel(self.conn.service_name,
+            self.conn.object_path, channel.object_path)
+
+        self.tfchannel = tfchannel
+        tfchannel.connect ("session-created", self.session_created)
+        tfchannel.connect ("stream-created", self.stream_created)
+
+        print "Channel ready"
 
     def stream_error_cb(self, *foo):
         print 'error: %r' % (foo,)
