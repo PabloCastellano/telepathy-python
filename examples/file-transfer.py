@@ -6,6 +6,7 @@ import socket
 import os
 import sys
 import fcntl
+import time
 
 from dbus import PROPERTIES_IFACE
 from telepathy.client import (Connection, Channel)
@@ -165,6 +166,10 @@ class FTSenderClient(FTClient):
 
     def ready_cb(self, conn):
         FTClient.ready_cb(self, conn)
+
+        # Wait a bit so the other side is aware about us. If he's not,
+        # he'll automatically reject the XMPP connection.
+        time.sleep(3)
 
         handle = self.conn.RequestHandles(CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
 
