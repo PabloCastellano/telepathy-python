@@ -168,17 +168,19 @@ class OutgoingCall(Call):
         self.contact = contact
         self.calling = False
 
+    def start_call(self):
+        self.calling = True
+        self.conn[CONN_INTERFACE].RequestChannel(
+            CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
+            0, True, reply_handler=lambda *stuff: None,
+            error_handler=self.request_channel_error_cb)
+
     def got_handle_capabilities(self, caps):
         if self.calling:
             return
         for c in caps:
             if c[1] == CHANNEL_TYPE_STREAMED_MEDIA:
-                self.calling = True
-                self.conn[CONN_INTERFACE].RequestChannel(
-                    CHANNEL_TYPE_STREAMED_MEDIA, CONNECTION_HANDLE_TYPE_NONE,
-                    0, True,
-                    reply_handler=lambda *stuff: None,
-                    error_handler=self.request_channel_error_cb)
+                self.start_call()
                 return
         print "No media capabilities found, waiting...."
 
@@ -192,10 +194,16 @@ class OutgoingCall(Call):
             CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
         self.handle = handle
 
-        self.conn[CONN_INTERFACE_CAPABILITIES].connect_to_signal(
-            'CapabilitiesChanged', self.capabilities_changed_cb)
-        self.got_handle_capabilities(
-            self.conn[CONN_INTERFACE_CAPABILITIES].GetCapabilities([handle]))
+        if CONN_INTERFACE_CAPABILITIES in self.conn.get_valid_interfaces():
+            self.conn[CONN_INTERFACE_CAPABILITIES].connect_to_signal(
+                'CapabilitiesChanged', self.capabilities_changed_cb)
+            self.got_handle_capabilities(
+                self.conn[CONN_INTERFACE_CAPABILITIES].GetCapabilities(
+                    [handle]))
+        else:
+            # CM doesn't have capabilities support, assume they can do audio
+            # and video
+            self.start_call()
 
     def channel_ready_cb(self, channel):
         Call.channel_ready_cb(self, channel)
@@ -222,8 +230,9 @@ class OutgoingCall(Call):
 
 class IncomingCall(Call):
     def ready_cb(self, conn):
-        self.conn[CONN_INTERFACE_CAPABILITIES].AdvertiseCapabilities(
-            [(CHANNEL_TYPE_STREAMED_MEDIA, 3)], [])
+        if CONN_INTERFACE_CAPABILITIES in self.conn.get_valid_interfaces():
+            self.conn[CONN_INTERFACE_CAPABILITIES].AdvertiseCapabilities(
+                [(CHANNEL_TYPE_STREAMED_MEDIA, 3)], [])
 
     def channel_ready_cb(self, channel):
         Call.channel_ready_cb(self, channel)
