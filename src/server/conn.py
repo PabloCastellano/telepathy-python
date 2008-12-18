@@ -210,11 +210,19 @@ class Connection(_Connection):
 
         ret = []
         for name in names:
-            id = self.get_handle_id()
-            handle = Handle(id, handle_type, name)
-            self._handles[handle_type, id] = handle
+            handle = None
+            for candidate in self._handles.values():
+                if candidate.get_name() == name:
+                    handle = candidate
+                    break
+
+            if not handle:
+                id = self.get_handle_id()
+                handle = Handle(id, handle_type, name)
+                self._handles[handle_type, id] = handle
+
             self.add_client_handle(handle, sender)
-            ret.append(id)
+            ret.append(handle.get_id())
 
         return ret
 
