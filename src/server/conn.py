@@ -239,14 +239,14 @@ class Connection(_Connection):
             self.check_handle(handle_type, handle)
             hand = self._handles[handle_type, handle]
             if sender in self._client_handles:
-                if hand not in self._client_handles[sender]:
-                    raise NotAvailable('client is not holding handle %s' % handle)
+                if (handle_type, hand) not in self._client_handles[sender]:
+                    raise NotAvailable('client is not holding handle %s of type %s' % (handle, handle_type))
             else:
                 raise NotAvailable('client does not hold any handles')
 
         for handle in handles:
             hand = self._handles[handle_type, handle]
-            self._client_handles[sender].remove(hand)
+            self._client_handles[sender].remove((handle_type, hand))
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='u')
     def GetSelfHandle(self):
