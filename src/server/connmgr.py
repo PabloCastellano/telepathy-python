@@ -34,15 +34,15 @@ class ConnectionManager(_ConnectionManager):
         bus_name = 'org.freedesktop.Telepathy.ConnectionManager.%s' % name
         object_path = '/org/freedesktop/Telepathy/ConnectionManager/%s' % name
         _ConnectionManager.__init__(self,
-                                    dbus.service.BusName(bus_name, dbus.Bus()),
+                                    dbus.service.BusName(bus_name, dbus.Bus(), do_not_queue=True),
                                     object_path)
 
         self._connections = set()
         self._protos = {}
 
     def __del__(self):
-        print str(self._object_path), "deleted"
-        dbus.service.Object.__del__(self)
+        if hasattr(self, '_object_path'):
+            print str(self._object_path), "deleted"
 
     def connected(self, conn):
         """
