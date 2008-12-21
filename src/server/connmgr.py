@@ -40,10 +40,6 @@ class ConnectionManager(_ConnectionManager):
         self._connections = set()
         self._protos = {}
 
-    def __del__(self):
-        if hasattr(self, '_object_path'):
-            print str(self._object_path), "deleted"
-
     def connected(self, conn):
         """
         Add a connection to the list of connections, emit the appropriate
