@@ -30,30 +30,36 @@ class DBusProperties(dbus.service.Interface):
     def __init__(self):
         self._interfaces.add(dbus.PROPERTIES_IFACE)
 
-        self._get_properties = {}
-        self._set_properties = {}
+        self.__getters = {}
+        self.__setters = {}
+
+    def _implement_property_get(self, iface, dict):
+        self.__getters.setdefault(iface, {}).update(dict)
+
+    def _implement_property_set(self, iface, dict):
+        self.__setters.setdefault(iface, {}).update(dict)
 
     @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='ss', out_signature='v')
     def Get(self, interface_name, property_name):
-        if interface_name in self._get_properties \
-            and property_name in self._get_properties[interface_name]:
-                return self._get_properties[interface_name][property_name]()
+        if interface_name in self.__getters \
+            and property_name in self.__getters[interface_name]:
+                return self.__getters[interface_name][property_name]()
         else:
             raise telepathy.errors.InvalidArgument()
 
     @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='ssv', out_signature='')
     def Set(self, interface_name, property_name, value):
-        if interface_name in self._set_properties \
-            and property_name in self._set_properties[interface_name]:
-                return self._set_properties[interface_name][property_name](value)
+        if interface_name in self.__setters \
+            and property_name in self.__setters[interface_name]:
+                return self.__setters[interface_name][property_name](value)
         else:
             raise telepathy.errors.PermissionDenied()
 
     @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='s', out_signature='a{sv}')
     def GetAll(self, interface_name):
-        if interface_name in self._get_properties:
+        if interface_name in self.__getters:
             r = {}
-            for k, v in self._get_properties[interface_name].items():
+            for k, v in self.__getters[interface_name].items():
                 r[k] = v()
             return r
         else:
