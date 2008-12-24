@@ -63,7 +63,7 @@ class Channel(_Channel, DBusProperties):
         DBusProperties.__init__(self)
         self._implement_property_get(CHANNEL_INTERFACE,
             {'ChannelType': lambda: dbus.String(self.GetChannelType()),
-             'Interfaces': lambda: dbus.Array(self.GetInterfaces()),
+             'Interfaces': lambda: dbus.Array(self.GetInterfaces(), signature='s'),
              'TargetHandle': lambda: dbus.UInt32(self.GetHandle()),
              'TargetHandleType': lambda: dbus.UInt32(self._handle.get_type())})
 
@@ -257,8 +257,8 @@ class ChannelInterfaceGroup(_ChannelInterfaceGroup, DBusProperties):
 
         self._implement_property_get(CHANNEL_INTERFACE_GROUP,
             {'GroupFlags': lambda: dbus.UInt32(self.GetGroupFlags()),
-             'Members': lambda: dbus.Array(self.GetMembers()),
-             'RemotePendingMembers': lambda: dbus.Array(self.GetRemotePendingMembers()),
+             'Members': lambda: dbus.Array(self.GetMembers(), signature='u'),
+             'RemotePendingMembers': lambda: dbus.Array(self.GetRemotePendingMembers(), signature='u'),
              'SelfHandle': lambda: dbus.UInt32(self.GetSelfHandle())})
 
         self._group_flags = 0
