@@ -18,6 +18,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import dbus
 import dbus.service
 import re
 import weakref
@@ -35,6 +36,7 @@ from telepathy.interfaces import (CONN_INTERFACE,
                                   CONN_INTERFACE_PRESENCE,
                                   CONN_INTERFACE_RENAMING)
 from telepathy.server.handle import Handle
+from telepathy.server.properties import DBusProperties
 
 from telepathy._generated.Connection import Connection as _Connection
 
@@ -47,7 +49,7 @@ def _escape_as_identifier(name):
         return '_'
     return _BAD.sub(lambda match: '_%02x' % ord(match.group(0)), name)
 
-class Connection(_Connection):
+class Connection(_Connection, DBusProperties):
 
     _optional_parameters = {}
     _mandatory_parameters = {}
@@ -74,6 +76,7 @@ class Connection(_Connection):
         object_path = '/org/freedesktop/Telepathy/Connection/%s/%s/%s' % \
                 (manager, proto, clean_account)
         _Connection.__init__(self, bus_name, object_path)
+        DBusProperties.__init__(self)
 
         # monitor clients dying so we can release handles
         dbus.SessionBus().add_signal_receiver(self.name_owner_changed_callback,
@@ -81,6 +84,9 @@ class Connection(_Connection):
                                               'org.freedesktop.DBus',
                                               'org.freedesktop.DBus',
                                               '/org/freedesktop/DBus')
+
+        self._implement_property_get(CONN_INTERFACE,
+                { 'SelfHandle': lambda: dbus.UInt32(self.GetSelfHandle()) })
 
         self._proto = proto
 
