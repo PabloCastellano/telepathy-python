@@ -55,17 +55,17 @@ class Channel(_Channel, DBusProperties):
         self._conn = connection
         object_path = self._conn.get_channel_path()
         _Channel.__init__(self, self._conn._name, object_path)
-        DBusProperties.__init__(self)
 
+        self._type = type
+        self._handle = handle
+        self._interfaces = set()
+
+        DBusProperties.__init__(self)
         self._implement_property_get(CHANNEL_INTERFACE,
             {'ChannelType': lambda: dbus.String(self.GetChannelType()),
              'Interfaces': lambda: dbus.Array(self.GetInterfaces()),
              'TargetHandle': lambda: dbus.UInt32(self.GetHandle()),
              'TargetHandleType': lambda: dbus.UInt32(self._handle.get_type())})
-
-        self._type = type
-        self._handle = handle
-        self._interfaces = set()
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):

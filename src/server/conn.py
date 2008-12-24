@@ -76,7 +76,6 @@ class Connection(_Connection, DBusProperties):
         object_path = '/org/freedesktop/Telepathy/Connection/%s/%s/%s' % \
                 (manager, proto, clean_account)
         _Connection.__init__(self, bus_name, object_path)
-        DBusProperties.__init__(self)
 
         # monitor clients dying so we can release handles
         dbus.SessionBus().add_signal_receiver(self.name_owner_changed_callback,
@@ -85,13 +84,15 @@ class Connection(_Connection, DBusProperties):
                                               'org.freedesktop.DBus',
                                               '/org/freedesktop/DBus')
 
+        self._interfaces = set()
+
+        DBusProperties.__init__(self)
         self._implement_property_get(CONN_INTERFACE,
                 {'SelfHandle': lambda: dbus.UInt32(self.GetSelfHandle())})
 
         self._proto = proto
 
         self._status = CONNECTION_STATUS_DISCONNECTED
-        self._interfaces = set()
 
         self._handles = weakref.WeakValueDictionary()
         self._next_handle_id = 1
