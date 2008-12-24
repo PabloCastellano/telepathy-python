@@ -17,6 +17,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import dbus
 import dbus.service
 
 from telepathy.constants import (CONNECTION_HANDLE_TYPE_NONE,
@@ -38,7 +39,9 @@ from telepathy.interfaces import (CHANNEL_INTERFACE,
 
 from telepathy._generated.Channel import Channel as _Channel
 
-class Channel(_Channel):
+from telepathy.server.properties import DBusProperties
+
+class Channel(_Channel, DBusProperties):
 
     def __init__(self, connection, type, handle):
         """
@@ -52,6 +55,13 @@ class Channel(_Channel):
         self._conn = connection
         object_path = self._conn.get_channel_path()
         _Channel.__init__(self, self._conn._name, object_path)
+        DBusProperties.__init__(self)
+
+        self._implement_property_get(CHANNEL_INTERFACE,
+            {'ChannelType': lambda: dbus.String(self.GetChannelType()),
+             'Interfaces': lambda: dbus.Array(self.GetInterfaces()),
+             'TargetHandle': lambda: dbus.UInt32(self.GetHandle()),
+             'TargetHandleType': lambda: dbus.UInt32(self._handle.get_type())})
 
         self._type = type
         self._handle = handle
