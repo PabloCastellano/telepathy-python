@@ -86,7 +86,7 @@ class Connection(_Connection, DBusProperties):
                                               '/org/freedesktop/DBus')
 
         self._implement_property_get(CONN_INTERFACE,
-                { 'SelfHandle': lambda: dbus.UInt32(self.GetSelfHandle()) })
+                {'SelfHandle': lambda: dbus.UInt32(self.GetSelfHandle())})
 
         self._proto = proto
 
