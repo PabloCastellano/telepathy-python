@@ -250,10 +250,17 @@ from telepathy._generated.Channel_Interface_DTMF import ChannelInterfaceDTMF
 from telepathy._generated.Channel_Interface_Group \
         import ChannelInterfaceGroup as _ChannelInterfaceGroup
 
-class ChannelInterfaceGroup(_ChannelInterfaceGroup):
+class ChannelInterfaceGroup(_ChannelInterfaceGroup, DBusProperties):
 
     def __init__(self):
         _ChannelInterfaceGroup.__init__(self)
+
+        self._implement_property_get(CHANNEL_INTERFACE_GROUP,
+            {'GroupFlags': lambda: dbus.UInt32(self.GetGroupFlags()),
+             'Members': lambda: dbus.Array(self.GetMembers()),
+             'RemotePendingMembers': lambda: dbus.Array(self.GetRemotePendingMembers()),
+             'SelfHandle': lambda: dbus.UInt32(self.GetSelfHandle())})
+
         self._group_flags = 0
         self._members = set()
         self._local_pending = set()
