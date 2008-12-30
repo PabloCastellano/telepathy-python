@@ -92,11 +92,6 @@ class Call:
         Channel(self.conn.service_name, object_path,
                 ready_handler=self.channel_ready_cb)
 
-    def request_resource (self, stream, direction):
-        # We get and hook up src and sinks as soon as the session is created,
-        # so our resources are always ready :)
-        return True
-
     def src_pad_added (self, stream, pad, codec):
         type = stream.get_property ("media-type")
         if type == farsight.MEDIA_TYPE_AUDIO:
@@ -110,7 +105,6 @@ class Call:
 
     def stream_created(self, channel, stream):
         stream.connect ("src-pad-added", self.src_pad_added)
-        stream.connect ("request-resource", self.request_resource)
         srcpad = stream.get_property ("sink-pad")
 
         type = stream.get_property ("media-type")
