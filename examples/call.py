@@ -247,6 +247,8 @@ class IncomingCall(Call):
         print "waiting for incoming call"
 
 if __name__ == '__main__':
+    gobject.threads_init()
+
     args = sys.argv[1:]
 
     assert len(args) in (1, 2)
