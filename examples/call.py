@@ -95,9 +95,9 @@ class Call:
     def src_pad_added (self, stream, pad, codec):
         type = stream.get_property ("media-type")
         if type == farsight.MEDIA_TYPE_AUDIO:
-            sink = gst.element_factory_make ("autoaudiosink")
+            sink = gst.parse_bin_from_description("audioconvert ! audioresample ! audioconvert ! autoaudiosink", True)
         elif type == farsight.MEDIA_TYPE_VIDEO:
-            sink = gst.element_factory_make ("autovideosink")
+            sink = gst.parse_bin_from_description("ffmpegcolorspace ! videoscale ! autovideosink", True)
 
         self.pipeline.add(sink)
         pad.link(sink.get_pad("sink"))
