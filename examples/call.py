@@ -124,6 +124,13 @@ class Call:
         self.pipeline.add(conference)
         self.pipeline.set_state(gst.STATE_PLAYING)
 
+    def get_codec_config (self, channel, stream_id, media_type, direction):
+        print "got codec config"
+        if media_type == farsight.MEDIA_TYPE_VIDEO:
+            return [farsight.Codec(farsight.CODEC_ID_DISABLE, "THEORA", farsight.MEDIA_TYPE_VIDEO, 0)]
+        else:
+            return None
+
     def channel_ready_cb(self, channel):
         print "channel ready"
         channel[CHANNEL_INTERFACE].connect_to_signal('Closed', self.closed_cb)
@@ -140,6 +147,7 @@ class Call:
         self.tfchannel = tfchannel
         tfchannel.connect ("session-created", self.session_created)
         tfchannel.connect ("stream-created", self.stream_created)
+        tfchannel.connect ("stream-get-codec-config", self.get_codec_config)
 
         print "Channel ready"
 
