@@ -355,3 +355,6 @@ from telepathy._generated.Connection_Interface_Simple_Presence \
 
 from telepathy._generated.Connection_Interface_Contacts \
         import ConnectionInterfaceContacts
+
+from telepathy._generated.Connection_Interface_Requests \
+        import ConnectionInterfaceRequests
