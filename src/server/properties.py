@@ -30,36 +30,37 @@ class DBusProperties(dbus.service.Interface):
     def __init__(self):
         self._interfaces.add(dbus.PROPERTIES_IFACE)
 
-        self.__getters = {}
-        self.__setters = {}
+        if not getattr(self, '_prop_getters', None):
+            self._prop_getters = {}
+            self._prop_setters = {}
 
     def _implement_property_get(self, iface, dict):
-        self.__getters.setdefault(iface, {}).update(dict)
+        self._prop_getters.setdefault(iface, {}).update(dict)
 
     def _implement_property_set(self, iface, dict):
-        self.__setters.setdefault(iface, {}).update(dict)
+        self._prop_setters.setdefault(iface, {}).update(dict)
 
     @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='ss', out_signature='v')
     def Get(self, interface_name, property_name):
-        if interface_name in self.__getters \
-            and property_name in self.__getters[interface_name]:
-                return self.__getters[interface_name][property_name]()
+        if interface_name in self._prop_getters \
+            and property_name in self._prop_getters[interface_name]:
+                return self._prop_getters[interface_name][property_name]()
         else:
             raise telepathy.errors.InvalidArgument()
 
     @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='ssv', out_signature='')
     def Set(self, interface_name, property_name, value):
-        if interface_name in self.__setters \
-            and property_name in self.__setters[interface_name]:
-                return self.__setters[interface_name][property_name](value)
+        if interface_name in self._prop_setters \
+            and property_name in self._prop_setters[interface_name]:
+                return self._prop_setters[interface_name][property_name](value)
         else:
             raise telepathy.errors.PermissionDenied()
 
     @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='s', out_signature='a{sv}')
     def GetAll(self, interface_name):
-        if interface_name in self.__getters:
+        if interface_name in self._prop_getters:
             r = {}
-            for k, v in self.__getters[interface_name].items():
+            for k, v in self._prop_getters[interface_name].items():
                 r[k] = v()
             return r
         else:
