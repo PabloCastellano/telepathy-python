@@ -347,9 +347,6 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
 from telepathy._generated.Connection_Interface_Presence \
         import ConnectionInterfacePresence
 
-from telepathy._generated.Connection_Interface_Renaming \
-        import ConnectionInterfaceRenaming
-
 from telepathy._generated.Connection_Interface_Simple_Presence \
         import ConnectionInterfaceSimplePresence
 
