@@ -1,3 +1,20 @@
+telepathy-python 0.15.4 (2009-01-05)
+====================================
+
+Enhancements:
+
+ * Specification 0.17.16.
+ * Add file-transfer.py example script.
+ * Add DBusProperties interface.
+ * Implement some D-Bus properties to Channel, Connection and
+   ChannelInterfaceGroup classes.
+
+Fixes:
+
+ * Don't use bool() for boolean parameter strings as it always returns True.
+ * Don't allow queuing for the CM bus name.
+ * Don't generate code for draft interfaces.
+
 telepathy-python 0.15.3 (2008-10-21)
 ====================================
 
