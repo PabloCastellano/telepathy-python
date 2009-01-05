@@ -17,6 +17,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import dbus
 import dbus.service
 
 from telepathy.constants import (CONNECTION_HANDLE_TYPE_NONE,
@@ -38,7 +39,9 @@ from telepathy.interfaces import (CHANNEL_INTERFACE,
 
 from telepathy._generated.Channel import Channel as _Channel
 
-class Channel(_Channel):
+from telepathy.server.properties import DBusProperties
+
+class Channel(_Channel, DBusProperties):
 
     def __init__(self, connection, type, handle):
         """
@@ -56,6 +59,26 @@ class Channel(_Channel):
         self._type = type
         self._handle = handle
         self._interfaces = set()
+
+        DBusProperties.__init__(self)
+        self._implement_property_get(CHANNEL_INTERFACE,
+            {'ChannelType': lambda: dbus.String(self.GetChannelType()),
+             'Interfaces': lambda: dbus.Array(self.GetInterfaces(), signature='s'),
+             'TargetHandle': lambda: dbus.UInt32(self._handle),
+             'TargetHandleType': lambda: dbus.UInt32(self._get_handle_type()),
+             'TargetID': lambda: dbus.String(self._get_target_id())})
+
+    def _get_handle_type(self):
+        if self._handle:
+            return self._handle.get_type()
+        else:
+            return CONNECTION_HANDLE_TYPE_NONE
+
+    def _get_target_id(self):
+        if self._handle:
+            return self._handle.get_name()
+        else:
+            return ''
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
@@ -236,10 +259,17 @@ from telepathy._generated.Channel_Interface_DTMF import ChannelInterfaceDTMF
 from telepathy._generated.Channel_Interface_Group \
         import ChannelInterfaceGroup as _ChannelInterfaceGroup
 
-class ChannelInterfaceGroup(_ChannelInterfaceGroup):
+class ChannelInterfaceGroup(_ChannelInterfaceGroup, DBusProperties):
 
     def __init__(self):
         _ChannelInterfaceGroup.__init__(self)
+
+        self._implement_property_get(CHANNEL_INTERFACE_GROUP,
+            {'GroupFlags': lambda: dbus.UInt32(self.GetGroupFlags()),
+             'Members': lambda: dbus.Array(self.GetMembers(), signature='u'),
+             'RemotePendingMembers': lambda: dbus.Array(self.GetRemotePendingMembers(), signature='u'),
+             'SelfHandle': lambda: dbus.UInt32(self.GetSelfHandle())})
+
         self._group_flags = 0
         self._members = set()
         self._local_pending = set()
