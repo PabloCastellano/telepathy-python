@@ -263,6 +263,7 @@ class ChannelInterfaceGroup(_ChannelInterfaceGroup, DBusProperties):
 
     def __init__(self):
         _ChannelInterfaceGroup.__init__(self)
+        DBusProperties.__init__(self)
 
         self._implement_property_get(CHANNEL_INTERFACE_GROUP,
             {'GroupFlags': lambda: dbus.UInt32(self.GetGroupFlags()),
