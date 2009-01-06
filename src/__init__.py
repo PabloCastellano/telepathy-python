@@ -22,6 +22,7 @@ from telepathy._version import version, __version__
 from telepathy.constants import *
 from telepathy.errors import *
 from telepathy.interfaces import *
+from telepathy.utils import *
 
 import telepathy.client as client
 import telepathy.server as server
