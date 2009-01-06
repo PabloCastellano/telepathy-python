@@ -65,7 +65,6 @@ class Message:
             self.loop = None
 
     def new_channels_cb(self, channels):
-        print "got a new channel or two boo ya"
         for object_path, props in channels:
             channel_type = props[CHANNEL_INTERFACE + '.ChannelType']
 
