@@ -8,3 +8,4 @@ include telepathy-inspect
 recursive-include examples *.py
 recursive-include spec *.xml
 recursive-include tools *.xsl
+include src/utils.py
