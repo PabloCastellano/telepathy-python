@@ -35,6 +35,7 @@ from telepathy.interfaces import (CONN_INTERFACE,
                                   CONN_INTERFACE_CAPABILITIES,
                                   CONN_INTERFACE_PRESENCE,
                                   CONN_INTERFACE_RENAMING,
+                                  CONNECTION_INTERFACE_REQUESTS,
                                   CHANNEL_INTERFACE)
 from telepathy.server.handle import Handle
 from telepathy.server.properties import DBusProperties
@@ -373,6 +374,93 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
         # return all my capabilities
         return [(ctype, caps[1]) for ctype, caps in my_caps.iteritems()]
 
+from telepathy._generated.Connection_Interface_Requests \
+        import ConnectionInterfaceRequests \
+        as _ConnectionInterfaceRequests
+
+class ConnectionInterfaceRequests(_ConnectionInterfaceRequests):
+
+    def __init__(self):
+        _ConnectionInterfaceRequests.__init__(self)
+
+    def _check_basic_properties(self, props):
+        # ChannelType must be present and must be a string.
+        if CHANNEL_INTERFACE + '.ChannelType' not in props or \
+                not isinstance(props[CHANNEL_INTERFACE + '.ChannelType'],
+                    dbus.String):
+            raise InvalidArgument('ChannelType is required')
+
+        def check_valid_type_if_exists(prop, fun):
+            p = CHANNEL_INTERFACE + '.' + prop
+            if p in props and not fun(props[p]):
+                raise InvalidArgument('Invalid %s' % prop)
+
+        # Allow TargetHandleType to be missing, but not to be otherwise broken.
+        check_valid_type_if_exists('TargetHandleType',
+            lambda p: p > 0 and p < (2**32)-1)
+
+        # Allow TargetType to be missing, but not to be otherwise broken.
+        check_valid_type_if_exists('TargetHandle',
+            lambda p: p > 0 and p < (2**32)-1)
+        if props.get(CHANNEL_INTERFACE + '.TargetHandle') == 0:
+            raise InvalidArgument("TargetHandle may not be 0")
+
+        # Allow TargetID to be missing, but not to be otherwise broken.
+        check_valid_type_if_exists('TargetID',
+            lambda p: isinstance(p, dbus.String))
+
+        # TODO: When Initiatorhandle, InitiatorID and Requested are officially
+        # supporter, if the request has any of them, raise an error.
+
+        type = props[CHANNEL_INTERFACE + '.ChannelType']
+        handle_type = props.get(CHANNEL_INTERFACE + '.TargetHandleType',
+                HANDLE_TYPE_NONE)
+        handle = props[CHANNEL_INTERFACE + '.TargetHandle']
+
+        return (type, handle_type, handle)
+
+    def _validate_handle(self, props):
+        target_handle_type = props.get(CHANNEL_INTERFACE + '.TargetHandleType',
+            HANDLE_TYPE_NONE)
+        target_handle = props.get(CHANNEL_INTERFACE + '.TargetHandle', None)
+        target_id = props.get(CHANNEL_INTERFACE + '.TargetID', None)
+
+        altered_properties = props.copy()
+
+        # Handle type 0 cannot have a handle.
+        if target_handle_type == HANDLE_TYPE_NONE and target_handle != None:
+            raise InvalidArgument('When TargetHandleType is NONE, ' +
+                'TargetHandle must be omitted')
+
+        # Handle type 0 cannot have a TargetID.
+        if target_handle_type == HANDLE_TYPE_NONE and target_id != None:
+            raise InvalidArgument('When TargetHandleType is NONE, TargetID ' +
+                'must be omitted')
+
+        if target_handle_type != HANDLE_TYPE_NONE:
+            if target_handle == None and target_id == None:
+                raise InvalidArgument('When TargetHandleType is not NONE, ' +
+                    'either TargetHandle or TargetID must also be given')
+
+            if target_handle != None and target_id != None:
+                raise InvalidArgument('Target and TargetID must not both be ' +
+                    'given')
+
+            self.check_handle_type(target_handle_type)
+
+            if target_handle == None:
+                # Turn TargetID into TargetHandle.
+                self.check_handle(target_handle_type, target_id)
+                target_handle = self._handles[target_handle_type, target_id]
+
+                altered_properties[CHANNEL_INTERFACE + '.TargetHandle'] = \
+                    target_handle
+                del altered_properties[CHANNEL_INTERFACE + '.TargetID']
+            else:
+                # Check the supplied TargetHandle is valid
+                self.check_handle(target_handle_type, target_handle)
+
+        return altered_properties
 
 from telepathy._generated.Connection_Interface_Presence \
         import ConnectionInterfacePresence
