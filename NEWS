@@ -1,3 +1,13 @@
+telepathy-python 0.15.6 (2009-01-07)
+====================================
+
+The "we're moving to autotools" release.
+
+Fixes:
+
+ * Include src/utils.py in MANIFEST.in to make sure it is present in the dist
+   tarball.
+
 telepathy-python 0.15.5 (2009-01-06)
 ====================================
 
