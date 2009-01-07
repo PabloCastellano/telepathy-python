@@ -34,6 +34,7 @@ class Message:
         self.conn[CONN_INTERFACE].Connect()
 
     def ready_cb(self, conn):
+        print "connected"
         conn[CONNECTION_INTERFACE_REQUESTS].connect_to_signal('NewChannels',
             self.new_channels_cb)
 
@@ -41,17 +42,20 @@ class Message:
         conn[CONNECTION_INTERFACE_SIMPLE_PRESENCE].SetPresence('available', '')
 
         if self.contact is not None:
-            handle = self.conn[CONN_INTERFACE].RequestHandles(
-                CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
+            gobject.timeout_add(1000, self.send_message)
 
-            print 'got handle %d for %s' % (handle, self.contact)
+    def send_message(self):
+        handle = self.conn[CONN_INTERFACE].RequestHandles(
+            CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
 
-            self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel(dbus.Dictionary(
-                {
-                    CHANNEL_INTERFACE + '.ChannelType': CHANNEL_TYPE_TEXT,
-                    CHANNEL_INTERFACE + '.TargetHandleType': CONNECTION_HANDLE_TYPE_CONTACT,
-                    CHANNEL_INTERFACE + '.TargetHandle': handle
-                }, signature='sv'))
+        print 'got handle %d for %s' % (handle, self.contact)
+
+        self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel(dbus.Dictionary(
+            {
+                CHANNEL_INTERFACE + '.ChannelType': CHANNEL_TYPE_TEXT,
+                CHANNEL_INTERFACE + '.TargetHandleType': CONNECTION_HANDLE_TYPE_CONTACT,
+                CHANNEL_INTERFACE + '.TargetHandle': handle
+            }, signature='sv'))
 
     def run(self):
         print "main loop running"
