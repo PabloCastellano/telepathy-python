@@ -13,7 +13,7 @@ from telepathy.constants import (
     CHANNEL_TEXT_MESSAGE_TYPE_NORMAL)
 from telepathy.interfaces import (
     CHANNEL_TYPE_TEXT, CONN_INTERFACE, CHANNEL_INTERFACE,
-    CONNECTION_INTERFACE_REQUESTS)
+    CONNECTION_INTERFACE_REQUESTS, CONNECTION_INTERFACE_SIMPLE_PRESENCE)
 
 logging.basicConfig()
 
@@ -36,6 +36,9 @@ class Message:
     def ready_cb(self, conn):
         conn[CONNECTION_INTERFACE_REQUESTS].connect_to_signal('NewChannels',
             self.new_channels_cb)
+
+        # This is required for MSN.
+        conn[CONNECTION_INTERFACE_SIMPLE_PRESENCE].SetPresence('available', '')
 
         if self.contact is not None:
             handle = self.conn[CONN_INTERFACE].RequestHandles(
