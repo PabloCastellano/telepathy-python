@@ -34,7 +34,8 @@ from telepathy.interfaces import (CONN_INTERFACE,
                                   CONN_INTERFACE_AVATARS,
                                   CONN_INTERFACE_CAPABILITIES,
                                   CONN_INTERFACE_PRESENCE,
-                                  CONN_INTERFACE_RENAMING)
+                                  CONN_INTERFACE_RENAMING,
+                                  CHANNEL_INTERFACE)
 from telepathy.server.handle import Handle
 from telepathy.server.properties import DBusProperties
 
@@ -179,10 +180,32 @@ class Connection(_Connection, DBusProperties):
         self._next_channel_id += 1
         return ret
 
-    def add_channel(self, channel, handle, suppress_handler):
-        """ add a new channel and signal its creation""" 
-        self._channels.add(channel)
-        self.NewChannel(channel._object_path, channel._type, handle.get_type(), handle.get_id(), suppress_handler)
+    def add_channels(self, channels, signal=True):
+        """ add new channels and signal its creation"""
+        for channel in channels:
+            self._channels.add(channel)
+
+        if signal:
+            self.signal_new_channels(channels)
+
+    def signal_new_channels(self, channels):
+        self.NewChannels([(channel._object_path, channel.get_props()) \
+            for channel in channels])
+
+        # Now NewChannel needs to be called for each new channel.
+        for channel in channels:
+            props = channel.get_props()
+
+            target_handle_type = props[CHANNEL_INTERFACE + '.TargetHandleType']
+            target_handle = props[CHANNEL_INTERFACE + '.TargetHandle']
+            try:
+                suppress_handler = props[CHANNEL_INTERFACE + '.Requested']
+            except KeyError:
+                suppress_handler = False
+
+            self.NewChannel(channel._object_path, channel._type,
+                target_handle_type, target_handle,
+                suppress_handler)
 
     def remove_channel(self, channel):
         self._channels.remove(channel)
