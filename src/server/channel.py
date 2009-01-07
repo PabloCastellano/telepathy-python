@@ -60,6 +60,8 @@ class Channel(_Channel, DBusProperties):
         self._handle = handle
         self._interfaces = set()
 
+        self._props = dict()
+
         DBusProperties.__init__(self)
         self._implement_property_get(CHANNEL_INTERFACE,
             {'ChannelType': lambda: dbus.String(self.GetChannelType()),
@@ -79,6 +81,12 @@ class Channel(_Channel, DBusProperties):
             return self._handle.get_name()
         else:
             return ''
+
+    def get_props(self):
+        return self._props
+
+    def set_props(self, props):
+        self._props = props
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
