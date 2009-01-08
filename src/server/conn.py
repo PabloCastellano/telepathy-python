@@ -378,10 +378,20 @@ from telepathy._generated.Connection_Interface_Requests \
         import ConnectionInterfaceRequests \
         as _ConnectionInterfaceRequests
 
-class ConnectionInterfaceRequests(_ConnectionInterfaceRequests):
+class ConnectionInterfaceRequests(
+    _ConnectionInterfaceRequests,
+    DBusProperties):
 
     def __init__(self):
         _ConnectionInterfaceRequests.__init__(self)
+        DBusProperties.__init__(self)
+
+        self._implement_property_get(CONNECTION_INTERFACE_REQUESTS,
+            {'Channels': lambda: dbus.Array(self._get_channels(),
+                signature='(oa{sv})')})
+
+    def _get_channels(self):
+        return [(c._object_path, c.get_props()) for c in self._channels]
 
     def _check_basic_properties(self, props):
         # ChannelType must be present and must be a string.
