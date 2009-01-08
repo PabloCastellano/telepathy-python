@@ -11,13 +11,13 @@ from telepathy.client.channel import Channel
 from telepathy.constants import (
     CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_STATUS_CONNECTED,
     CHANNEL_TEXT_MESSAGE_TYPE_NORMAL)
-from telepathy.interfaces import CHANNEL_TYPE_TEXT, CONN_INTERFACE
+from telepathy.interfaces import CHANNEL_TYPE_TEXT, CONN_INTERFACE, \
+        CONNECTION_INTERFACE_SIMPLE_PRESENCE
 
 logging.basicConfig()
 
 class Message:
-    def __init__(self, conn, *stuff):
-        self.conn = conn
+    def __init__(self, *stuff):
         self.contact = None
         self.message = None
 
@@ -26,10 +26,9 @@ class Message:
             self.contact = stuff[0]
             self.message = stuff[1]
 
-        conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
-            self.status_changed_cb)
-        conn[CONN_INTERFACE].connect_to_signal('NewChannel',
-            self.new_channel_cb)
+        self.conn = connection_from_file(sys.argv[1], ready_handler=self.ready_cb)
+        print "connecting"
+        self.conn[CONN_INTERFACE].Connect()
 
     def run(self):
         print "main loop running"
@@ -38,24 +37,34 @@ class Message:
 
     def quit(self):
         if self.loop:
-            self.loop.quit()
-            self.loop = None
+            try:
+                self.loop.quit()
+            except KeyboardInterrupt:
+                print "killed"
 
-    def status_changed_cb(self, state, reason):
-        if state != CONNECTION_STATUS_CONNECTED:
-            return
-        print "connection became ready"
+            self.conn[CONN_INTERFACE].Disconnect()
+
+    def ready_cb(self, conn):
+        print "connected"
+        conn[CONN_INTERFACE].connect_to_signal('NewChannel',
+            self.new_channel_cb)
+
+        # This is required for MSN.
+        conn[CONNECTION_INTERFACE_SIMPLE_PRESENCE].SetPresence('available', '')
 
         if self.contact is not None:
-            handle = conn[CONN_INTERFACE].RequestHandles(
-                CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
+            gobject.timeout_add(5000, self.send_message)
 
-            print 'got handle %d for %s' % (handle, self.contact)
+    def send_message(self):
+        handle = self.conn[CONN_INTERFACE].RequestHandles(
+            CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
 
-            conn[CONN_INTERFACE].RequestChannel(
-                CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_CONTACT, handle, True,
-                reply_handler=lambda *stuff: None,
-                error_handler=self.request_channel_error_cb)
+        print 'got handle %d for %s' % (handle, self.contact)
+
+        self.conn[CONN_INTERFACE].RequestChannel(
+            CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_CONTACT, handle, True,
+            reply_handler=lambda *stuff: None,
+            error_handler=self.request_channel_error_cb)
 
     def request_channel_error_cb(self, exception):
         print 'error:', exception
@@ -100,16 +109,6 @@ class Message:
         self.quit()
 
 if __name__ == '__main__':
-    conn = connection_from_file(sys.argv[1])
+    msg = Message(*sys.argv[2:])
+    msg.run()
 
-    msg = Message(conn, *sys.argv[2:])
-
-    print "connecting"
-    conn[CONN_INTERFACE].Connect()
-
-    try:
-        msg.run()
-    except KeyboardInterrupt:
-        print "killed"
-
-    conn[CONN_INTERFACE].Disconnect()
