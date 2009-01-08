@@ -58,6 +58,8 @@ class Channel(_Channel, DBusProperties):
         self._type = props[CHANNEL_INTERFACE + '.ChannelType']
         self._requested = props[CHANNEL_INTERFACE + '.Requested']
 
+        self._immutable_properties = dict()
+
         self._handle = self._conn.handle(
             props[CHANNEL_INTERFACE + '.TargetHandleType'],
             props[CHANNEL_INTERFACE + '.TargetHandle'])
@@ -72,6 +74,18 @@ class Channel(_Channel, DBusProperties):
              'TargetID': lambda: dbus.String(self._get_target_id()),
              'Requested': lambda: self._requested})
 
+        self._add_immutables({
+            'ChannelType': CHANNEL_INTERFACE,
+            'TargetHandle': CHANNEL_INTERFACE,
+            'Interfaces': CHANNEL_INTERFACE,
+            'TargetHandleType': CHANNEL_INTERFACE,
+            'TargetID': CHANNEL_INTERFACE,
+            'Requested': CHANNEL_INTERFACE
+            })
+
+    def _add_immutables(self, props):
+        self._immutable_properties.update(props)
+
     def _get_handle_type(self):
         if self._handle:
             return self._handle.get_type()
@@ -85,10 +99,11 @@ class Channel(_Channel, DBusProperties):
             return ''
 
     def get_props(self):
-        return self._props
-
-    def set_props(self, props):
-        self._props = props
+        props = dict()
+        for prop, iface in self._immutable_properties.items():
+            props[iface + '.' + prop] = \
+                self._prop_getters[iface][prop]()
+        return props
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
@@ -168,6 +183,8 @@ class ChannelTypeRoomList(Channel, _ChannelTypeRoomListIface):
         Channel.__init__(self, connection, props)
         self._listing_rooms = False
         self._rooms = {}
+
+        self._add_immutables(self, {'Server': CHANNEL_TYPE_ROOM_LIST})
 
     @dbus.service.method(CHANNEL_TYPE_ROOM_LIST, in_signature='', out_signature='b')
     def GetListingRooms(self):
