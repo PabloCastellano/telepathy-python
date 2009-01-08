@@ -28,7 +28,8 @@ from telepathy.constants import (CONNECTION_STATUS_DISCONNECTED,
                                  HANDLE_TYPE_NONE,
                                  LAST_HANDLE_TYPE)
 from telepathy.errors import (Disconnected, InvalidArgument,
-                              InvalidHandle, NotAvailable)
+                              InvalidHandle, NotAvailable,
+                              NotImplemented)
 from telepathy.interfaces import (CONN_INTERFACE,
                                   CONN_INTERFACE_ALIASING,
                                   CONN_INTERFACE_AVATARS,
@@ -380,9 +381,12 @@ class ConnectionInterfaceRequests(
     _ConnectionInterfaceRequests,
     DBusProperties):
 
-    def __init__(self):
+    def __init__(self, requestable, make_channel):
         _ConnectionInterfaceRequests.__init__(self)
         DBusProperties.__init__(self)
+
+        self._requestable_channels = requestable
+        self._make_channel = make_channel
 
         self._implement_property_get(CONNECTION_INTERFACE_REQUESTS,
             {'Channels': lambda: dbus.Array(self._get_channels(),
@@ -470,6 +474,26 @@ class ConnectionInterfaceRequests(
                 self.check_handle(target_handle_type, target_handle)
 
         return altered_properties
+
+    @dbus.service.method(CONNECTION_INTERFACE_REQUESTS,
+        in_signature='a{sv}', out_signature='oa{sv}',
+        async_callbacks=('_success', '_error'))
+    def CreateChannel(self, request, _success, _error):
+        type, handle_type, handle = self._check_basic_properties(request)
+        props = self._validate_handle(request)
+
+        props[CHANNEL_INTERFACE + '.Requested'] = True
+
+        if type not in self._requestable_channels:
+            raise NotImplemented('Unknown channel type "%s"' % type)
+
+        channel = self._make_channel(props)
+
+        # TODO: This shouldn't return properties that can change.
+        _success(channel._object_path, props)
+
+        # CreateChannel MUST return *before* NewChannels is emitted.
+        self.signal_new_channels([channel])
 
 from telepathy._generated.Connection_Interface_Presence \
         import ConnectionInterfacePresence
