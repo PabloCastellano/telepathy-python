@@ -387,6 +387,7 @@ class ConnectionInterfaceRequests(
         self._implement_property_get(CONNECTION_INTERFACE_REQUESTS,
             {'Channels': lambda: dbus.Array(self._get_channels(),
                 signature='(oa{sv})')})
+        # TODO: Implement RequestableChannelClasses
 
     def _get_channels(self):
         return [(c._object_path, c.get_props()) for c in self._channels]
