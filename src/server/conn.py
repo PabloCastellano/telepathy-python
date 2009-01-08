@@ -210,6 +210,7 @@ class Connection(_Connection, DBusProperties):
 
     def remove_channel(self, channel):
         self._channels.remove(channel)
+        self.ChannelClosed(channel._object_path)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
