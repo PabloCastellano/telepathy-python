@@ -71,7 +71,7 @@ class Connection(_Connection, DBusProperties):
         clean_account = _escape_as_identifier(account)
         bus_name = u'org.freedesktop.Telepathy.Connection.%s.%s.%s' % \
                 (manager, proto, clean_account)
-        bus_name = dbus.service.BusName(bus_name)
+        bus_name = dbus.service.BusName(bus_name, bus=dbus.SessionBus())
 
         object_path = '/org/freedesktop/Telepathy/Connection/%s/%s/%s' % \
                 (manager, proto, clean_account)
