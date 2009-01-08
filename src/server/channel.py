@@ -66,7 +66,7 @@ class Channel(_Channel, DBusProperties):
         self._implement_property_get(CHANNEL_INTERFACE,
             {'ChannelType': lambda: dbus.String(self.GetChannelType()),
              'Interfaces': lambda: dbus.Array(self.GetInterfaces(), signature='s'),
-             'TargetHandle': lambda: dbus.UInt32(self._handle),
+             'TargetHandle': lambda: dbus.UInt32(self._handle.get_id()),
              'TargetHandleType': lambda: dbus.UInt32(self._get_handle_type()),
              'TargetID': lambda: dbus.String(self._get_target_id())})
 
