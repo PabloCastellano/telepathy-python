@@ -199,10 +199,7 @@ class Connection(_Connection, DBusProperties):
 
             target_handle_type = props[CHANNEL_INTERFACE + '.TargetHandleType']
             target_handle = props[CHANNEL_INTERFACE + '.TargetHandle']
-            try:
-                suppress_handler = props[CHANNEL_INTERFACE + '.Requested']
-            except KeyError:
-                suppress_handler = False
+            suppress_handler = props[CHANNEL_INTERFACE + '.Requested']
 
             self.NewChannel(channel._object_path, channel._type,
                 target_handle_type, target_handle,
