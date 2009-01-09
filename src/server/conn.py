@@ -485,7 +485,19 @@ class ConnectionInterfaceRequests(
 
         channel = self._channel_manager.channel_for_props(props, signal=False)
 
-        # TODO: This shouldn't return properties that can change.
+        # Remove mutable properties
+        todel = []
+        for prop in props:
+            iface, name = prop.rsplit('.', 1) # a bit of a hack
+            if name in channel._immutable_properties:
+                if channel._immutable_properties[name] != iface:
+                    todel.append(prop)
+            else:
+                todel.append(prop)
+
+        for p in todel:
+            del props[p]
+
         _success(channel._object_path, props)
 
         # CreateChannel MUST return *before* NewChannels is emitted.
