@@ -29,6 +29,8 @@ class ChannelManager(object):
 
         self._requestable_channel_classes = dict()
         self._channels = dict()
+        self._fixed_properties = dict()
+        self._available_properties = dict()
 
     def close(self):
         for channel_type in self._requestable_channel_classes:
@@ -74,6 +76,18 @@ class ChannelManager(object):
 
         return channel
 
-    def _implement_channel_class(self, type, make_channel):
+    def _implement_channel_class(self, type, make_channel, fixed, available):
         self._requestable_channel_classes[type] = make_channel
         self._channels.setdefault(type, {})
+
+        self._fixed_properties[type] = fixed
+        self._available_properties[type] = available
+
+    def get_requestable_channel_classes(self):
+        retval = []
+
+        for channel_type in self._requestable_channel_classes:
+            retval.append((self._fixed_properties[channel_type],
+                self._available_properties[channel_type]))
+
+        return retval
