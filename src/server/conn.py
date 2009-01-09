@@ -489,6 +489,23 @@ class ConnectionInterfaceRequests(
         # CreateChannel MUST return *before* NewChannels is emitted.
         self.signal_new_channels([channel])
 
+    @dbus.service.method(CONNECTION_INTERFACE_REQUESTS,
+        in_signature='a{sv}', out_signature='boa{sv}',
+        async_callbacks=('_success', '_error'))
+    def EnsureChannel(self, request, _success, _error):
+        yours = True
+        if self._channel_manager.channel_exists(request):
+            yours = False
+
+        type, handle_type, handle = self._check_basic_properties(request)
+        props = self._validate_handle(request)
+
+        channel = self._channel_manager.channel_for_props(props, signal=False)
+
+        _success(yours, channel._object_path, props)
+
+        self.signal_new_channels([channel])
+
 from telepathy._generated.Connection_Interface_Presence \
         import ConnectionInterfacePresence
 

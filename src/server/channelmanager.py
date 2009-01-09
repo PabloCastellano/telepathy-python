@@ -63,6 +63,9 @@ class ChannelManager(object):
         if type not in self._requestable_channel_classes:
             raise NotImplemented('Unknown channel type "%s"' % type)
 
+        if self.channel_exists(props):
+            return self._channels[type][handle]
+
         channel = self._requestable_channel_classes[type](
             props, **args)
 
