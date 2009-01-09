@@ -470,6 +470,8 @@ class ConnectionInterfaceRequests(
                 # Check the supplied TargetHandle is valid
                 self.check_handle(target_handle_type, target_handle)
 
+        altered_properties[CHANNEL_INTERFACE + '.Requested'] = True
+
         return altered_properties
 
     @dbus.service.method(CONNECTION_INTERFACE_REQUESTS,
@@ -478,8 +480,6 @@ class ConnectionInterfaceRequests(
     def CreateChannel(self, request, _success, _error):
         type, handle_type, handle = self._check_basic_properties(request)
         props = self._validate_handle(request)
-
-        props[CHANNEL_INTERFACE + '.Requested'] = True
 
         channel = self._channel_manager.channel_for_props(props, signal=False)
 
