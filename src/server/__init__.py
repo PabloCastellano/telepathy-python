@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 from telepathy.server.connmgr import *
 from telepathy.server.conn import *
 from telepathy.server.channel import *
+from telepathy.server.channelmanager import *
 from telepathy.server.handle import *
 from telepathy.server.media import *
 from telepathy.server.properties import *
