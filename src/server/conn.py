@@ -381,12 +381,9 @@ class ConnectionInterfaceRequests(
     _ConnectionInterfaceRequests,
     DBusProperties):
 
-    def __init__(self, requestable, make_channel):
+    def __init__(self):
         _ConnectionInterfaceRequests.__init__(self)
         DBusProperties.__init__(self)
-
-        self._requestable_channels = requestable
-        self._make_channel = make_channel
 
         self._implement_property_get(CONNECTION_INTERFACE_REQUESTS,
             {'Channels': lambda: dbus.Array(self._get_channels(),
@@ -484,10 +481,7 @@ class ConnectionInterfaceRequests(
 
         props[CHANNEL_INTERFACE + '.Requested'] = True
 
-        if type not in self._requestable_channels:
-            raise NotImplemented('Unknown channel type "%s"' % type)
-
-        channel = self._make_channel(props)
+        channel = self._channel_manager.channel_for_props(props, signal=False)
 
         # TODO: This shouldn't return properties that can change.
         _success(channel._object_path, props)
