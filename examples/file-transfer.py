@@ -10,24 +10,16 @@ import time
 
 from dbus import PROPERTIES_IFACE
 from telepathy.client import (Connection, Channel)
-from telepathy.interfaces import (CONN_INTERFACE, CONNECTION_INTERFACE_REQUESTS, CHANNEL)
+from telepathy.interfaces import (CONN_INTERFACE, CONNECTION_INTERFACE_REQUESTS, CHANNEL, CHANNEL_TYPE_FILE_TRANSFER)
 from telepathy.constants import (CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_STATUS_CONNECTING,
     CONNECTION_STATUS_CONNECTED, CONNECTION_STATUS_DISCONNECTED, SOCKET_ADDRESS_TYPE_UNIX,
-    SOCKET_ACCESS_CONTROL_LOCALHOST)
+    SOCKET_ACCESS_CONTROL_LOCALHOST, FILE_TRANSFER_STATE_NONE, FILE_TRANSFER_STATE_PENDING, FILE_TRANSFER_STATE_ACCEPTED,
+    FILE_TRANSFER_STATE_OPEN, FILE_TRANSFER_STATE_COMPLETED, FILE_TRANSFER_STATE_CANCELLED)
 
 from account import connection_from_file
 
 loop = None
 
-# FIXME: use constants from tp-python once the spec is undrafted
-CHANNEL_TYPE_FILE_TRANSFER = 'org.freedesktop.Telepathy.Channel.Type.FileTransfer.DRAFT'
-
-FT_STATE_NONE = 0
-FT_STATE_PENDING = 1
-FT_STATE_ACCEPTED = 2
-FT_STATE_OPEN = 3
-FT_STATE_COMPLETED = 4
-FT_STATE_CANCELLED = 5
 
 ft_states = ['none', 'pending', 'accepted', 'open', 'completed', 'cancelled']
 
@@ -124,7 +116,7 @@ class FTReceiverClient(FTClient):
     def ft_state_changed_cb(self, state, reason):
         FTClient.ft_state_changed_cb(self, state, reason)
 
-        if state == FT_STATE_OPEN:
+        if state == FILE_TRANSFER_STATE_OPEN:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.connect(self.sock_addr)
 
@@ -196,7 +188,7 @@ class FTSenderClient(FTClient):
     def ft_state_changed_cb(self, state, reason):
         FTClient.ft_state_changed_cb(self, state, reason)
 
-        if state == FT_STATE_OPEN:
+        if state == FILE_TRANSFER_STATE_OPEN:
             # receive file
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.connect(self.sock_addr)
