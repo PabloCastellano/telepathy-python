@@ -455,8 +455,8 @@ class ConnectionInterfaceRequests(
                     'either TargetHandle or TargetID must also be given')
 
             if target_handle != None and target_id != None:
-                raise InvalidArgument('Target and TargetID must not both be ' +
-                    'given')
+                raise InvalidArgument('TargetHandle and TargetID must not ' +
+                    'both be given')
 
             self.check_handle_type(target_handle_type)
 
