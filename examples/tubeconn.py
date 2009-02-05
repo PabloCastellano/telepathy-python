@@ -24,23 +24,22 @@ __docformat__ = 'reStructuredText'
 import logging
 
 from dbus.connection import Connection
+from dbus import PROPERTIES_IFACE
 
+from telepathy.interfaces import CHANNEL_INTERFACE
 
 logger = logging.getLogger('telepathy.tubeconn')
 
+# TODO: import when tube API is stable
+CHANNEL_TYPE_DBUS_TUBE = CHANNEL_INTERFACE + ".Type.DBusTube.DRAFT"
 
 class TubeConnection(Connection):
 
-    def __new__(cls, conn, tubes_iface, tube_id, address=None,
-                group_iface=None, mainloop=None):
-        if address is None:
-            #address = tubes_iface.GetDBusServerAddress(tube_id)
-            address = tubes_iface.GetDBusTubeAddress(tube_id)
+    def __new__(cls, conn, tube, address, group_iface=None, mainloop=None):
         self = super(TubeConnection, cls).__new__(cls, address,
                                                   mainloop=mainloop)
 
-        self._tubes_iface = tubes_iface
-        self.tube_id = tube_id
+        self._tube = tube
         self.participants = {}
         self.bus_name_to_handle = {}
         self._mapping_watches = []
@@ -49,6 +48,7 @@ class TubeConnection(Connection):
             method = conn.GetSelfHandle
         else:
             method = group_iface.GetSelfHandle
+
         method(reply_handler=self._on_get_self_handle_reply,
                error_handler=self._on_get_self_handle_error)
 
@@ -56,9 +56,9 @@ class TubeConnection(Connection):
 
     def _on_get_self_handle_reply(self, handle):
         self.self_handle = handle
-        match = self._tubes_iface.connect_to_signal('DBusNamesChanged',
+        match = self._tube[CHANNEL_TYPE_DBUS_TUBE].connect_to_signal('DBusNamesChanged',
                 self._on_dbus_names_changed)
-        self._tubes_iface.GetDBusNames(self.tube_id,
+        self._tube[PROPERTIES_IFACE].Get(CHANNEL_TYPE_DBUS_TUBE, 'DBusNames',
                 reply_handler=self._on_get_dbus_names_reply,
                 error_handler=self._on_get_dbus_names_error)
         self._dbus_names_changed_match = match
@@ -69,33 +69,32 @@ class TubeConnection(Connection):
 
     def close(self):
         self._dbus_names_changed_match.remove()
-        self._on_dbus_names_changed(self.tube_id, (), self.participants.keys())
+        self._on_dbus_names_changed((), self.participants.keys())
         super(TubeConnection, self).close()
 
     def _on_get_dbus_names_reply(self, names):
-        self._on_dbus_names_changed(self.tube_id, names, ())
+        self._on_dbus_names_changed(names, ())
 
     def _on_get_dbus_names_error(self, e):
         logging.basicConfig()
-        logger.error('GetDBusNames failed: %s', e)
+        logger.error('Get DBusNames property failed: %s', e)
 
-    def _on_dbus_names_changed(self, tube_id, added, removed):
-        if tube_id == self.tube_id:
-            for handle, bus_name in added:
-                if handle == self.self_handle:
-                    # I've just joined - set my unique name
-                    self.set_unique_name(bus_name)
-                self.participants[handle] = bus_name
-                self.bus_name_to_handle[bus_name] = handle
+    def _on_dbus_names_changed(self, added, removed):
+        for handle, bus_name in added.items():
+            if handle == self.self_handle:
+                # I've just joined - set my unique name
+                self.set_unique_name(bus_name)
+            self.participants[handle] = bus_name
+            self.bus_name_to_handle[bus_name] = handle
 
-            # call the callback while the removed people are still in
-            # participants, so their bus names are available
-            for callback in self._mapping_watches:
-                callback(added, removed)
+        # call the callback while the removed people are still in
+        # participants, so their bus names are available
+        for callback in self._mapping_watches:
+            callback(added, removed)
 
-            for handle in removed:
-                bus_name = self.participants.pop(handle, None)
-                self.bus_name_to_handle.pop(bus_name, None)
+        for handle in removed:
+            bus_name = self.participants.pop(handle, None)
+            self.bus_name_to_handle.pop(bus_name, None)
 
     def watch_participants(self, callback):
         self._mapping_watches.append(callback)
