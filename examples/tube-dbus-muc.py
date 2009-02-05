@@ -6,13 +6,13 @@ import time
 import random
 import pprint
 from dbus.service import method, signal, Object
-from dbus import Interface
+from dbus import Interface, PROPERTIES_IFACE
 
 from telepathy.client import (
         Connection, Channel)
 from telepathy.interfaces import (
         CONN_INTERFACE, CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_TUBES,
-        CHANNEL_TYPE_TEXT)
+        CHANNEL_TYPE_TEXT, CHANNEL_INTERFACE, CONNECTION_INTERFACE_REQUESTS)
 from telepathy.constants import (
         CONNECTION_HANDLE_TYPE_CONTACT,
         CONNECTION_HANDLE_TYPE_ROOM, CONNECTION_STATUS_CONNECTED,
@@ -27,27 +27,33 @@ SERVICE = "org.freedesktop.Telepathy.Tube.Test"
 IFACE = SERVICE
 PATH = "/org/freedesktop/Telepathy/Tube/Test"
 
-tube_type = {TUBE_TYPE_DBUS: "D-Bus",\
-             TUBE_TYPE_STREAM: "Stream"}
+# TODO: import when tube API is stable
+CHANNEL_INTERFACE_TUBE = CHANNEL_INTERFACE + ".Interface.Tube.DRAFT"
+CHANNEL_TYPE_DBUS_TUBE = CHANNEL_INTERFACE + ".Type.DBusTube.DRAFT"
 
-tube_state = {TUBE_STATE_LOCAL_PENDING : 'local pending',\
-              TUBE_STATE_REMOTE_PENDING : 'remote pending',\
-              TUBE_STATE_OPEN : 'open'}
+TUBE_CHANNEL_STATE_LOCAL_PENDING = 0
+TUBE_CHANNEL_STATE_REMOTE_PENDING = 1
+TUBE_CHANNEL_STATE_OPEN = 2
+TUBE_CHANNEL_STATE_NOT_OFFERED = 3
+
+tube_state = {TUBE_CHANNEL_STATE_LOCAL_PENDING : 'local pending',\
+              TUBE_CHANNEL_STATE_REMOTE_PENDING : 'remote pending',\
+              TUBE_CHANNEL_STATE_OPEN : 'open',
+              TUBE_CHANNEL_STATE_NOT_OFFERED: 'not offered'}
 
 loop = None
 
 class Client:
     def __init__(self, account_file, muc_id):
-        self.conn = connection_from_file(account_file)
+        self.conn = connection_from_file(account_file, ready_handler=self.ready_cb)
         self.muc_id = muc_id
 
         self.conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             self.status_changed_cb)
-        self.conn[CONN_INTERFACE].connect_to_signal ("NewChannel",
-                self.new_channel_cb)
 
         self.test = None
         self.joined = False
+        self.tube = None
 
     def run(self):
         global loop
@@ -68,12 +74,14 @@ class Client:
             print 'connecting'
         elif state == CONNECTION_STATUS_CONNECTED:
             print 'connected'
-            self.connected_cb()
         elif state == CONNECTION_STATUS_DISCONNECTED:
             print 'disconnected'
             loop.quit()
 
-    def connected_cb(self):
+    def ready_cb(self, conn):
+        self.conn[CONNECTION_INTERFACE_REQUESTS].connect_to_signal ("NewChannels",
+                self.new_channels_cb)
+
         self.self_handle = self.conn[CONN_INTERFACE].GetSelfHandle()
 
     def join_muc(self):
@@ -82,12 +90,10 @@ class Client:
         time.sleep(2)
 
         print "join muc", self.muc_id
-        handle = self.conn[CONN_INTERFACE].RequestHandles(
-            CONNECTION_HANDLE_TYPE_ROOM, [self.muc_id])[0]
-
-        chan_path = self.conn[CONN_INTERFACE].RequestChannel(
-            CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_ROOM,
-            handle, True)
+        chan_path, props = self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel({
+            CHANNEL_INTERFACE + ".ChannelType": CHANNEL_TYPE_TEXT,
+            CHANNEL_INTERFACE + ".TargetHandleType": CONNECTION_HANDLE_TYPE_ROOM,
+            CHANNEL_INTERFACE + ".TargetID": self.muc_id})
 
         self.channel_text = Channel(self.conn.dbus_proxy.bus_name, chan_path)
 
@@ -95,57 +101,48 @@ class Client:
         self.channel_text[CHANNEL_INTERFACE_GROUP].connect_to_signal(
                 "MembersChanged", self.text_channel_members_changed_cb)
 
-        chan_path = self.conn[CONN_INTERFACE].RequestChannel(
-            CHANNEL_TYPE_TUBES, CONNECTION_HANDLE_TYPE_ROOM,
-            handle, True)
-        self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name, chan_path)
-
         if self.self_handle in self.channel_text[CHANNEL_INTERFACE_GROUP].GetMembers():
             self.joined = True
             self.muc_joined()
 
-    def new_channel_cb(self, object_path, channel_type, handle_type, handle,
-        suppress_handler):
-      if channel_type == CHANNEL_TYPE_TUBES:
-            self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name,
-                    object_path)
+    def new_channels_cb(self, channels):
+        if self.tube is not None:
+            return
 
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
-                    "TubeStateChanged", self.tube_state_changed_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
-                    "NewTube", self.new_tube_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal (
-                    "TubeClosed", self.tube_closed_cb)
+        for path, props in channels:
+            if props[CHANNEL_INTERFACE + ".ChannelType"] == CHANNEL_TYPE_DBUS_TUBE:
+                self.tube = Channel(self.conn.dbus_proxy.bus_name, path)
 
-            for tube in self.channel_tubes[CHANNEL_TYPE_TUBES].ListTubes():
-                id, initiator, type, service, params, state = (tube[0],
-                        tube[1], tube[2], tube[3], tube[4], tube[5])
-                self.new_tube_cb(id, initiator, type, service, params, state)
+                self.tube[CHANNEL_INTERFACE_TUBE].connect_to_signal(
+                        "TubeChannelStateChanged", self.tube_channel_state_changed_cb)
+                self.tube[CHANNEL_INTERFACE].connect_to_signal(
+                        "Closed", self.tube_closed_cb)
 
-    def new_tube_cb(self, id, initiator, type, service, params, state):
-        initiator_id = self.conn[CONN_INTERFACE].InspectHandles(
-                CONNECTION_HANDLE_TYPE_CONTACT, [initiator])[0]
+                self.got_tube(props)
 
-        print "new %s tube (%d) offered by %s. Service: %s. State: %s" % (
-                tube_type[type], id, initiator_id, service, tube_state[state])
+    def got_tube(self, props):
+        initiator_id = props[CHANNEL_INTERFACE + ".InitiatorID"]
+        service = props[CHANNEL_TYPE_DBUS_TUBE + ".ServiceName"]
 
-        if state == TUBE_STATE_OPEN:
-            self.tube_opened (id)
+        state = self.tube[PROPERTIES_IFACE].Get(CHANNEL_INTERFACE_TUBE, 'State')
 
-    def tube_opened (self, id):
+        print "new D-Bus tube offered by %s. Service: %s. State: %s" % (
+            initiator_id, service, tube_state[state])
+
+    def tube_opened (self):
         group_iface = self.channel_text[CHANNEL_INTERFACE_GROUP]
 
-        tube_conn = TubeConnection(self.conn,
-                self.channel_tubes[CHANNEL_TYPE_TUBES],
-                id, group_iface=group_iface)
+        tube_conn = TubeConnection(self.conn, self.tube, self.tube_addr,
+                group_iface=group_iface)
 
-        self.test = Test (tube_conn, self.conn)
+        self.test = Test(tube_conn, self.conn)
 
-    def tube_state_changed_cb(self, id, state):
-        if state == TUBE_STATE_OPEN:
-            self.tube_opened(id)
+    def tube_channel_state_changed_cb(self, state):
+        print "tube state changed:", tube_state[state]
+        if state == TUBE_CHANNEL_STATE_OPEN:
+            self.tube_opened()
 
-    def tube_closed_cb (self, id):
+    def tube_closed_cb(self):
         print "tube closed", id
 
     def text_channel_members_changed_cb(self, message, added, removed,
@@ -161,28 +158,37 @@ class InitiatorClient(Client):
     def __init__(self, account_file, muc_id):
         Client.__init__(self, account_file, muc_id)
 
-    def connected_cb(self):
-        Client.connected_cb(self)
+    def ready_cb(self, conn):
+        Client.ready_cb(self, conn)
 
         self.join_muc()
 
     def muc_joined(self):
         Client.muc_joined(self)
 
-        print "muc joined. Offer the tube"
-        self.offer_tube()
+        print "muc joined. Create the tube"
 
-    def tube_opened (self, id):
-        Client.tube_opened(self, id)
+        params = dbus.Dictionary({"login": "badger", "a_int" : 69},
+                signature='sv')
+
+        self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel({
+            CHANNEL_INTERFACE + ".ChannelType": CHANNEL_TYPE_DBUS_TUBE,
+            CHANNEL_INTERFACE + ".TargetHandleType": CONNECTION_HANDLE_TYPE_ROOM,
+            CHANNEL_INTERFACE + ".TargetID": self.muc_id,
+            CHANNEL_TYPE_DBUS_TUBE + ".ServiceName": SERVICE,
+            CHANNEL_INTERFACE_TUBE + ".Parameters": params})
+
+    def got_tube(self, props):
+        Client.got_tube(self, props)
+
+        print "Offer tube"
+        self.tube_addr = self.tube[CHANNEL_TYPE_DBUS_TUBE].OfferDBusTube()
+
+    def tube_opened (self):
+        Client.tube_opened(self)
 
         self._emit_test_signal();
         gobject.timeout_add (20000, self._emit_test_signal)
-
-    def offer_tube(self):
-        params = {"login": "badger", "a_int" : 69}
-        print "offer tube"
-        id = self.channel_tubes[CHANNEL_TYPE_TUBES].OfferDBusTube(SERVICE,
-                params)
 
     def _emit_test_signal (self):
         print "emit Hello"
@@ -193,22 +199,20 @@ class JoinerClient(Client):
     def __init__(self, account_file, muc_id):
         Client.__init__(self, account_file, muc_id)
 
-    def connected_cb(self):
-        Client.connected_cb(self)
+    def ready_cb(self, conn):
+        Client.ready_cb(self, conn)
 
         self.join_muc()
 
-    def new_tube_cb(self, id, initiator, type, service, params, state):
-        Client.new_tube_cb(self, id, initiator, type, service, params, state)
+    def got_tube(self, props):
+        Client.got_tube(self, props)
 
-        if state == TUBE_STATE_LOCAL_PENDING and service == SERVICE and\
-                self.test is None:
-            print "accept tube", id
-            self.channel_tubes[CHANNEL_TYPE_TUBES].AcceptDBusTube(id)
+        print "Accept tube"
+        self.tube_addr = self.tube[CHANNEL_TYPE_DBUS_TUBE].AcceptDBusTube()
 
 
-    def tube_opened (self, id):
-        Client.tube_opened(self, id)
+    def tube_opened (self):
+        Client.tube_opened(self)
 
         self.test.tube.add_signal_receiver(self.hello_cb, 'Hello', IFACE,
             path=PATH, sender_keyword='sender')
@@ -223,7 +227,6 @@ class JoinerClient(Client):
         print "Hello from %s" % sender
 
         text = "I'm %s and thank you for your hello" % self_id
-        print "call remote Say"
         self.test.tube.get_object(sender, PATH).Say(text, dbus_interface=IFACE)
 
 class Test(Object):
