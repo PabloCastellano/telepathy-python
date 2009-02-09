@@ -443,8 +443,6 @@ class ConnectionInterfaceRequests(
         target_handle = props.get(CHANNEL_INTERFACE + '.TargetHandle', None)
         target_id = props.get(CHANNEL_INTERFACE + '.TargetID', None)
 
-        altered_properties = props.copy()
-
         # Handle type 0 cannot have a handle.
         if target_handle_type == HANDLE_TYPE_NONE and target_handle != None:
             raise InvalidArgument('When TargetHandleType is NONE, ' +
@@ -466,6 +464,16 @@ class ConnectionInterfaceRequests(
 
             self.check_handle_type(target_handle_type)
 
+
+    def _alter_properties(self, props):
+        target_handle_type = props.get(CHANNEL_INTERFACE + '.TargetHandleType',
+            HANDLE_TYPE_NONE)
+        target_handle = props.get(CHANNEL_INTERFACE + '.TargetHandle', None)
+        target_id = props.get(CHANNEL_INTERFACE + '.TargetID', None)
+
+        altered_properties = props.copy()
+
+        if target_handle_type != HANDLE_TYPE_NONE:
             if target_handle == None:
                 # Turn TargetID into TargetHandle.
                 self.check_handle(target_handle_type, target_id)
@@ -487,7 +495,8 @@ class ConnectionInterfaceRequests(
         async_callbacks=('_success', '_error'))
     def CreateChannel(self, request, _success, _error):
         type, handle_type, handle = self._check_basic_properties(request)
-        props = self._validate_handle(request)
+        self._validate_handle(request)
+        props = self._alter_properties(request)
 
         channel = self._channel_manager.channel_for_props(props, signal=False)
 
@@ -518,7 +527,8 @@ class ConnectionInterfaceRequests(
             yours = False
 
         type, handle_type, handle = self._check_basic_properties(request)
-        props = self._validate_handle(request)
+        self._validate_handle(request)
+        props = self._alter_properties(request)
 
         channel = self._channel_manager.channel_for_props(props, signal=False)
 
