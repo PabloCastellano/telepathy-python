@@ -184,11 +184,15 @@ class Connection(_Connection, DBusProperties):
 
     def add_channels(self, channels, signal=True):
         """ add new channels and signal its creation"""
+        signal_channels = set()
+
         for channel in channels:
-            self._channels.add(channel)
+            if channel not in self._channels:
+                self._channels.add(channel)
+                signal_channels.add(channel)
 
         if signal:
-            self.signal_new_channels(channels)
+            self.signal_new_channels(signal_channels)
 
     def signal_new_channels(self, channels):
         self.NewChannels([(channel._object_path, channel.get_props()) \
