@@ -425,8 +425,10 @@ class ConnectionInterfaceRequests(
         check_valid_type_if_exists('TargetID',
             lambda p: isinstance(p, dbus.String))
 
-        # TODO: When Initiatorhandle, InitiatorID and Requested are officially
-        # supporter, if the request has any of them, raise an error.
+        # Disallow InitiatorHandle, InitiatorID and Requested.
+        check_valid_type_if_exists('InitiatorHandle', lambda p: False)
+        check_valid_type_if_exists('InitiatorID', lambda p: False)
+        check_valid_type_if_exists('Requested', lambda p: False)
 
         type = props[CHANNEL_INTERFACE + '.ChannelType']
         handle_type = props.get(CHANNEL_INTERFACE + '.TargetHandleType',
