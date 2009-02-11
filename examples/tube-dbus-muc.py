@@ -168,21 +168,20 @@ class InitiatorClient(Client):
 
         print "muc joined. Create the tube"
 
-        params = dbus.Dictionary({"login": "badger", "a_int" : 69},
-                signature='sv')
-
         self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel({
             CHANNEL_INTERFACE + ".ChannelType": CHANNEL_TYPE_DBUS_TUBE,
             CHANNEL_INTERFACE + ".TargetHandleType": CONNECTION_HANDLE_TYPE_ROOM,
             CHANNEL_INTERFACE + ".TargetID": self.muc_id,
-            CHANNEL_TYPE_DBUS_TUBE + ".ServiceName": SERVICE,
-            CHANNEL_INTERFACE_TUBE + ".Parameters": params})
+            CHANNEL_TYPE_DBUS_TUBE + ".ServiceName": SERVICE})
 
     def got_tube(self, props):
         Client.got_tube(self, props)
 
+        params = dbus.Dictionary({"login": "badger", "a_int" : 69},
+                signature='sv')
+
         print "Offer tube"
-        self.tube_addr = self.tube[CHANNEL_TYPE_DBUS_TUBE].OfferDBusTube()
+        self.tube_addr = self.tube[CHANNEL_TYPE_DBUS_TUBE].OfferDBusTube(params)
 
     def tube_opened (self):
         Client.tube_opened(self)
