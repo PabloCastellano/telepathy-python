@@ -38,13 +38,6 @@ class Message:
         conn[CONNECTION_INTERFACE_REQUESTS].connect_to_signal('NewChannels',
             self.new_channels_cb)
 
-        # This is required for MSN.
-        conn[CONNECTION_INTERFACE_SIMPLE_PRESENCE].SetPresence('available', '')
-
-        if self.contact is not None:
-            gobject.timeout_add(1000, self.send_message)
-
-    def send_message(self):
         handle = self.conn[CONN_INTERFACE].RequestHandles(
             CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
 
