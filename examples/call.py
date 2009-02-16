@@ -180,6 +180,7 @@ class IncomingCall(Call):
 
     def closed_cb(self):
         print "channel closed"
+        self.channel = None
         print "waiting for incoming call"
 
 if __name__ == '__main__':
