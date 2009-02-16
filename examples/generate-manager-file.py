@@ -4,7 +4,8 @@ import telepathy
 from telepathy.interfaces import CONN_MGR_INTERFACE
 from telepathy.constants import CONN_MGR_PARAM_FLAG_REQUIRED, \
                                 CONN_MGR_PARAM_FLAG_REGISTER, \
-                                CONN_MGR_PARAM_FLAG_HAS_DEFAULT
+                                CONN_MGR_PARAM_FLAG_HAS_DEFAULT, \
+                                CONN_MGR_PARAM_FLAG_DBUS_PROPERTY
 
 if len(sys.argv) >= 2:
     manager_name = sys.argv[1]
@@ -34,6 +35,8 @@ for protocol in protocols:
             print "required",
         if flags & CONN_MGR_PARAM_FLAG_REGISTER:
             print "register",
+        if flags & CONN_MGR_PARAM_FLAG_DBUS_PROPERTY:
+            print "dbus-property",
         print
 
         if flags & CONN_MGR_PARAM_FLAG_HAS_DEFAULT:
