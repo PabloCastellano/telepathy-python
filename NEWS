@@ -1,3 +1,17 @@
+telepathy-python 0.15.7 (2009-02-17)
+====================================
+
+The "I can hear every word and it's extremely boring" release.
+
+Enhancements:
+
+ * Specification 0.17.19.
+ * file-transfer.py example script now uses the stable FT interface.
+ * Support DBusProperty and Secret flags in generate-manager-file.
+
+Fixes:
+ * call.py: make ^C clean up connection in incoming mode.
+
 telepathy-python 0.15.6 (2009-01-07)
 ====================================
 
