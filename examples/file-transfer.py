@@ -111,7 +111,8 @@ class FTReceiverClient(FTClient):
     def got_ft_channel(self):
         print "accept FT"
         self.sock_addr = self.ft_channel[CHANNEL_TYPE_FILE_TRANSFER].AcceptFile(
-            SOCKET_ADDRESS_TYPE_UNIX, SOCKET_ACCESS_CONTROL_LOCALHOST, "", 0)
+            SOCKET_ADDRESS_TYPE_UNIX, SOCKET_ACCESS_CONTROL_LOCALHOST, "", 0,
+            byte_arrays=True)
 
     def ft_state_changed_cb(self, state, reason):
         FTClient.ft_state_changed_cb(self, state, reason)
@@ -183,7 +184,7 @@ class FTSenderClient(FTClient):
     def got_ft_channel(self):
         print "Offer %s to %s" % (self.file_to_offer, self.contact)
         self.sock_addr = self.ft_channel[CHANNEL_TYPE_FILE_TRANSFER].ProvideFile(SOCKET_ADDRESS_TYPE_UNIX,
-            SOCKET_ACCESS_CONTROL_LOCALHOST, "")
+            SOCKET_ACCESS_CONTROL_LOCALHOST, "", byte_arrays=True)
 
     def ft_state_changed_cb(self, state, reason):
         FTClient.ft_state_changed_cb(self, state, reason)
