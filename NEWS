@@ -1,3 +1,11 @@
+telepathy-python 0.15.8 (UNRELEASED)
+====================================
+
+Fixes:
+
+ * examples/file-transfer.py: UNIX socket address is supposed to be an 'ay'
+   according to the spec.
+
 telepathy-python 0.15.7 (2009-02-17)
 ====================================
 
@@ -10,6 +18,7 @@ Enhancements:
  * Support DBusProperty and Secret flags in generate-manager-file.
 
 Fixes:
+
  * call.py: make ^C clean up connection in incoming mode.
 
 telepathy-python 0.15.6 (2009-01-07)
