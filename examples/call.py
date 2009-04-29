@@ -127,7 +127,26 @@ class Call:
     def get_codec_config (self, channel, stream_id, media_type, direction):
         print "got codec config"
         if media_type == farsight.MEDIA_TYPE_VIDEO:
-            return [farsight.Codec(farsight.CODEC_ID_DISABLE, "THEORA", farsight.MEDIA_TYPE_VIDEO, 0)]
+            codecs = [ farsight.Codec(farsight.CODEC_ID_ANY, "H264",
+                farsight.MEDIA_TYPE_VIDEO, 0) ]
+            if self.conn.GetProtocol() == "sip" :
+                codecs += [ farsight.Codec(farsight.CODEC_ID_DISABLE, "THEORA",
+                                        farsight.MEDIA_TYPE_VIDEO, 0) ]
+            else:
+                codecs += [ farsight.Codec(farsight.CODEC_ID_ANY, "THEORA",
+                                        farsight.MEDIA_TYPE_VIDEO, 0) ]
+            codecs += [
+                farsight.Codec(farsight.CODEC_ID_ANY, "H263",
+                                        farsight.MEDIA_TYPE_VIDEO, 0),
+                farsight.Codec(farsight.CODEC_ID_DISABLE, "DV",
+                                        farsight.MEDIA_TYPE_VIDEO, 0),
+                farsight.Codec(farsight.CODEC_ID_ANY, "JPEG",
+                                        farsight.MEDIA_TYPE_VIDEO, 0),
+                farsight.Codec(farsight.CODEC_ID_ANY, "MPV",
+                                        farsight.MEDIA_TYPE_VIDEO, 0),
+            ]
+
+            return codecs
         else:
             return None
 
