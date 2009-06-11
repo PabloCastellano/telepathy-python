@@ -39,7 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
       <tp:member type="u" name="New_Flags"/>
     </tp:struct>
 
-    <tp:simple-type name="Property_ID" type="u">
+    <tp:simple-type name="Property_ID" type="u" array-name="Property_ID_List">
       <tp:docstring>
         An unsigned integer used to represent a Telepathy property.
       </tp:docstring>
@@ -158,7 +158,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
         tp:type="Property_Value[]">
         <!-- XXX: if we're ever breaking API compatibility, make this a{uv} -->
       <tp:docstring>
-        A dictionary mapping integer identifiers to boxed values
+        An array mapping integer property identifiers to boxed values
       </tp:docstring>
       </arg>
       <tp:possible-errors>

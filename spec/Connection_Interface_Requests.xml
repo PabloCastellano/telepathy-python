@@ -30,6 +30,12 @@
         represent bundles of channels that should be dispatched together, and
         does not assume any particular properties by which channels are
         uniquely identifiable.</p>
+
+      <p>If this interface is implemented on a connection, then
+        <tp:member-ref>NewChannels</tp:member-ref> MUST be emitted for
+        all new channels, even those created with <tp:dbus-ref
+          namespace="org.freedesktop.Telepathy.Connection"
+        >RequestChannel</tp:dbus-ref>.</p>
     </tp:docstring>
 
     <tp:struct name="Channel_Details" array-name="Channel_Details_List">
@@ -217,6 +223,12 @@
             contact is using a client that lacks a particular feature.
           </tp:docstring>
         </tp:error>
+        <tp:error name="org.freedesktop.Telepathy.Error.Offline">
+          <tp:docstring>
+            The requested channel cannot be created because the target is
+            offline.
+          </tp:docstring>
+        </tp:error>
         <tp:error name="org.freedesktop.Telepathy.Error.NotAvailable">
           <tp:docstring xmlns="http://www.w3.org/1999/xhtml">
             <p>The requested channel cannot be created, but in
@@ -354,6 +366,12 @@
           <tp:docstring>
             The requested channel cannot be created because the requested
             contact is using a client that lacks a particular feature.
+          </tp:docstring>
+        </tp:error>
+        <tp:error name="org.freedesktop.Telepathy.Error.Offline">
+          <tp:docstring>
+            The requested channel cannot be created because the target is
+            offline.
           </tp:docstring>
         </tp:error>
         <tp:error name="org.freedesktop.Telepathy.Error.NotAvailable">
