@@ -13,6 +13,10 @@ class <xsl:value-of select="translate(@name, '. ', '')"/>(DBusException):
 
   <xsl:template match="text()"/>
 
+  <xsl:template match="tp:section">
+    <xsl:apply-templates match="node"/>
+  </xsl:template>
+
   <xsl:template match="/">
     <xsl:apply-templates select="//tp:errors"/>
   </xsl:template>

@@ -58,6 +58,10 @@
 
   <xsl:template match="text()"/>
 
+<xsl:template match="tp:section">
+  <xsl:apply-templates match="node"/>
+</xsl:template>
+
   <xsl:template match="/tp:spec">"""List of constants, generated from the Telepathy spec version <xsl:value-of select="tp:version"/><xsl:text>
 
 </xsl:text><xsl:for-each select="tp:copyright">
@@ -67,7 +71,7 @@
 
 <xsl:value-of select="tp:docstring"/>
 """
-<xsl:apply-templates select="node"/>
+<xsl:apply-templates match="node"/>
 </xsl:template>
 
 </xsl:stylesheet>

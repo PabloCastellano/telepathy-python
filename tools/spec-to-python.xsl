@@ -7,6 +7,10 @@
   <xsl:variable name="upper" select="'ABCDEFGHIJKLMNOPQRSTUVWXYZ'"/>
   <xsl:variable name="lower" select="'abcdefghijklmnopqrstuvwxyz'"/>
 
+  <xsl:template match="tp:section">
+    <xsl:apply-templates match="node"/>
+  </xsl:template>
+
   <xsl:template match="interface">
     <xsl:variable name="u" select="translate(../@name, concat($lower, '/'), $upper)"/>
     <xsl:variable name="superclass">
