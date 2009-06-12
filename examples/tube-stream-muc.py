@@ -1,6 +1,8 @@
 import sys
 import dbus
 
+from telepathy.constants import CONNECTION_HANDLE_TYPE_ROOM
+
 from stream_tube_client import StreamTubeJoinerClient, \
         StreamTubeInitiatorClient
 
@@ -8,24 +10,24 @@ class StreamTubeInitiatorMucClient(StreamTubeInitiatorClient):
     def __init__(self, account_file, muc_id, socket_path=None):
         StreamTubeInitiatorClient.__init__(self, account_file, muc_id, None, socket_path)
 
-    def connected_cb(self):
-        StreamTubeInitiatorClient.connected_cb(self)
+    def ready_cb(self, conn):
+        StreamTubeInitiatorClient.ready_cb(self, conn)
 
         self.join_muc()
 
     def muc_joined(self):
         StreamTubeInitiatorClient.muc_joined(self)
 
-        print "muc joined. Offer the tube"
-        self.offer_tube()
+        print "muc joined. Create the tube"
+        self.create_tube(CONNECTION_HANDLE_TYPE_ROOM, self.muc_id)
 
 class StreamTubeJoinerMucClient(StreamTubeJoinerClient):
     def __init__(self, account_file, muc_id, connect_trivial_client):
         StreamTubeJoinerClient.__init__(self, account_file, muc_id, None,
                 connect_trivial_client)
 
-    def connected_cb(self):
-        StreamTubeJoinerClient.connected_cb(self)
+    def ready_cb(self, conn):
+        StreamTubeJoinerClient.ready_cb(self, conn)
 
         self.join_muc()
 
