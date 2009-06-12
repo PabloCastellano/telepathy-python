@@ -2,7 +2,7 @@
   xmlns:tp="http://telepathy.freedesktop.org/wiki/DbusSpec#extensions-v0"
   exclude-result-prefixes="tp">
 
-  <xsl:output method="text" indent="no" encoding="ascii"/>
+  <xsl:output method="text" indent="no" encoding="utf-8"/>
 
   <xsl:template match="tp:errors/tp:error">
 class <xsl:value-of select="translate(@name, '. ', '')"/>(DBusException):
