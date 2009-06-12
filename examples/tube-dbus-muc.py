@@ -18,7 +18,7 @@ from telepathy.constants import (
         CONNECTION_HANDLE_TYPE_ROOM, CONNECTION_STATUS_CONNECTED,
         CONNECTION_STATUS_DISCONNECTED, CONNECTION_STATUS_CONNECTING,
         TUBE_TYPE_DBUS, TUBE_TYPE_STREAM, TUBE_STATE_LOCAL_PENDING,
-        TUBE_STATE_REMOTE_PENDING, TUBE_STATE_OPEN)
+        TUBE_STATE_REMOTE_PENDING, TUBE_STATE_OPEN, SOCKET_ACCESS_CONTROL_CREDENTIALS)
 
 from account import connection_from_file
 from tubeconn import TubeConnection
@@ -28,8 +28,8 @@ IFACE = SERVICE
 PATH = "/org/freedesktop/Telepathy/Tube/Test"
 
 # TODO: import when tube API is stable
-CHANNEL_INTERFACE_TUBE = CHANNEL_INTERFACE + ".Interface.Tube.DRAFT"
-CHANNEL_TYPE_DBUS_TUBE = CHANNEL_INTERFACE + ".Type.DBusTube.DRAFT"
+CHANNEL_INTERFACE_TUBE = CHANNEL_INTERFACE + ".Interface.Tube"
+CHANNEL_TYPE_DBUS_TUBE = CHANNEL_INTERFACE + ".Type.DBusTube"
 
 TUBE_CHANNEL_STATE_LOCAL_PENDING = 0
 TUBE_CHANNEL_STATE_REMOTE_PENDING = 1
@@ -181,7 +181,8 @@ class InitiatorClient(Client):
                 signature='sv')
 
         print "Offer tube"
-        self.tube_addr = self.tube[CHANNEL_TYPE_DBUS_TUBE].OfferDBusTube(params)
+        self.tube_addr = self.tube[CHANNEL_TYPE_DBUS_TUBE].Offer(params,
+            SOCKET_ACCESS_CONTROL_CREDENTIALS)
 
     def tube_opened (self):
         Client.tube_opened(self)
@@ -207,7 +208,7 @@ class JoinerClient(Client):
         Client.got_tube(self, props)
 
         print "Accept tube"
-        self.tube_addr = self.tube[CHANNEL_TYPE_DBUS_TUBE].AcceptDBusTube()
+        self.tube_addr = self.tube[CHANNEL_TYPE_DBUS_TUBE].Accept(SOCKET_ACCESS_CONTROL_CREDENTIALS)
 
 
     def tube_opened (self):
