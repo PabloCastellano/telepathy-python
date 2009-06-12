@@ -1,7 +1,5 @@
 import sys
 import dbus
-from telepathy.client import (Connection, Channel)
-from telepathy.interfaces import (CONN_INTERFACE, CHANNEL_TYPE_TUBES)
 from telepathy.constants import (CONNECTION_HANDLE_TYPE_CONTACT)
 import time
 
