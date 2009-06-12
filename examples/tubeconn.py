@@ -26,7 +26,7 @@ import logging
 from dbus.connection import Connection
 from dbus import PROPERTIES_IFACE
 
-from telepathy.interfaces import CHANNEL_INTERFACE, CHANNEL_TYPE_DBUS_TUBE
+from telepathy.interfaces import CHANNEL_TYPE_DBUS_TUBE
 
 logger = logging.getLogger('telepathy.tubeconn')
 
