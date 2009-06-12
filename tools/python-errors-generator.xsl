@@ -17,7 +17,7 @@ class <xsl:value-of select="translate(@name, '. ', '')"/>(DBusException):
     <xsl:apply-templates match="node"/>
   </xsl:template>
 
-  <xsl:template match="/">
+  <xsl:template match="/"># -*- coding: utf-8 -*-
     <xsl:apply-templates select="//tp:errors"/>
   </xsl:template>
 

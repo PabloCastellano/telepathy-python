@@ -51,8 +51,7 @@ class <xsl:value-of select="translate(/node/@name, '/_', '')"/>(<xsl:value-of se
         pass
   </xsl:template>
 
-  <xsl:template match="/">
-    <xsl:if test="node/interface[not(@tp:causes-havoc)]">
+  <xsl:template match="/"><xsl:if test="node/interface[not(@tp:causes-havoc)]"># -*- coding: utf-8 -*-
 # Generated from the Telepathy spec
 """<xsl:for-each select="node/tp:copyright">
   <xsl:apply-templates/><xsl:text>
