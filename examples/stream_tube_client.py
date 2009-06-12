@@ -119,6 +119,9 @@ class StreamTubeClient:
                 self.tube[CHANNEL_TYPE_STREAM_TUBE].connect_to_signal(
                        "NewRemoteConnection",
                        self.stream_tube_new_remote_connection_cb)
+                self.tube[CHANNEL_TYPE_STREAM_TUBE].connect_to_signal(
+                       "NewLocalConnection",
+                       self.stream_tube_new_local_connection_cb)
 
                 self.got_tube(props)
 
@@ -156,6 +159,9 @@ class StreamTubeClient:
                self.conn[CONN_INTERFACE].InspectHandles(
                    CONNECTION_HANDLE_TYPE_CONTACT, [handle])[0],
                conn_id)
+
+    def stream_tube_new_local_connection_cb(self, conn_id):
+       print "new socket connection on tube (id: %u)" % conn_id
 
 class StreamTubeInitiatorClient(StreamTubeClient):
     def __init__(self, account_file, muc_id, contact_id, socket_address=None):
