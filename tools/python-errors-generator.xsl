@@ -21,7 +21,8 @@ class <xsl:value-of select="translate(@name, '. ', '')"/>(DBusException):
     <xsl:apply-templates select="//tp:errors"/>
   </xsl:template>
 
-  <xsl:template match="tp:errors">"""Exception classes, generated from the Telepathy spec
+  <xsl:template match="tp:errors">
+"""Exception classes, generated from the Telepathy spec
 
 <xsl:for-each select="tp:copyright">
 <xsl:value-of select="."/><xsl:text>
