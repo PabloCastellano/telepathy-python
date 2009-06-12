@@ -1,10 +1,16 @@
 telepathy-python 0.15.8 (UNRELEASED)
 ====================================
 
+Enhancements:
+
+ * Specification 0.17.26.
+ * Upgrade tube examples to use the new API.
+
 Fixes:
 
  * examples/file-transfer.py: UNIX socket address is supposed to be an 'ay'
    according to the spec.
+
 
 telepathy-python 0.15.7 (2009-02-17)
 ====================================
