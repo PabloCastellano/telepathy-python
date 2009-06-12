@@ -122,6 +122,9 @@ class StreamTubeClient:
                 self.tube[CHANNEL_TYPE_STREAM_TUBE].connect_to_signal(
                        "NewLocalConnection",
                        self.stream_tube_new_local_connection_cb)
+                self.tube[CHANNEL_TYPE_STREAM_TUBE].connect_to_signal(
+                       "ConnectionClosed",
+                       self.stream_tube_connection_closed_cb)
 
                 self.got_tube(props)
 
@@ -162,6 +165,9 @@ class StreamTubeClient:
 
     def stream_tube_new_local_connection_cb(self, conn_id):
        print "new socket connection on tube (id: %u)" % conn_id
+
+    def stream_tube_connection_closed_cb(self, conn_id, error, msg):
+        print "socket connection %r has been closed: %s (%s)" % (conn_id, msg, error)
 
 class StreamTubeInitiatorClient(StreamTubeClient):
     def __init__(self, account_file, muc_id, contact_id, socket_address=None):
