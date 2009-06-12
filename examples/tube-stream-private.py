@@ -3,6 +3,7 @@ import dbus
 from telepathy.client import (Connection, Channel)
 from telepathy.interfaces import (CONN_INTERFACE, CHANNEL_TYPE_TUBES)
 from telepathy.constants import (CONNECTION_HANDLE_TYPE_CONTACT)
+import time
 
 from stream_tube_client import StreamTubeJoinerClient, \
         StreamTubeInitiatorClient
@@ -14,6 +15,11 @@ class StreamTubeInitiatorPrivateClient(StreamTubeInitiatorClient):
     def ready_cb(self, conn):
         StreamTubeInitiatorClient.ready_cb(self, conn)
 
+        # Gabble will refuse to create the tube if it didn't receive contact's
+        # capability yet (to ensure that he supports tubes). Ideally we should
+        # use the ContactCapability interface to determine when we can offer
+        # the tube. As this API is still a DRAFT, we just add a delay for now.
+        time.sleep(5)
         self.create_tube(CONNECTION_HANDLE_TYPE_CONTACT, self.contact_id)
 
 class StreamTubeJoinerPrivateClient(StreamTubeJoinerClient):
