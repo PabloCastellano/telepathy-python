@@ -5,6 +5,8 @@ Enhancements:
 
 Fixes:
 
+ * Call get_handle_type() in ListChannels avoiding an error if the handle is null.
+
 telepathy-python 0.15.8 (2009-06-15)
 ====================================
 
