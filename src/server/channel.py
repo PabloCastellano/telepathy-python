@@ -43,7 +43,7 @@ from telepathy.server.properties import DBusProperties
 
 class Channel(_Channel, DBusProperties):
 
-    def __init__(self, connection, props):
+    def __init__(self, connection, manager, props):
         """
         Initialise the base channel object.
 
@@ -52,6 +52,7 @@ class Channel(_Channel, DBusProperties):
         props - initial channel properties
         """
         self._conn = connection
+        self._chan_manager = manager
         object_path = self._conn.get_channel_path()
         _Channel.__init__(self, self._conn._name, object_path)
 
@@ -108,6 +109,7 @@ class Channel(_Channel, DBusProperties):
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='')
     def Close(self):
         self.Closed()
+        self._chan_manager.remove_channel(self)
         self._conn.remove_channel(self)
 
     @dbus.service.method(CHANNEL_INTERFACE, in_signature='', out_signature='s')
@@ -141,14 +143,14 @@ from telepathy._generated.Channel_Type_Contact_List \
 class ChannelTypeContactList(Channel, _ChannelTypeContactListIface):
     __doc__ = _ChannelTypeContactListIface.__doc__
 
-    def __init__(self, connection, props):
+    def __init__(self, connection, manager, props):
         """
         Initialise the channel.
 
         Parameters:
         connection - the parent Telepathy Connection object
         """
-        Channel.__init__(self, connection, props)
+        Channel.__init__(self, connection, manager, props)
 
 
 from telepathy._generated.Channel_Type_Streamed_Media \
@@ -157,14 +159,14 @@ from telepathy._generated.Channel_Type_Streamed_Media \
 class ChannelTypeStreamedMedia(Channel, _ChannelTypeStreamedMediaIface):
     __doc__ = _ChannelTypeStreamedMediaIface.__doc__
 
-    def __init__(self, connection, props):
+    def __init__(self, connection, manager, props):
         """
         Initialise the channel.
 
         Parameters:
         connection - the parent Telepathy Connection object
         """
-        Channel.__init__(self, connection, props)
+        Channel.__init__(self, connection, manager, props)
 
 
 from telepathy._generated.Channel_Type_Room_List \
@@ -173,14 +175,14 @@ from telepathy._generated.Channel_Type_Room_List \
 class ChannelTypeRoomList(Channel, _ChannelTypeRoomListIface):
     __doc__ = _ChannelTypeRoomListIface.__doc__
 
-    def __init__(self, connection, props):
+    def __init__(self, connection, manager, props):
         """
         Initialise the channel.
 
         Parameters:
         connection - the parent Telepathy Connection object
         """
-        Channel.__init__(self, connection, props)
+        Channel.__init__(self, connection, manager, props)
         self._listing_rooms = False
         self._rooms = {}
 
@@ -201,14 +203,14 @@ from telepathy._generated.Channel_Type_Text \
 class ChannelTypeText(Channel, _ChannelTypeTextIface):
     __doc__ = _ChannelTypeTextIface.__doc__
 
-    def __init__(self, connection, props):
+    def __init__(self, connection, manager, props):
         """
         Initialise the channel.
 
         Parameters:
         connection - the parent Telepathy Connection object
         """
-        Channel.__init__(self, connection, props)
+        Channel.__init__(self, connection, manager, props)
 
         self._pending_messages = {}
         self._message_types = [CHANNEL_TEXT_MESSAGE_TYPE_NORMAL]

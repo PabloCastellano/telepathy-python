@@ -40,6 +40,12 @@ class ChannelManager(object):
                 else:
                     channel.Close()
 
+    def remove_channel(self, channel):
+        for channel_type in self._requestable_channel_classes:
+            for handle, chan in self._channels[channel_type].items():
+                if channel == chan:
+                    del self._channels[channel_type][handle]
+
     def _get_type_requested_handle(self, props):
         type = props[CHANNEL_INTERFACE + '.ChannelType']
         requested = props[CHANNEL_INTERFACE + '.Requested']
