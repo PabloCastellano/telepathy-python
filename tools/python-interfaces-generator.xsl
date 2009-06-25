@@ -28,7 +28,7 @@
 
 <xsl:value-of select="tp:docstring"/>
 """
-<xsl:apply-templates match="node"/>
+<xsl:apply-templates select="node()"/>
 </xsl:template>
 
 </xsl:stylesheet>
