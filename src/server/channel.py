@@ -31,6 +31,7 @@ from telepathy.interfaces import (CHANNEL_INTERFACE,
                                   CHANNEL_INTERFACE_HOLD,
                                   CHANNEL_INTERFACE_PASSWORD,
                                   CHANNEL_TYPE_CONTACT_LIST,
+                                  CHANNEL_TYPE_FILE_TRANSFER,
                                   CHANNEL_TYPE_ROOM_LIST,
                                   CHANNEL_TYPE_STREAMED_MEDIA,
                                   CHANNEL_TYPE_TEXT,
@@ -142,6 +143,22 @@ from telepathy._generated.Channel_Type_Contact_List \
 
 class ChannelTypeContactList(Channel, _ChannelTypeContactListIface):
     __doc__ = _ChannelTypeContactListIface.__doc__
+
+    def __init__(self, connection, manager, props):
+        """
+        Initialise the channel.
+
+        Parameters:
+        connection - the parent Telepathy Connection object
+        """
+        Channel.__init__(self, connection, manager, props)
+
+
+from telepathy._generated.Channel_Type_File_Transfer \
+        import ChannelTypeFileTransfer as _ChannelTypeFileTransferIface
+
+class ChannelTypeFileTransfer(Channel, _ChannelTypeFileTransferIface):
+    __doc__ = _ChannelTypeFileTransferIface.__doc__
 
     def __init__(self, connection, manager, props):
         """

@@ -3,6 +3,8 @@ telepathy-python 0.15.11 (UNRELEASED)
 
 Enhancements:
 
+ * Add the ChannelTypeFileTransfer interface
+
 Fixes:
 
  * #23081: Fixing TargetID handle search (Thiago Borges Abdnur)
