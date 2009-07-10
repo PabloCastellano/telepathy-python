@@ -372,7 +372,7 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
                 caps.append((self._self_handle, ctype, gen_old, gen_new,
                             spec_old, spec_new))
 
-        self.CapabilitiesChanged(self._self_handle, caps)
+        self.CapabilitiesChanged(caps)
 
         # return all my capabilities
         return [(ctype, caps[1]) for ctype, caps in my_caps.iteritems()]
