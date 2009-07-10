@@ -195,7 +195,7 @@ class Connection(_Connection, DBusProperties):
             self.signal_new_channels(signal_channels)
 
     def signal_new_channels(self, channels):
-        self.NewChannels([(channel._object_path, channel.get_props()) \
+        self.NewChannels([(channel._object_path, channel.get_props())
             for channel in channels])
 
         # Now NewChannel needs to be called for each new channel.
@@ -392,7 +392,7 @@ class ConnectionInterfaceRequests(
         self._implement_property_get(CONNECTION_INTERFACE_REQUESTS,
             {'Channels': lambda: dbus.Array(self._get_channels(),
                 signature='(oa{sv})'),
-            'RequestableChannelClasses': lambda: dbus.Array( \
+            'RequestableChannelClasses': lambda: dbus.Array(
                 self._channel_manager.get_requestable_channel_classes(),
                 signature='(a{sv}as)')})
 
