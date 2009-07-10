@@ -183,7 +183,7 @@ class Connection(_Connection, DBusProperties):
         return ret
 
     def add_channels(self, channels, signal=True):
-        """ add new channels and signal its creation"""
+        """ add new channels and signal their creation"""
         signal_channels = set()
 
         for channel in channels:
