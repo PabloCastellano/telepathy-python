@@ -22,9 +22,9 @@ class Message:
         self.contact = None
         self.message = None
 
-        assert len(stuff) in (0, 2)
-        if len(stuff) == 2:
-            self.contact = stuff[0]
+        self.contact = stuff[0]
+
+        if len(stuff) > 1:
             self.message = stuff[1]
 
         self.conn = connection_from_file(sys.argv[1],
@@ -100,6 +100,10 @@ class Message:
         self.quit()
 
 if __name__ == '__main__':
+    if len(sys.argv[2:]) < 1:
+        print 'usage: python %s managerfile recipient [message]' % sys.argv[0]
+        sys.exit(1)
+
     msg = Message(*sys.argv[2:])
 
     msg.run()
