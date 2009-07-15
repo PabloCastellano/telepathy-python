@@ -12,8 +12,7 @@ from telepathy.constants import (
     CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_STATUS_CONNECTED,
     CHANNEL_TEXT_MESSAGE_TYPE_NORMAL)
 from telepathy.interfaces import (
-    CHANNEL_TYPE_TEXT, CONN_INTERFACE, CHANNEL_INTERFACE,
-    CONNECTION_INTERFACE_REQUESTS, CONNECTION_INTERFACE_SIMPLE_PRESENCE)
+    CHANNEL_TYPE_TEXT, CONN_INTERFACE, CHANNEL_INTERFACE)
 
 logging.basicConfig()
 
@@ -41,18 +40,13 @@ class Message:
 
         print 'got handle %d for %s' % (handle, self.contact)
 
-        object_path, props = self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel(dbus.Dictionary(
-            {
+        channel = self.conn.create_channel(dbus.Dictionary({
                 CHANNEL_INTERFACE + '.ChannelType': CHANNEL_TYPE_TEXT,
                 CHANNEL_INTERFACE + '.TargetHandleType': CONNECTION_HANDLE_TYPE_CONTACT,
                 CHANNEL_INTERFACE + '.TargetHandle': handle
             }, signature='sv'))
 
-        handle_type = props[CHANNEL_INTERFACE + '.TargetHandleType']
-        handle = props[CHANNEL_INTERFACE + '.TargetHandle']
-
-        print 'got text channel with handle (%d,%d)' % (handle_type, handle)
-        channel = Channel(self.conn.service_name, object_path)
+        print 'got text channel with handle (%d,%d)' % (CONNECTION_HANDLE_TYPE_CONTACT, handle)
 
         channel[CHANNEL_TYPE_TEXT].connect_to_signal('Sent', self.sent_cb)
         channel[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.recvd_cb)
