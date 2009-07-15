@@ -35,20 +35,37 @@ class Message:
 
     def ready_cb(self, conn):
         print "connected"
-        conn[CONNECTION_INTERFACE_REQUESTS].connect_to_signal('NewChannels',
-            self.new_channels_cb)
 
         handle = self.conn[CONN_INTERFACE].RequestHandles(
             CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
 
         print 'got handle %d for %s' % (handle, self.contact)
 
-        self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel(dbus.Dictionary(
+        object_path, props = self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel(dbus.Dictionary(
             {
                 CHANNEL_INTERFACE + '.ChannelType': CHANNEL_TYPE_TEXT,
                 CHANNEL_INTERFACE + '.TargetHandleType': CONNECTION_HANDLE_TYPE_CONTACT,
                 CHANNEL_INTERFACE + '.TargetHandle': handle
             }, signature='sv'))
+
+        handle_type = props[CHANNEL_INTERFACE + '.TargetHandleType']
+        handle = props[CHANNEL_INTERFACE + '.TargetHandle']
+
+        print 'got text channel with handle (%d,%d)' % (handle_type, handle)
+        channel = Channel(self.conn.service_name, object_path)
+
+        channel[CHANNEL_TYPE_TEXT].connect_to_signal('Sent', self.sent_cb)
+        channel[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.recvd_cb)
+        channel[CHANNEL_TYPE_TEXT].connect_to_signal('SendError',
+            self.send_error_cb)
+
+        if self.message is not None:
+            channel[CHANNEL_TYPE_TEXT].Send(
+                CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, self.message)
+        else:
+            for message in channel[CHANNEL_TYPE_TEXT].ListPendingMessages(True):
+                self.recvd_cb(*message)
+
 
     def run(self):
         print "main loop running"
@@ -63,31 +80,6 @@ class Message:
         if self.loop:
             self.loop.quit()
             self.loop = None
-
-    def new_channels_cb(self, channels):
-        for object_path, props in channels:
-            channel_type = props[CHANNEL_INTERFACE + '.ChannelType']
-
-            if channel_type != CHANNEL_TYPE_TEXT:
-                return
-
-            handle_type = props[CHANNEL_INTERFACE + '.TargetHandleType']
-            handle = props[CHANNEL_INTERFACE + '.TargetHandle']
-
-            print 'got text channel with handle (%d,%d)' % (handle_type, handle)
-            channel = Channel(self.conn.service_name, object_path)
-
-            channel[CHANNEL_TYPE_TEXT].connect_to_signal('Sent', self.sent_cb)
-            channel[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.recvd_cb)
-            channel[CHANNEL_TYPE_TEXT].connect_to_signal('SendError',
-                self.send_error_cb)
-
-            if self.message is not None:
-                channel[CHANNEL_TYPE_TEXT].Send(
-                    CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, self.message)
-            else:
-                for message in channel[CHANNEL_TYPE_TEXT].ListPendingMessages(True):
-                    self.recvd_cb(*message)
 
     def recvd_cb(self, *args):
         print args
