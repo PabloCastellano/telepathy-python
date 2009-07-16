@@ -11,63 +11,42 @@ from telepathy.client.channel import Channel
 from telepathy.constants import (
     CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_STATUS_CONNECTED,
     CHANNEL_TEXT_MESSAGE_TYPE_NORMAL)
-from telepathy.interfaces import CHANNEL_TYPE_TEXT, CONN_INTERFACE
+from telepathy.interfaces import (
+    CHANNEL_TYPE_TEXT, CONN_INTERFACE, CHANNEL_INTERFACE)
 
 logging.basicConfig()
 
 class Message:
-    def __init__(self, conn, *stuff):
-        self.conn = conn
+    def __init__(self, *stuff):
         self.contact = None
         self.message = None
 
-        assert len(stuff) in (0, 2)
-        if len(stuff) == 2:
-            self.contact = stuff[0]
+        self.contact = stuff[0]
+
+        if len(stuff) > 1:
             self.message = stuff[1]
 
-        conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
-            self.status_changed_cb)
-        conn[CONN_INTERFACE].connect_to_signal('NewChannel',
-            self.new_channel_cb)
+        self.conn = connection_from_file(sys.argv[1],
+            ready_handler=self.ready_cb)
 
-    def run(self):
-        print "main loop running"
-        self.loop = gobject.MainLoop()
-        self.loop.run()
+        print "connecting"
+        self.conn[CONN_INTERFACE].Connect()
 
-    def quit(self):
-        if self.loop:
-            self.loop.quit()
-            self.loop = None
+    def ready_cb(self, conn):
+        print "connected"
 
-    def status_changed_cb(self, state, reason):
-        if state != CONNECTION_STATUS_CONNECTED:
-            return
-        print "connection became ready"
+        handle = self.conn[CONN_INTERFACE].RequestHandles(
+            CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
 
-        if self.contact is not None:
-            handle = conn[CONN_INTERFACE].RequestHandles(
-                CONNECTION_HANDLE_TYPE_CONTACT, [self.contact])[0]
+        print 'got handle %d for %s' % (handle, self.contact)
 
-            print 'got handle %d for %s' % (handle, self.contact)
+        channel = self.conn.create_channel(dbus.Dictionary({
+                CHANNEL_INTERFACE + '.ChannelType': CHANNEL_TYPE_TEXT,
+                CHANNEL_INTERFACE + '.TargetHandleType': CONNECTION_HANDLE_TYPE_CONTACT,
+                CHANNEL_INTERFACE + '.TargetHandle': handle
+            }, signature='sv'))
 
-            conn[CONN_INTERFACE].RequestChannel(
-                CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_CONTACT, handle, True,
-                reply_handler=lambda *stuff: None,
-                error_handler=self.request_channel_error_cb)
-
-    def request_channel_error_cb(self, exception):
-        print 'error:', exception
-        self.quit()
-
-    def new_channel_cb(self, object_path, channel_type, handle_type, handle,
-            suppress_handler):
-        if channel_type != CHANNEL_TYPE_TEXT:
-            return
-
-        print 'got text channel with handle (%d,%d)' % (handle_type, handle)
-        channel = Channel(self.conn.service_name, object_path)
+        print 'got text channel with handle (%d,%d)' % (CONNECTION_HANDLE_TYPE_CONTACT, handle)
 
         channel[CHANNEL_TYPE_TEXT].connect_to_signal('Sent', self.sent_cb)
         channel[CHANNEL_TYPE_TEXT].connect_to_signal('Received', self.recvd_cb)
@@ -80,6 +59,21 @@ class Message:
         else:
             for message in channel[CHANNEL_TYPE_TEXT].ListPendingMessages(True):
                 self.recvd_cb(*message)
+
+
+    def run(self):
+        print "main loop running"
+        self.loop = gobject.MainLoop()
+
+        try:
+            self.loop.run()
+        finally:
+            self.conn[CONN_INTERFACE].Disconnect()
+
+    def quit(self):
+        if self.loop:
+            self.loop.quit()
+            self.loop = None
 
     def recvd_cb(self, *args):
         print args
@@ -100,16 +94,10 @@ class Message:
         self.quit()
 
 if __name__ == '__main__':
-    conn = connection_from_file(sys.argv[1])
+    if len(sys.argv[2:]) < 1:
+        print 'usage: python %s managerfile recipient [message]' % sys.argv[0]
+        sys.exit(1)
 
-    msg = Message(conn, *sys.argv[2:])
+    msg = Message(*sys.argv[2:])
 
-    print "connecting"
-    conn[CONN_INTERFACE].Connect()
-
-    try:
-        msg.run()
-    except KeyboardInterrupt:
-        print "killed"
-
-    conn[CONN_INTERFACE].Disconnect()
+    msg.run()
