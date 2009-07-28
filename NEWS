@@ -3,6 +3,11 @@ telepathy-python 0.15.9 (UNRELEASED)
 
 Enhancements:
 
+* Add service side helper code to implement Connection.Interface.Requests.
+  This breaks the old request channel API so be sure to upgrade
+  telepathy-butterfly at the same time as telepathy-python.
+  Client side code is not affected by this change.
+
 Fixes:
 
  * Call get_handle_type() in ListChannels avoiding an error if the handle is null.
