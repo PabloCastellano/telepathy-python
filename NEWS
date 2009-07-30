@@ -1,9 +1,11 @@
-telepathy-python 0.15.10 (UNRELEASED)
+telepathy-python 0.15.10 (2009-07-30)
 ====================================
 
-Enhancements:
+The "Come back automake, all is forgiven" release.
 
 Fixes:
+
+* Actually include server/channelmanager.py in the tarball.
 
 telepathy-python 0.15.9 (2009-07-28)
 ====================================
