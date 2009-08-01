@@ -433,7 +433,7 @@ class ConnectionInterfaceRequests(
         type = props[CHANNEL_INTERFACE + '.ChannelType']
         handle_type = props.get(CHANNEL_INTERFACE + '.TargetHandleType',
                 HANDLE_TYPE_NONE)
-        handle = props[CHANNEL_INTERFACE + '.TargetHandle']
+        handle = props.get(CHANNEL_INTERFACE + '.TargetHandle', 0)
 
         return (type, handle_type, handle)
 
@@ -476,8 +476,12 @@ class ConnectionInterfaceRequests(
         if target_handle_type != HANDLE_TYPE_NONE:
             if target_handle == None:
                 # Turn TargetID into TargetHandle.
-                self.check_handle(target_handle_type, target_id)
-                target_handle = self._handles[target_handle_type, target_id]
+                for handle in self._handles.itervalues():
+                    if handle.get_name() == target_id and handle.get_type() == target_handle_type:
+                        target_handle = handle.get_id()
+                if not target_handle:
+                    raise InvalidHandle('TargetID %s not valid for type %d' %
+                        target_id, target_handle_type)
 
                 altered_properties[CHANNEL_INTERFACE + '.TargetHandle'] = \
                     target_handle
@@ -522,11 +526,11 @@ class ConnectionInterfaceRequests(
         in_signature='a{sv}', out_signature='boa{sv}',
         async_callbacks=('_success', '_error'))
     def EnsureChannel(self, request, _success, _error):
-        yours = not self._channel_manager.channel_exists(request)
-
         type, handle_type, handle = self._check_basic_properties(request)
         self._validate_handle(request)
         props = self._alter_properties(request)
+
+        yours = not self._channel_manager.channel_exists(props)
 
         channel = self._channel_manager.channel_for_props(props, signal=False)
 
