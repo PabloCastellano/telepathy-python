@@ -5,6 +5,8 @@ Enhancements:
 
 Fixes:
 
+ * #23081: Fixing TargetID handle search (Thiago Borges Abdnur)
+
 telepathy-python 0.15.10 (2009-07-30)
 =====================================
 
