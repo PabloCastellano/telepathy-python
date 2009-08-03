@@ -6,8 +6,7 @@ telepathy_PYTHON = \
 	errors.py \
 	__init__.py \
 	interfaces.py \
-	utils.py \
-	_version.py
+	utils.py
 
 spec_dir = $(top_srcdir)/spec
 spec_files := $(patsubst $(spec_dir)%.xml,_generated%.py,$(wildcard $(spec_dir)/*.xml))
@@ -25,8 +24,11 @@ CLEANFILES = \
 
 EXTRA_DIST = _version.py.in
 
+versiondir = $(telepathydir)
+nodist_version_PYTHON = _version.py
+
 generateddir = $(telepathydir)/_generated
-generated_PYTHON = $(BUILT_SOURCES)
+nodist_generated_PYTHON = $(BUILT_SOURCES)
 
 distclean-local:
 	rm -rf *.pyc _generated
