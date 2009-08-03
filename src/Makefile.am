@@ -1,5 +1,6 @@
 SUBDIRS = client server
 
+# telepathy.* modules containing files written by hand.
 telepathydir = $(pythondir)/telepathy
 telepathy_PYTHON = \
 	constants.py \
@@ -8,6 +9,7 @@ telepathy_PYTHON = \
 	interfaces.py \
 	utils.py
 
+# telepathy._generated.* auto-generated modules
 spec_dir = $(top_srcdir)/spec
 spec_files := $(patsubst $(spec_dir)%.xml,_generated%.py,$(wildcard $(spec_dir)/*.xml))
 
@@ -18,17 +20,18 @@ BUILT_SOURCES = \
 	_generated/__init__.py \
 	$(spec_files)
 
+generateddir = $(telepathydir)/_generated
+nodist_generated_PYTHON = $(BUILT_SOURCES)
+
+# telepathy._version generated module
+versiondir = $(telepathydir)
+nodist_version_PYTHON = _version.py
+
 CLEANFILES = \
 	_version.py \
 	$(BUILT_SOURCES)
 
 EXTRA_DIST = _version.py.in
-
-versiondir = $(telepathydir)
-nodist_version_PYTHON = _version.py
-
-generateddir = $(telepathydir)/_generated
-nodist_generated_PYTHON = $(BUILT_SOURCES)
 
 distclean-local:
 	rm -rf *.pyc *.pyo _generated
