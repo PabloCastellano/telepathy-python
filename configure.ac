@@ -23,6 +23,8 @@ AC_DEFINE(TELEPATHY_PYTHON_MINOR_VERSION, telepathy_python_minor_version, [telep
 AC_SUBST(TELEPATHY_PYTHON_MINOR_VERSION, telepathy_python_minor_version)
 AC_DEFINE(TELEPATHY_PYTHON_MICRO_VERSION, telepathy_python_micro_version, [telepathy-python micro version])
 AC_SUBST(TELEPATHY_PYTHON_MICRO_VERSION, telepathy_python_micro_version)
+AC_DEFINE(TELEPATHY_PYTHON_RELEASED, telepathy_python_released, [telepathy-python released])
+AC_SUBST(TELEPATHY_PYTHON_RELEASED, telepathy_python_released)
 
 AM_PATH_PYTHON(2.4.0)
 
