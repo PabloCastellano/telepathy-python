@@ -45,7 +45,7 @@ for arg in $*; do
 done
 
 if $run_configure; then
-    $srcdir/configure --config-cache "$@"
+    $srcdir/configure "$@"
     echo
     echo "Now run 'make' to compile $PROJECT."
 fi
