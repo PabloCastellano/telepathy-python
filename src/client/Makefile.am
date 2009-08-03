@@ -8,4 +8,4 @@ telepathy_PYTHON = \
 	managerregistry.py
 
 clean-local:
-	rm -rf *.pyc
+	rm -rf *.pyc *.pyo

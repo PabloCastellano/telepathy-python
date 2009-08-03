@@ -12,4 +12,4 @@ telepathy_PYTHON = \
 	properties.py
 
 clean-local:
-	rm -rf *.pyc
+	rm -rf *.pyc *.pyo

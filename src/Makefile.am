@@ -31,7 +31,7 @@ generateddir = $(telepathydir)/_generated
 nodist_generated_PYTHON = $(BUILT_SOURCES)
 
 distclean-local:
-	rm -rf *.pyc _generated
+	rm -rf *.pyc *.pyo _generated
 
 XSLTPROC_OPTS = --nonet --novalid --xinclude
 tools_dir = $(top_srcdir)/tools
