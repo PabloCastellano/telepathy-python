@@ -26,6 +26,7 @@ import weakref
 from telepathy.constants import (CONNECTION_STATUS_DISCONNECTED,
                                  CONNECTION_STATUS_CONNECTED,
                                  HANDLE_TYPE_NONE,
+                                 HANDLE_TYPE_CONTACT,
                                  LAST_HANDLE_TYPE)
 from telepathy.errors import (Disconnected, InvalidArgument,
                               InvalidHandle, NotAvailable,
@@ -335,13 +336,15 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
     @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='au', out_signature='a(usuu)')
     def GetCapabilities(self, handles):
         ret = []
+        handle_type = HANDLE_TYPE_CONTACT
         for handle in handles:
-            if (handle != 0 and handle not in self._handles):
+            if (handle != 0 and (handle_type, handle) not in self._handles):
                 raise InvalidHandle
             elif handle in self._caps:
-                theirs = self._caps[handle]
-                for type in theirs:
-                    ret.append([handle, type, theirs[0], theirs[1]])
+                types = self._caps[handle]
+                for ctype, specs in types.items():
+                    ret.append([handle, ctype, specs[0], specs[1]])
+        return ret
 
     @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(usuuuu)')
     def CapabilitiesChanged(self, caps):
