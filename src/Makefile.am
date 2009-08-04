@@ -39,17 +39,17 @@ distclean-local:
 XSLTPROC_OPTS = --nonet --novalid --xinclude
 tools_dir = $(top_srcdir)/tools
 
-_generated/interfaces.py:
+_generated/interfaces.py: $(tools_dir)/python-interfaces-generator.xsl $(wildcard $(spec_dir)/*.xml)
 	$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
 	    $(tools_dir)/python-interfaces-generator.xsl \
 	    $(spec_dir)/all.xml
 
-_generated/constants.py:
+_generated/constants.py: $(tools_dir)/python-constants-generator.xsl $(wildcard $(spec_dir)/*.xml)
 	$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
 	    $(tools_dir)/python-constants-generator.xsl \
 	    $(spec_dir)/all.xml
 
-_generated/errors.py:
+_generated/errors.py: $(tools_dir)/python-errors-generator.xsl $(wildcard $(spec_dir)/*.xml)
 	$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
 	    $(tools_dir)/python-errors-generator.xsl \
 	    $(spec_dir)/all.xml
@@ -57,7 +57,7 @@ _generated/errors.py:
 _generated/__init__.py:
 	echo "# Placeholder for package" > $@
 
-_generated/%.py:
+_generated/%.py: $(tools_dir)/spec-to-python.xsl $(spec_dir)/%.xml
 	$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
 	    $(tools_dir)/spec-to-python.xsl \
 	    $(spec_dir)/$*.xml
