@@ -24,6 +24,7 @@ from telepathy.server.connmgr import *
 from telepathy.server.conn import *
 from telepathy.server.channel import *
 from telepathy.server.channelmanager import *
+from telepathy.server.debug import *
 from telepathy.server.handle import *
 from telepathy.server.media import *
 from telepathy.server.properties import *
