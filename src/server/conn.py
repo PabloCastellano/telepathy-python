@@ -26,15 +26,19 @@ import weakref
 from telepathy.constants import (CONNECTION_STATUS_DISCONNECTED,
                                  CONNECTION_STATUS_CONNECTED,
                                  HANDLE_TYPE_NONE,
+                                 HANDLE_TYPE_CONTACT,
                                  LAST_HANDLE_TYPE)
 from telepathy.errors import (Disconnected, InvalidArgument,
-                              InvalidHandle, NotAvailable)
+                              InvalidHandle, NotAvailable,
+                              NotImplemented)
 from telepathy.interfaces import (CONN_INTERFACE,
                                   CONN_INTERFACE_ALIASING,
                                   CONN_INTERFACE_AVATARS,
                                   CONN_INTERFACE_CAPABILITIES,
                                   CONN_INTERFACE_PRESENCE,
-                                  CONN_INTERFACE_RENAMING)
+                                  CONN_INTERFACE_RENAMING,
+                                  CONNECTION_INTERFACE_REQUESTS,
+                                  CHANNEL_INTERFACE)
 from telepathy.server.handle import Handle
 from telepathy.server.properties import DBusProperties
 
@@ -179,13 +183,37 @@ class Connection(_Connection, DBusProperties):
         self._next_channel_id += 1
         return ret
 
-    def add_channel(self, channel, handle, suppress_handler):
-        """ add a new channel and signal its creation""" 
-        self._channels.add(channel)
-        self.NewChannel(channel._object_path, channel._type, handle.get_type(), handle.get_id(), suppress_handler)
+    def add_channels(self, channels, signal=True):
+        """ add new channels and signal their creation"""
+        signal_channels = set()
+
+        for channel in channels:
+            if channel not in self._channels:
+                self._channels.add(channel)
+                signal_channels.add(channel)
+
+        if signal:
+            self.signal_new_channels(signal_channels)
+
+    def signal_new_channels(self, channels):
+        self.NewChannels([(channel._object_path, channel.get_props())
+            for channel in channels])
+
+        # Now NewChannel needs to be called for each new channel.
+        for channel in channels:
+            props = channel.get_props()
+
+            target_handle_type = props[CHANNEL_INTERFACE + '.TargetHandleType']
+            target_handle = props[CHANNEL_INTERFACE + '.TargetHandle']
+            suppress_handler = props[CHANNEL_INTERFACE + '.Requested']
+
+            self.NewChannel(channel._object_path, channel._type,
+                target_handle_type, target_handle,
+                suppress_handler)
 
     def remove_channel(self, channel):
         self._channels.remove(channel)
+        self.ChannelClosed(channel._object_path)
 
     @dbus.service.method(CONN_INTERFACE, in_signature='', out_signature='as')
     def GetInterfaces(self):
@@ -281,7 +309,7 @@ class Connection(_Connection, DBusProperties):
         self.check_connected()
         ret = []
         for channel in self._channels:
-            chan = (channel._object_path, channel._type, channel._handle.get_type(), channel._handle)
+            chan = (channel._object_path, channel._type, channel._get_handle_type(), channel._handle)
             ret.append(chan)
         return ret
 
@@ -308,13 +336,15 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
     @dbus.service.method(CONN_INTERFACE_CAPABILITIES, in_signature='au', out_signature='a(usuu)')
     def GetCapabilities(self, handles):
         ret = []
+        handle_type = HANDLE_TYPE_CONTACT
         for handle in handles:
-            if (handle != 0 and handle not in self._handles):
+            if (handle != 0 and (handle_type, handle) not in self._handles):
                 raise InvalidHandle
             elif handle in self._caps:
-                theirs = self._caps[handle]
-                for type in theirs:
-                    ret.append([handle, type, theirs[0], theirs[1]])
+                types = self._caps[handle]
+                for ctype, specs in types.items():
+                    ret.append([handle, ctype, specs[0], specs[1]])
+        return ret
 
     @dbus.service.signal(CONN_INTERFACE_CAPABILITIES, signature='a(usuuuu)')
     def CapabilitiesChanged(self, caps):
@@ -345,11 +375,171 @@ class ConnectionInterfaceCapabilities(_ConnectionInterfaceCapabilities):
                 caps.append((self._self_handle, ctype, gen_old, gen_new,
                             spec_old, spec_new))
 
-        self.CapabilitiesChanged(self._self_handle, caps)
+        self.CapabilitiesChanged(caps)
 
         # return all my capabilities
         return [(ctype, caps[1]) for ctype, caps in my_caps.iteritems()]
 
+from telepathy._generated.Connection_Interface_Requests \
+        import ConnectionInterfaceRequests \
+        as _ConnectionInterfaceRequests
+
+class ConnectionInterfaceRequests(
+    _ConnectionInterfaceRequests,
+    DBusProperties):
+
+    def __init__(self):
+        _ConnectionInterfaceRequests.__init__(self)
+        DBusProperties.__init__(self)
+
+        self._implement_property_get(CONNECTION_INTERFACE_REQUESTS,
+            {'Channels': lambda: dbus.Array(self._get_channels(),
+                signature='(oa{sv})'),
+            'RequestableChannelClasses': lambda: dbus.Array(
+                self._channel_manager.get_requestable_channel_classes(),
+                signature='(a{sv}as)')})
+
+    def _get_channels(self):
+        return [(c._object_path, c.get_props()) for c in self._channels]
+
+    def _check_basic_properties(self, props):
+        # ChannelType must be present and must be a string.
+        if CHANNEL_INTERFACE + '.ChannelType' not in props or \
+                not isinstance(props[CHANNEL_INTERFACE + '.ChannelType'],
+                    dbus.String):
+            raise InvalidArgument('ChannelType is required')
+
+        def check_valid_type_if_exists(prop, fun):
+            p = CHANNEL_INTERFACE + '.' + prop
+            if p in props and not fun(props[p]):
+                raise InvalidArgument('Invalid %s' % prop)
+
+        # Allow TargetHandleType to be missing, but not to be otherwise broken.
+        check_valid_type_if_exists('TargetHandleType',
+            lambda p: p > 0 and p < (2**32)-1)
+
+        # Allow TargetType to be missing, but not to be otherwise broken.
+        check_valid_type_if_exists('TargetHandle',
+            lambda p: p > 0 and p < (2**32)-1)
+        if props.get(CHANNEL_INTERFACE + '.TargetHandle') == 0:
+            raise InvalidArgument("TargetHandle may not be 0")
+
+        # Allow TargetID to be missing, but not to be otherwise broken.
+        check_valid_type_if_exists('TargetID',
+            lambda p: isinstance(p, dbus.String))
+
+        # Disallow InitiatorHandle, InitiatorID and Requested.
+        check_valid_type_if_exists('InitiatorHandle', lambda p: False)
+        check_valid_type_if_exists('InitiatorID', lambda p: False)
+        check_valid_type_if_exists('Requested', lambda p: False)
+
+        type = props[CHANNEL_INTERFACE + '.ChannelType']
+        handle_type = props.get(CHANNEL_INTERFACE + '.TargetHandleType',
+                HANDLE_TYPE_NONE)
+        handle = props.get(CHANNEL_INTERFACE + '.TargetHandle', 0)
+
+        return (type, handle_type, handle)
+
+    def _validate_handle(self, props):
+        target_handle_type = props.get(CHANNEL_INTERFACE + '.TargetHandleType',
+            HANDLE_TYPE_NONE)
+        target_handle = props.get(CHANNEL_INTERFACE + '.TargetHandle', None)
+        target_id = props.get(CHANNEL_INTERFACE + '.TargetID', None)
+
+        # Handle type 0 cannot have a handle.
+        if target_handle_type == HANDLE_TYPE_NONE and target_handle != None:
+            raise InvalidArgument('When TargetHandleType is NONE, ' +
+                'TargetHandle must be omitted')
+
+        # Handle type 0 cannot have a TargetID.
+        if target_handle_type == HANDLE_TYPE_NONE and target_id != None:
+            raise InvalidArgument('When TargetHandleType is NONE, TargetID ' +
+                'must be omitted')
+
+        if target_handle_type != HANDLE_TYPE_NONE:
+            if target_handle == None and target_id == None:
+                raise InvalidArgument('When TargetHandleType is not NONE, ' +
+                    'either TargetHandle or TargetID must also be given')
+
+            if target_handle != None and target_id != None:
+                raise InvalidArgument('TargetHandle and TargetID must not ' +
+                    'both be given')
+
+            self.check_handle_type(target_handle_type)
+
+
+    def _alter_properties(self, props):
+        target_handle_type = props.get(CHANNEL_INTERFACE + '.TargetHandleType',
+            HANDLE_TYPE_NONE)
+        target_handle = props.get(CHANNEL_INTERFACE + '.TargetHandle', None)
+        target_id = props.get(CHANNEL_INTERFACE + '.TargetID', None)
+
+        altered_properties = props.copy()
+
+        if target_handle_type != HANDLE_TYPE_NONE:
+            if target_handle == None:
+                # Turn TargetID into TargetHandle.
+                for handle in self._handles.itervalues():
+                    if handle.get_name() == target_id and handle.get_type() == target_handle_type:
+                        target_handle = handle.get_id()
+                if not target_handle:
+                    raise InvalidHandle('TargetID %s not valid for type %d' %
+                        target_id, target_handle_type)
+
+                altered_properties[CHANNEL_INTERFACE + '.TargetHandle'] = \
+                    target_handle
+                del altered_properties[CHANNEL_INTERFACE + '.TargetID']
+            else:
+                # Check the supplied TargetHandle is valid
+                self.check_handle(target_handle_type, target_handle)
+
+        altered_properties[CHANNEL_INTERFACE + '.Requested'] = True
+
+        return altered_properties
+
+    @dbus.service.method(CONNECTION_INTERFACE_REQUESTS,
+        in_signature='a{sv}', out_signature='oa{sv}',
+        async_callbacks=('_success', '_error'))
+    def CreateChannel(self, request, _success, _error):
+        type, handle_type, handle = self._check_basic_properties(request)
+        self._validate_handle(request)
+        props = self._alter_properties(request)
+
+        channel = self._channel_manager.channel_for_props(props, signal=False)
+
+        # Remove mutable properties
+        todel = []
+        for prop in props:
+            iface, name = prop.rsplit('.', 1) # a bit of a hack
+            if name in channel._immutable_properties:
+                if channel._immutable_properties[name] != iface:
+                    todel.append(prop)
+            else:
+                todel.append(prop)
+
+        for p in todel:
+            del props[p]
+
+        _success(channel._object_path, props)
+
+        # CreateChannel MUST return *before* NewChannels is emitted.
+        self.signal_new_channels([channel])
+
+    @dbus.service.method(CONNECTION_INTERFACE_REQUESTS,
+        in_signature='a{sv}', out_signature='boa{sv}',
+        async_callbacks=('_success', '_error'))
+    def EnsureChannel(self, request, _success, _error):
+        type, handle_type, handle = self._check_basic_properties(request)
+        self._validate_handle(request)
+        props = self._alter_properties(request)
+
+        yours = not self._channel_manager.channel_exists(props)
+
+        channel = self._channel_manager.channel_for_props(props, signal=False)
+
+        _success(yours, channel._object_path, props)
+
+        self.signal_new_channels([channel])
 
 from telepathy._generated.Connection_Interface_Presence \
         import ConnectionInterfacePresence
@@ -359,6 +549,3 @@ from telepathy._generated.Connection_Interface_Simple_Presence \
 
 from telepathy._generated.Connection_Interface_Contacts \
         import ConnectionInterfaceContacts
-
-from telepathy._generated.Connection_Interface_Requests \
-        import ConnectionInterfaceRequests

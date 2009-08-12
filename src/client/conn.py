@@ -22,8 +22,10 @@ import dbus
 from telepathy.client.channel import Channel
 from telepathy.client.interfacefactory import (
     InterfaceFactory, default_error_handler)
-from telepathy.interfaces import CONN_INTERFACE
+from telepathy.interfaces import (
+    CONN_INTERFACE, CONNECTION_INTERFACE_REQUESTS)
 from telepathy.constants import CONNECTION_STATUS_CONNECTED
+
 
 class Connection(InterfaceFactory):
     def __init__(self, service_name, object_path=None, bus=None,
@@ -98,6 +100,10 @@ class Connection(InterfaceFactory):
     def request_channel(self, type, handle_type, handle, suppress_handler):
         path = self.RequestChannel(type, handle_type, handle, suppress_handler)
         return Channel(self.service_name, path, self.bus)
+
+    def create_channel(self, props):
+        object_path, props = self[CONNECTION_INTERFACE_REQUESTS].CreateChannel(props)
+        return Channel(self.service_name, object_path, self.bus)
 
     def call_when_ready(self, handler):
         if self._ready:

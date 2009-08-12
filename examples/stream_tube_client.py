@@ -1,37 +1,29 @@
 import dbus.glib
 import gobject
-import sys
 import time
-import os
 import socket
-import tempfile
-import random
-import string
 
-from telepathy.client import (
-        Connection, Channel)
+from dbus import PROPERTIES_IFACE
+
+from telepathy.client import Channel
 from telepathy.interfaces import (
-        CONN_INTERFACE, CHANNEL_INTERFACE_GROUP, CHANNEL_TYPE_TUBES,
-        CHANNEL_TYPE_TEXT)
+        CONN_INTERFACE, CHANNEL_INTERFACE_GROUP,
+        CHANNEL_TYPE_TEXT, CONNECTION_INTERFACE_REQUESTS, CHANNEL_INTERFACE,
+        CHANNEL_INTERFACE_TUBE, CHANNEL_TYPE_STREAM_TUBE)
 from telepathy.constants import (
         CONNECTION_HANDLE_TYPE_CONTACT,
         CONNECTION_HANDLE_TYPE_ROOM, CONNECTION_STATUS_CONNECTED,
         CONNECTION_STATUS_DISCONNECTED, CONNECTION_STATUS_CONNECTING,
-        TUBE_TYPE_DBUS, TUBE_TYPE_STREAM, TUBE_STATE_LOCAL_PENDING,
-        TUBE_STATE_REMOTE_PENDING, TUBE_STATE_OPEN,
-        SOCKET_ADDRESS_TYPE_UNIX, SOCKET_ADDRESS_TYPE_ABSTRACT_UNIX,
-        SOCKET_ADDRESS_TYPE_IPV4, SOCKET_ADDRESS_TYPE_IPV6,
-        SOCKET_ACCESS_CONTROL_LOCALHOST, SOCKET_ACCESS_CONTROL_PORT,
-        SOCKET_ACCESS_CONTROL_NETMASK, SOCKET_ACCESS_CONTROL_CREDENTIALS)
+        SOCKET_ADDRESS_TYPE_IPV4, SOCKET_ACCESS_CONTROL_LOCALHOST,
+        TUBE_CHANNEL_STATE_LOCAL_PENDING, TUBE_CHANNEL_STATE_REMOTE_PENDING,
+        TUBE_CHANNEL_STATE_OPEN, TUBE_CHANNEL_STATE_NOT_OFFERED)
 
 from account import connection_from_file
 
-tube_type = {TUBE_TYPE_DBUS: "D-Bus",\
-             TUBE_TYPE_STREAM: "Stream"}
-
-tube_state = {TUBE_STATE_LOCAL_PENDING : 'local pending',\
-              TUBE_STATE_REMOTE_PENDING : 'remote pending',\
-              TUBE_STATE_OPEN : 'open'}
+tube_state = {TUBE_CHANNEL_STATE_LOCAL_PENDING : 'local pending',\
+              TUBE_CHANNEL_STATE_REMOTE_PENDING : 'remote pending',\
+              TUBE_CHANNEL_STATE_OPEN : 'open',
+              TUBE_CHANNEL_STATE_NOT_OFFERED: 'not offered'}
 
 SERVICE = "x-example"
 
@@ -39,18 +31,18 @@ loop = None
 
 class StreamTubeClient:
     def __init__(self, account_file, muc_id, contact_id):
-        self.conn = connection_from_file(account_file)
+        self.conn = connection_from_file(account_file,
+            ready_handler=self.ready_cb)
         self.muc_id = muc_id
         self.contact_id = contact_id
 
         self.joined = False
+        self.tube = None
 
         assert self.muc_id is None or self.contact_id is None
 
         self.conn[CONN_INTERFACE].connect_to_signal('StatusChanged',
             self.status_changed_cb)
-        self.conn[CONN_INTERFACE].connect_to_signal("NewChannel",
-                self.new_channel_cb)
 
     def run(self):
         self.conn[CONN_INTERFACE].Connect()
@@ -69,12 +61,14 @@ class StreamTubeClient:
             print 'connecting'
         elif state == CONNECTION_STATUS_CONNECTED:
             print 'connected'
-            self.connected_cb()
         elif state == CONNECTION_STATUS_DISCONNECTED:
             print 'disconnected'
             loop.quit()
 
-    def connected_cb(self):
+    def ready_cb(self, conn):
+        self.conn[CONNECTION_INTERFACE_REQUESTS].connect_to_signal("NewChannels",
+                self.new_channels_cb)
+
         self.self_handle = self.conn[CONN_INTERFACE].GetSelfHandle()
 
     def join_muc(self):
@@ -83,48 +77,45 @@ class StreamTubeClient:
         time.sleep(2)
 
         print "join muc", self.muc_id
-        handle = self.conn[CONN_INTERFACE].RequestHandles(
-            CONNECTION_HANDLE_TYPE_ROOM, [self.muc_id])[0]
 
-        chan_path = self.conn[CONN_INTERFACE].RequestChannel(
-            CHANNEL_TYPE_TEXT, CONNECTION_HANDLE_TYPE_ROOM,
-            handle, True)
+        path, props = self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel({
+            CHANNEL_INTERFACE + ".ChannelType": CHANNEL_TYPE_TEXT,
+            CHANNEL_INTERFACE + ".TargetHandleType": CONNECTION_HANDLE_TYPE_ROOM,
+            CHANNEL_INTERFACE + ".TargetID": self.muc_id})
 
-        self.channel_text = Channel(self.conn.dbus_proxy.bus_name, chan_path)
+        self.channel_text = Channel(self.conn.dbus_proxy.bus_name, path)
 
         self.self_handle = self.channel_text[CHANNEL_INTERFACE_GROUP].GetSelfHandle()
         self.channel_text[CHANNEL_INTERFACE_GROUP].connect_to_signal(
                 "MembersChanged", self.text_channel_members_changed_cb)
 
-        chan_path = self.conn[CONN_INTERFACE].RequestChannel(
-            CHANNEL_TYPE_TUBES, CONNECTION_HANDLE_TYPE_ROOM,
-            handle, True)
-        self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name, chan_path)
-
         if self.self_handle in self.channel_text[CHANNEL_INTERFACE_GROUP].GetMembers():
             self.joined = True
             self.muc_joined()
 
-    def new_channel_cb(self, object_path, channel_type, handle_type, handle,
-        suppress_handler):
-      if channel_type == CHANNEL_TYPE_TUBES:
-            self.channel_tubes = Channel(self.conn.dbus_proxy.bus_name,
-                    object_path)
+    def new_channels_cb(self, channels):
+        if self.tube is not None:
+            return
 
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal(
-                    "TubeStateChanged", self.tube_state_changed_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal(
-                    "NewTube", self.new_tube_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal(
-                    "TubeClosed", self.tube_closed_cb)
-            self.channel_tubes[CHANNEL_TYPE_TUBES].connect_to_signal(
-                   "StreamTubeNewConnection",
-                   self.stream_tube_new_connection_cb)
+        for path, props in channels:
+            if props[CHANNEL_INTERFACE + ".ChannelType"] == CHANNEL_TYPE_STREAM_TUBE:
+                self.tube = Channel(self.conn.dbus_proxy.bus_name, path)
 
-            for tube in self.channel_tubes[CHANNEL_TYPE_TUBES].ListTubes():
-                id, initiator, type, service, params, state = (tube[0],
-                        tube[1], tube[2], tube[3], tube[4], tube[5])
-                self.new_tube_cb(id, initiator, type, service, params, state)
+                self.tube[CHANNEL_INTERFACE_TUBE].connect_to_signal(
+                        "TubeChannelStateChanged", self.tube_channel_state_changed_cb)
+                self.tube[CHANNEL_INTERFACE].connect_to_signal(
+                        "Closed", self.tube_closed_cb)
+                self.tube[CHANNEL_TYPE_STREAM_TUBE].connect_to_signal(
+                       "NewRemoteConnection",
+                       self.stream_tube_new_remote_connection_cb)
+                self.tube[CHANNEL_TYPE_STREAM_TUBE].connect_to_signal(
+                       "NewLocalConnection",
+                       self.stream_tube_new_local_connection_cb)
+                self.tube[CHANNEL_TYPE_STREAM_TUBE].connect_to_signal(
+                       "ConnectionClosed",
+                       self.stream_tube_connection_closed_cb)
+
+                self.got_tube(props)
 
     def text_channel_members_changed_cb(self, message, added, removed,
             local_pending, remote_pending, actor, reason):
@@ -135,30 +126,37 @@ class StreamTubeClient:
     def muc_joined(self):
         pass
 
-    def new_tube_cb(self, id, initiator, type, service, params, state):
-        initiator_id = self.conn[CONN_INTERFACE].InspectHandles(
-                CONNECTION_HANDLE_TYPE_CONTACT, [initiator])[0]
+    def got_tube(self, props):
+        initiator_id = props[CHANNEL_INTERFACE + ".InitiatorID"]
+        service = props[CHANNEL_TYPE_STREAM_TUBE + ".Service"]
 
-        print "new %s tube (%d) offered by %s. Service: %s. State: %s" % (
-                tube_type[type], id, initiator_id, service, tube_state[state])
+        state = self.tube[PROPERTIES_IFACE].Get(CHANNEL_INTERFACE_TUBE, 'State')
 
-        if state == TUBE_STATE_OPEN:
-            self.tube_opened(id)
+        print "new stream tube offered by %s. Service: %s. State: %s" % (
+                initiator_id, service, tube_state[state])
 
-    def tube_opened(self, id):
+    def tube_opened(self):
         pass
 
-    def tube_state_changed_cb(self, id, state):
-        if state == TUBE_STATE_OPEN:
-            self.tube_opened(id)
+    def tube_channel_state_changed_cb(self, state):
+        print "tubes state changed:", tube_state[state]
+        if state == TUBE_CHANNEL_STATE_OPEN:
+            self.tube_opened()
 
-    def tube_closed_cb(self, id):
-        print "tube closed", id
+    def tube_closed_cb(self):
+        print "tube closed"
 
-    def stream_tube_new_connection_cb(self, id, handle):
-       print "new socket connection on tube %u from %s" % (id,
+    def stream_tube_new_remote_connection_cb(self, handle, conn_param, conn_id):
+       print "new socket connection on tube from %s (id: %u)" % (
                self.conn[CONN_INTERFACE].InspectHandles(
-                   CONNECTION_HANDLE_TYPE_CONTACT, [handle])[0])
+                   CONNECTION_HANDLE_TYPE_CONTACT, [handle])[0],
+               conn_id)
+
+    def stream_tube_new_local_connection_cb(self, conn_id):
+       print "new socket connection on tube (id: %u)" % conn_id
+
+    def stream_tube_connection_closed_cb(self, conn_id, error, msg):
+        print "socket connection %r has been closed: %s (%s)" % (conn_id, msg, error)
 
 class StreamTubeInitiatorClient(StreamTubeClient):
     def __init__(self, account_file, muc_id, contact_id, socket_address=None):
@@ -174,39 +172,47 @@ class StreamTubeInitiatorClient(StreamTubeClient):
             print "Will export socket", socket_address
             self.socket_address = socket_address
 
-    def offer_tube(self):
-        params = {"login": "badger", "a_int" : 69}
-        print "offer tube"
-        id = self.channel_tubes[CHANNEL_TYPE_TUBES].OfferStreamTube(SERVICE,
-                params, SOCKET_ADDRESS_TYPE_IPV4, self.socket_address,
-                SOCKET_ACCESS_CONTROL_LOCALHOST, "")
+    def create_tube(self, handle_type, id):
+        print "Create tube"
+
+        path, props = self.conn[CONNECTION_INTERFACE_REQUESTS].CreateChannel({
+            CHANNEL_INTERFACE + ".ChannelType": CHANNEL_TYPE_STREAM_TUBE,
+            CHANNEL_INTERFACE + ".TargetHandleType": handle_type,
+            CHANNEL_INTERFACE + ".TargetID": id,
+            CHANNEL_TYPE_STREAM_TUBE + ".Service": SERVICE})
+
+    def got_tube(self, props):
+        StreamTubeClient.got_tube(self, props)
+
+        params = dbus.Dictionary({"login": "badger",
+            "a_int" : dbus.Int32(69)}, signature='sv')
+
+        print "Offer tube"
+        self.tube[CHANNEL_TYPE_STREAM_TUBE].Offer(
+            SOCKET_ADDRESS_TYPE_IPV4, self.socket_address, SOCKET_ACCESS_CONTROL_LOCALHOST,
+            params)
+
 
 class StreamTubeJoinerClient(StreamTubeClient):
     def __init__(self, account_file, muc_id, contact_id, connect_trivial_client):
         StreamTubeClient.__init__(self, account_file, muc_id, contact_id)
 
-        self.tube_accepted = False
         self.connect_trivial_client = connect_trivial_client
 
-    def new_tube_cb(self, id, initiator, type, service, params, state):
-        StreamTubeClient.new_tube_cb(self, id, initiator, type, service, params, state)
+    def got_tube(self, props):
+        StreamTubeClient.got_tube(self, props)
 
-        if state == TUBE_STATE_LOCAL_PENDING and service == SERVICE and\
-                not self.tube_accepted:
-            print "accept tube", id
-            self.tube_accepted = True
-            self.channel_tubes[CHANNEL_TYPE_TUBES].AcceptStreamTube(id,
-                    SOCKET_ADDRESS_TYPE_IPV4, SOCKET_ACCESS_CONTROL_LOCALHOST, "")
+        print "accept tube"
 
-    def tube_opened(self, id):
-        StreamTubeClient.tube_opened(self, id)
+        self.address = self.tube[CHANNEL_TYPE_STREAM_TUBE].Accept(
+                SOCKET_ADDRESS_TYPE_IPV4, SOCKET_ACCESS_CONTROL_LOCALHOST, "",
+                byte_arrays=True)
 
-        address_type, address = self.channel_tubes[CHANNEL_TYPE_TUBES].GetStreamTubeSocketAddress(
-                id, byte_arrays=True)
-        print "tube opened. Clients can connect to", address
+    def tube_opened(self):
+        print "tube opened. Clients can connect to", self.address
 
         if self.connect_trivial_client:
-            self.client = TrivialStreamClient(address)
+            self.client = TrivialStreamClient(self.address)
             self.client.connect()
 
 class TrivialStream:
