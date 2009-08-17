@@ -28,6 +28,8 @@ from telepathy.server.properties import DBusProperties
 
 import dbus.service
 import logging
+import sys
+import time
 
 LEVELS = {
         logging.ERROR:   DEBUG_LEVEL_ERROR,
@@ -54,6 +56,7 @@ class Debug(_Debug, DBusProperties, logging.Handler):
 
         self._implement_property_get(DEBUG, {'Enabled': lambda: self.enabled})
         logging.getLogger(root).addHandler(self)
+        sys.stderr = StdErrWrapper(self, sys.stderr)
 
     def GetMessages(self):
         return self._messages
@@ -81,3 +84,30 @@ class Debug(_Debug, DBusProperties, logging.Handler):
             domain, category = record.name.split('.', 1)
             name = domain + "/" + category
         return name
+
+# Wrapper around stderr so the exceptions are logged
+
+class StdErrWrapper(object):
+
+    def __init__(self, interface, stderr):
+        self._buffer = ""
+        self._interface = interface
+        self._stderr = stderr
+
+    def __getattr__(self, attr):
+        return getattr(self._stderr, attr)
+
+    def write(self, string):
+        self._stderr.write(string)
+        if '\n' not in string:
+            self._buffer += string
+            return
+
+        lines = string.split('\n')
+        lines[0] = self._buffer + lines[0]
+        self._buffer = lines[-1]
+        del lines[-1]
+
+        timestamp = time.time()
+        for line in lines:
+            self._interface.add_message(timestamp, "stderr", DEBUG_LEVEL_ERROR, line)
