@@ -4,6 +4,7 @@ telepathy-python 0.15.11 (UNRELEASED)
 Enhancements:
 
  * Add the ChannelTypeFileTransfer interface
+ * Specification 0.17.27.
 
 Fixes:
 
