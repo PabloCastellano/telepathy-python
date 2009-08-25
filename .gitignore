@@ -4,3 +4,17 @@ MANIFEST
 dist
 *.swp
 *.pyc
+src/_version.py
+INSTALL
+Makefile.in
+Makefile
+configure
+install-sh
+missing
+py-compile
+config.status
+config.log
+config.cache
+aclocal.m4
+autom4te.cache
+_generated

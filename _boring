@@ -1,6 +1,0 @@
-MANIFEST
-dist
-build
-\.py[co]$
-^debian($|/)
-\.[^/]+\.sw.$
