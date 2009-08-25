@@ -1,5 +1,5 @@
-telepathydir = $(pythondir)/telepathy/server
-telepathy_PYTHON = \
+serverdir = $(pythondir)/telepathy/server
+server_PYTHON = \
 	channelhandler.py \
 	channelmanager.py \
 	channel.py \

@@ -1,5 +1,5 @@
-telepathydir = $(pythondir)/telepathy/client
-telepathy_PYTHON = \
+clientdir = $(pythondir)/telepathy/client
+client_PYTHON = \
 	channel.py \
 	connmgr.py \
 	conn.py \
