@@ -45,7 +45,7 @@ DEBUG_MESSAGE_LIMIT = 800
 class Debug(_Debug, DBusProperties, logging.Handler):
 
     def __init__(self, conn_manager, root=''):
-        self.enabled = True
+        self.enabled = False
         self._interfaces = set()
         self._messages = []
         object_path = '/org/freedesktop/Telepathy/debug'
