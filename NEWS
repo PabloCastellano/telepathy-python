@@ -1,3 +1,15 @@
+telepathy-python 0.15.12 (UNRELEASED)
+=====================================
+
+Enhancements:
+
+ * Specification 0.18.0.
+ * Build system now uses the autotools.
+
+Fixes:
+
+ * Debug helper: default to debug messages being off by default.
+
 telepathy-python 0.15.11 (2009-08-18)
 =====================================
 
