@@ -8,39 +8,25 @@ from telepathy.interfaces import CLIENT, \
 
 class ExampleObserver(telepathy.server.ClientObserver,
                       telepathy.server.DBusProperties):
-    properties = {
-        CLIENT: {
-            'Interfaces': [ CLIENT_OBSERVER ],
-        },
-        CLIENT_OBSERVER: {
-            'ObserverChannelFilter': dbus.Array([
-                    dbus.Dictionary({
-                    }, signature='sv')
-                ], signature='a{sv}')
-        },
-    }
 
     def __init__(self, client_name):
         bus_name = '.'.join ([CLIENT, client_name])
         object_path = '/' + bus_name.replace('.', '/')
 
         bus_name = dbus.service.BusName(bus_name, bus=dbus.SessionBus())
+
         telepathy.server.ClientObserver.__init__(self, bus_name, object_path)
+        telepathy.server.DBusProperties.__init__(self)
 
-    def GetAll(self, interface):
-        print "GetAll", interface
-        if interface in self.properties:
-            return self.properties[interface]
-        else:
-            return {}
-
-    def Get(self, interface, property):
-        print "Get", interface, property
-        if interface in self.properties and \
-           property in self.properties[interface]:
-            return self.properties[interface][property]
-        else:
-            return 0
+        self._implement_property_get(CLIENT, {
+            'Interfaces': lambda: [ CLIENT_OBSERVER ],
+          })
+        self._implement_property_get(CLIENT_OBSERVER, {
+            'ObserverChannelFilter': lambda: dbus.Array([
+                    dbus.Dictionary({
+                    }, signature='sv')
+                ], signature='a{sv}')
+          })
 
     def ObserveChannels(self, account, connection, channels, dispatch_operation,
                         requests_satisfied, observer_info):
