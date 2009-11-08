@@ -28,6 +28,9 @@ from telepathy._generated.Properties_Interface import PropertiesInterface
 
 class DBusProperties(dbus.service.Interface):
     def __init__(self):
+        if not getattr(self, '_interfaces', None):
+            self._interfaces = set()
+
         self._interfaces.add(dbus.PROPERTIES_IFACE)
 
         if not getattr(self, '_prop_getters', None):
