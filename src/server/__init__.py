@@ -29,9 +29,9 @@ from telepathy.server.handle import *
 from telepathy.server.media import *
 from telepathy.server.properties import *
 
-from telepathy._generated.Client_Observer import ClientObserver
-from telepathy._generated.Client_Approver import ClientApprover
-from telepathy._generated.Client_Handler import ClientHandler
+from telepathy._generated.Client_Observer import ClientObserver as Observer
+from telepathy._generated.Client_Approver import ClientApprover as Approver
+from telepathy._generated.Client_Handler import ClientHandler as Handler
 from telepathy._generated.Client_Interface_Requests import ClientInterfaceRequests
 
 from telepathy import version, __version__

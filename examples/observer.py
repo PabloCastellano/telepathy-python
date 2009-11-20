@@ -6,7 +6,7 @@ from telepathy.interfaces import CLIENT, \
                                  CLIENT_OBSERVER, \
                                  CHANNEL
 
-class ExampleObserver(telepathy.server.ClientObserver,
+class ExampleObserver(telepathy.server.Observer,
                       telepathy.server.DBusProperties):
 
     def __init__(self, client_name):
@@ -15,7 +15,7 @@ class ExampleObserver(telepathy.server.ClientObserver,
 
         bus_name = dbus.service.BusName(bus_name, bus=dbus.SessionBus())
 
-        telepathy.server.ClientObserver.__init__(self, bus_name, object_path)
+        telepathy.server.Observer.__init__(self, bus_name, object_path)
         telepathy.server.DBusProperties.__init__(self)
 
         self._implement_property_get(CLIENT, {
