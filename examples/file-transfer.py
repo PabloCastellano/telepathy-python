@@ -10,7 +10,11 @@ import time
 
 from dbus import PROPERTIES_IFACE
 from telepathy.client import (Connection, Channel)
-from telepathy.interfaces import (CONN_INTERFACE, CONNECTION_INTERFACE_REQUESTS, CHANNEL, CHANNEL_TYPE_FILE_TRANSFER)
+from telepathy.interfaces import (CONN_INTERFACE,
+    CONNECTION_INTERFACE_REQUESTS,
+    CONNECTION_INTERFACE_CONTACT_CAPABILITIES,
+    CHANNEL, CHANNEL_INTERFACE, CHANNEL_TYPE_FILE_TRANSFER,
+    CLIENT)
 from telepathy.constants import (CONNECTION_HANDLE_TYPE_CONTACT, CONNECTION_STATUS_CONNECTING,
     CONNECTION_STATUS_CONNECTED, CONNECTION_STATUS_DISCONNECTED, SOCKET_ADDRESS_TYPE_UNIX,
     SOCKET_ACCESS_CONTROL_LOCALHOST, FILE_TRANSFER_STATE_NONE, FILE_TRANSFER_STATE_PENDING, FILE_TRANSFER_STATE_ACCEPTED,
@@ -60,6 +64,19 @@ class FTClient(object):
         self.self_id = self.conn[CONN_INTERFACE].InspectHandles(CONNECTION_HANDLE_TYPE_CONTACT,
             [self.self_handle])[0]
         print "I am %s" % self.self_id
+
+        try:
+            self.conn[CONNECTION_INTERFACE_CONTACT_CAPABILITIES].UpdateCapabilities([
+                (CLIENT + ".FtExample", [
+                    { CHANNEL_INTERFACE + ".ChannelType":
+                        CHANNEL_TYPE_FILE_TRANSFER,
+                      CHANNEL_INTERFACE + ".TargetHandleType":
+                        CONNECTION_HANDLE_TYPE_CONTACT },
+                ], [ ]),
+            ])
+        except:
+            pass
+
 
         if not self.is_ft_present():
             print "FileTransfer is not implemented on this ConnectionManager"
