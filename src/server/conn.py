@@ -488,7 +488,6 @@ class ConnectionInterfaceRequests(
 
                 altered_properties[CHANNEL_INTERFACE + '.TargetHandle'] = \
                     target_handle
-                del altered_properties[CHANNEL_INTERFACE + '.TargetID']
             else:
                 # Check the supplied TargetHandle is valid
                 self.check_handle(target_handle_type, target_handle)
