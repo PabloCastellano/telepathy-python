@@ -492,6 +492,11 @@ class ConnectionInterfaceRequests(
                 # Check the supplied TargetHandle is valid
                 self.check_handle(target_handle_type, target_handle)
 
+                target_id = self._handles[target_handle_type,\
+                                            target_handle].get_name()
+                altered_properties[CHANNEL_INTERFACE + '.TargetID'] = \
+                    target_id
+
         altered_properties[CHANNEL_INTERFACE + '.Requested'] = True
 
         return altered_properties
