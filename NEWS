@@ -1,7 +1,12 @@
 telepathy-python 0.15.13 (UNRELEASED)
 =====================================
 
+Enhancements:
+
+ * Specification 0.19.0.
+
 Fixes:
+
   * #25116: Always return TargetId in channel props
 
 telepathy-python 0.15.12 (2009-09-29)
