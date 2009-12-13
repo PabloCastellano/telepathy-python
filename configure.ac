@@ -17,6 +17,8 @@ AC_INIT(telepathy-python, telepathy_python_version,
         [http://bugs.freedesktop.org/enter_bug.cgi?product=Telepathy&component=telepathy-python])
 AM_INIT_AUTOMAKE
 
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
+
 AC_DEFINE(TELEPATHY_PYTHON_MAJOR_VERSION, telepathy_python_major_version, [telepathy-python major version])
 AC_SUBST(TELEPATHY_PYTHON_MAJOR_VERSION, telepathy_python_major_version)
 AC_DEFINE(TELEPATHY_PYTHON_MINOR_VERSION, telepathy_python_minor_version, [telepathy-python minor version])

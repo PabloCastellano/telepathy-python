@@ -40,25 +40,25 @@ XSLTPROC_OPTS = --nonet --novalid --xinclude
 tools_dir = $(top_srcdir)/tools
 
 _generated/interfaces.py: $(tools_dir)/python-interfaces-generator.xsl $(wildcard $(spec_dir)/*.xml)
-	$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
+	$(AM_V_GEN)$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
 	    $(tools_dir)/python-interfaces-generator.xsl \
 	    $(spec_dir)/all.xml
 
 _generated/constants.py: $(tools_dir)/python-constants-generator.xsl $(wildcard $(spec_dir)/*.xml)
-	$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
+	$(AM_V_GEN)$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
 	    $(tools_dir)/python-constants-generator.xsl \
 	    $(spec_dir)/all.xml
 
 _generated/errors.py: $(tools_dir)/python-errors-generator.xsl $(wildcard $(spec_dir)/*.xml)
-	$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
+	$(AM_V_GEN)$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
 	    $(tools_dir)/python-errors-generator.xsl \
 	    $(spec_dir)/all.xml
 
 _generated/__init__.py:
-	$(mkdir_p) $(dir $@)
-	echo "# Placeholder for package" > $@
+	$(AM_V_GEN)$(mkdir_p) $(dir $@)
+	@echo "# Placeholder for package" > $@
 
 _generated/%.py: $(tools_dir)/spec-to-python.xsl $(spec_dir)/%.xml
-	$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
+	$(AM_V_GEN)$(XSLTPROC) $(XSLTPROC_OPTS) -o $@ \
 	    $(tools_dir)/spec-to-python.xsl \
 	    $(spec_dir)/$*.xml
