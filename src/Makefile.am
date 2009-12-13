@@ -55,6 +55,7 @@ _generated/errors.py: $(tools_dir)/python-errors-generator.xsl $(wildcard $(spec
 	    $(spec_dir)/all.xml
 
 _generated/__init__.py:
+	$(mkdir_p) $(dir $@)
 	echo "# Placeholder for package" > $@
 
 _generated/%.py: $(tools_dir)/spec-to-python.xsl $(spec_dir)/%.xml
