@@ -1,13 +1,18 @@
-telepathy-python 0.15.13 (UNRELEASED)
+telepathy-python 0.15.13 (2009-12-14)
 =====================================
+
+The "part of my Getting Nothing Done life methodology" release.
 
 Enhancements:
 
  * Specification 0.19.0.
+ * Support for Telepathy Clients interface
+ * New Observer example
 
 Fixes:
 
   * #25116: Always return TargetId in channel props
+  * #25620: Fix parallel build (Diego Pettenò)
 
 telepathy-python 0.15.12 (2009-09-29)
 =====================================
