@@ -42,9 +42,10 @@ class ChannelManager(object):
 
     def remove_channel(self, channel):
         for channel_type in self._requestable_channel_classes:
-            for handle, chan in self._channels[channel_type].items():
-                if channel == chan:
-                    del self._channels[channel_type][handle]
+            for handle, channels in self._channels[channel_type].items():
+                for chan in channels:
+                    if channel == chan:
+                        del self._channels[channel_type][handle]
 
     def _get_type_requested_handle(self, props):
         type = props[CHANNEL_INTERFACE + '.ChannelType']
@@ -56,31 +57,46 @@ class ChannelManager(object):
 
         return (type, requested, handle)
 
-    def channel_exists(self, props):
+    def existing_channel(self, props):
+        """ Return a channel corresponding to theses properties if such one exists,
+        otherwhise return None.
+        Will return the last created channel, Connection Manager should subclass this function
+        to implement more appropriate behaviour. """
+
         type, _, handle = self._get_type_requested_handle(props)
 
         if type in self._channels:
             if handle in self._channels[type]:
-                return True
+                if len(self._channels[type][handle]) > 0:
+                    return self._channels[type][handle][-1]
 
-        return False
+        return None
 
-    def channel_for_props(self, props, signal=True, **args):
+    def channel_exists(self, props):
+        return self.existing_channel(props) != None
+
+    def create_channel_for_props(self, props, signal=True, **args):
         type, _, handle = self._get_type_requested_handle(props)
 
         if type not in self._requestable_channel_classes:
             raise NotImplemented('Unknown channel type "%s"' % type)
 
-        if self.channel_exists(props):
-            return self._channels[type][handle]
-
         channel = self._requestable_channel_classes[type](
             props, **args)
 
         self._conn.add_channels([channel], signal=signal)
-        self._channels[type][handle] = channel
+        if type in self._channels:
+            if handle in self._channels[type]:
+                self._channels[type].setdefault(handle, []).append(channel)
 
         return channel
+
+    def channel_for_props(self, props, signal=True, **args):
+        channel = self.existing_channel(props)
+        if channel:
+            return channel
+        else:
+            return self.create_channel_for_props(props, signal, **args)
 
     def _implement_channel_class(self, type, make_channel, fixed, available):
         self._requestable_channel_classes[type] = make_channel

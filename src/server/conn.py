@@ -509,7 +509,7 @@ class ConnectionInterfaceRequests(
         self._validate_handle(request)
         props = self._alter_properties(request)
 
-        channel = self._channel_manager.channel_for_props(props, signal=False)
+        channel = self._channel_manager.create_channel_for_props(props, signal=False)
 
         # Remove mutable properties
         todel = []
