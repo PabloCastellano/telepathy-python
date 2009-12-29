@@ -26,7 +26,7 @@ logger = logging.getLogger('telepathy.client.interfacefactory')
 
 def default_error_handler(exception):
     logging.basicConfig()
-    logger.warning('Exception from asynchronous method call:\n%s', exception)
+    logger.warning('Exception from asynchronous method call:\n%s' % exception)
 
 class InterfaceFactory(object):
     """Base class for an object wrapping the D-Bus interfaces of a Telepathy
