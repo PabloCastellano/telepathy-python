@@ -81,4 +81,4 @@ class InterfaceFactory(object):
         return name in self._interfaces or name in self._valid_interfaces
 
     def __getattr__(self, name):
-        return self[self._default_interface].__getattr__(name)
+        return getattr(self[self._default_interface], name)
