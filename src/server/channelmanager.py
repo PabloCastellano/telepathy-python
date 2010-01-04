@@ -34,11 +34,12 @@ class ChannelManager(object):
 
     def close(self):
         for channel_type in self._requestable_channel_classes:
-            for channel in self._channels[channel_type].values():
-                if channel._type == CHANNEL_TYPE_CONTACT_LIST:
-                    channel.remove_from_connection()
-                else:
-                    channel.Close()
+            for channels in self._channels[channel_type].values():
+                for channel in channels:
+                    if channel._type == CHANNEL_TYPE_CONTACT_LIST:
+                        channel.remove_from_connection()
+                    else:
+                        channel.Close()
 
     def remove_channel(self, channel):
         for channel_type in self._requestable_channel_classes:
