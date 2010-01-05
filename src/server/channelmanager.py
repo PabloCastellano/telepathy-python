@@ -1,6 +1,6 @@
 # telepathy-python - Base classes defining the interfaces of the Telepathy framework
 #
-# Copyright (C) 2009 Collabora Limited
+# Copyright (C) 2009-2010 Collabora Limited
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -19,11 +19,9 @@
 from telepathy.errors import NotImplemented
 
 from telepathy.interfaces import (CHANNEL_INTERFACE,
-                                 CHANNEL_TYPE_CONTACT_LIST,
-                                 CHANNEL_TYPE_TEXT)
+                                 CHANNEL_TYPE_CONTACT_LIST)
 
 class ChannelManager(object):
-
     def __init__(self, connection):
         self._conn = connection
 
@@ -33,6 +31,7 @@ class ChannelManager(object):
         self._available_properties = dict()
 
     def close(self):
+        """Close channel manager and all the existing channels."""
         for channel_type in self._requestable_channel_classes:
             for channels in self._channels[channel_type].values():
                 for channel in channels:
@@ -42,12 +41,15 @@ class ChannelManager(object):
                         channel.Close()
 
     def remove_channel(self, channel):
+        "Remove channel from the channel manager"
         for channel_type in self._requestable_channel_classes:
             for handle, channels in self._channels[channel_type].items():
                 if channel in channels :
                     channels.remove(channel)
 
     def _get_type_requested_handle(self, props):
+        """Return the type, request and target handle from the requested
+        properties"""
         type = props[CHANNEL_INTERFACE + '.ChannelType']
         requested = props[CHANNEL_INTERFACE + '.Requested']
         target_handle = props[CHANNEL_INTERFACE + '.TargetHandle']
@@ -58,9 +60,11 @@ class ChannelManager(object):
         return (type, requested, handle)
 
     def existing_channel(self, props):
-        """ Return a channel corresponding to theses properties if such one exists,
-        otherwhise return None.
-        Will return the last created channel, Connection Manager should subclass this function
+        """ Return a channel corresponding to theses properties if such
+        one exists, otherwhise return None. Default implementation will
+        return the last created channel of the same kind identified by
+        handle and type.
+        Connection Manager should subclass this function
         to implement more appropriate behaviour. """
 
         type, _, handle = self._get_type_requested_handle(props)
@@ -73,9 +77,11 @@ class ChannelManager(object):
         return None
 
     def channel_exists(self, props):
+        """ Return True if channel exist with theses props, False otherwhise"""
         return self.existing_channel(props) != None
 
     def create_channel_for_props(self, props, signal=True, **args):
+        """Create a new channel with theses properties"""
         type, _, handle = self._get_type_requested_handle(props)
 
         if type not in self._requestable_channel_classes:
@@ -93,12 +99,15 @@ class ChannelManager(object):
 
     def channel_for_props(self, props, signal=True, **args):
         channel = self.existing_channel(props)
+        """Return an existing channel with theses properties if it already
+        exists, otherwhise return a new one"""
         if channel:
             return channel
         else:
             return self.create_channel_for_props(props, signal, **args)
 
     def _implement_channel_class(self, type, make_channel, fixed, available):
+        """Notify channel manager a channel with these properties can be created"""
         self._requestable_channel_classes[type] = make_channel
         self._channels.setdefault(type, {})
 
@@ -106,6 +115,7 @@ class ChannelManager(object):
         self._available_properties[type] = available
 
     def get_requestable_channel_classes(self):
+        """Return all the channel types that can be created"""
         retval = []
 
         for channel_type in self._requestable_channel_classes:
