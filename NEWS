@@ -1,6 +1,11 @@
 telepathy-python 0.15.14 (UNRELEASED)
 =====================================
 
+Enhancements:
+
+Fixes:
+  * CreateChannel now really create a new channel.
+
 telepathy-python 0.15.13 (2009-12-14)
 =====================================
 
