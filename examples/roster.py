@@ -1,3 +1,8 @@
+#!/usr/bin/python
+"""
+Telepathy example which prints the list of members in the channels:
+'subscribe', 'publish', 'hide', 'allow', 'deny', and 'known'.
+"""
 
 import dbus
 import dbus.glib
@@ -87,8 +92,16 @@ class RosterClient:
     def quit(self):
         self.loop.quit()
 
+def usage():
+    print "Usage:\n" \
+            "\tpython %s [account-file]\n" \
+            % (sys.argv[0])
+
 if __name__ == '__main__':
-    assert len(sys.argv) == 2
+    if len(sys.argv) != 2:
+        usage()
+        sys.exit(0)
+
     conn = connection_from_file(sys.argv[1])
     client = RosterClient(conn)
 

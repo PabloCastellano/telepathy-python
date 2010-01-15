@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import sys
 import dbus
 from telepathy.constants import (CONNECTION_HANDLE_TYPE_CONTACT)

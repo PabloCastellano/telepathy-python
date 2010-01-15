@@ -1,3 +1,4 @@
+#!/usr/bin/python
 
 import sys
 
@@ -102,15 +103,24 @@ class GtkIncomingCall(GtkLoopMixin, BaseGtkCall, IncomingCall):
             gobject.timeout_add(5000, self.add_output_window)
             gobject.timeout_add(5000, self.add_preview_window)
 
+def usage():
+    print "Usage:\n" \
+            "Outcoming call to [contact]:\n" \
+            "\tpython %s [account-file] [contact]\n" \
+            "Accept incoming call:\n" \
+            "\tpython %s [account-file]\n" \
+            % (sys.argv[0], sys.argv[0])
+
 if __name__ == '__main__':
     args = sys.argv[1:]
 
-    assert len(args) in (1, 2)
-
-    if len(args) > 1:
+    if len(args) == 2:
         contact = args[1]
         call = GtkOutgoingCall(args[0], args[1])
-    else:
+    elif len(args) == 1:
         call = GtkIncomingCall(args[0])
+    else:
+        usage()
+        sys.exit(0)
 
     call.run()

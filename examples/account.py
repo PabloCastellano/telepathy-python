@@ -1,3 +1,8 @@
+#!/usr/bin/python
+"""
+account module, used by telepathy examples to parse the account-file.
+"""
+
 import telepathy
 from telepathy.interfaces import CONN_MGR_INTERFACE
 import dbus

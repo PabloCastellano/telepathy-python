@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import dbus
 import dbus.glib
 import gobject

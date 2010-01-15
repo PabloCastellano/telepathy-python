@@ -1,6 +1,7 @@
-
+#!/usr/bin/python
 """
-Print out the aliases of all contacts on the known list.
+Telepathy example which prints out the aliases of all contacts on the
+known list.
 """
 
 import dbus.glib
@@ -86,7 +87,15 @@ class AliasesClient:
     def quit(self):
         self.loop.quit()
 
+def usage():
+    print "Usage:\n" \
+            "\tpython %s [account-file]\n" \
+            % (sys.argv[0])
+
 if __name__ == '__main__':
-    assert len(sys.argv) == 2
+    if len(sys.argv) != 2:
+        usage()
+        sys.exit(0)
+
     client = AliasesClient(sys.argv[1])
     client.run()

@@ -1,10 +1,9 @@
-
+#!/usr/bin/python
 """
 Print out a list of existing Telepathy connections.
 """
 
 import dbus.glib
-
 import telepathy
 
 prefix = 'org.freedesktop.Telepathy.Connection.'

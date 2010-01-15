@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # This should eventually land in telepathy-python, so has the same license:
 
 # Copyright (C) 2007 Collabora Ltd. <http://www.collabora.co.uk/>

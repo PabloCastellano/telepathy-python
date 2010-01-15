@@ -1,4 +1,4 @@
-
+#!/usr/bin/python
 """
 Example of how to discover exisiting Telepathy connections on the bus, and be
 notified when connections appear and disappear.

@@ -1,3 +1,8 @@
+#!/usr/bin/python
+"""
+Telepathy example which denies/blocks a specified contact, showing then
+the list of contacts to see the changes.
+"""
 
 import dbus.glib
 import gobject
@@ -69,8 +74,16 @@ class DenyClient:
     def quit(self):
         self.loop.quit()
 
+def usage():
+    print "Usage:\n" \
+            "\tpython %s [account-file] [contact]\n" \
+            % (sys.argv[0])
+
 if __name__ == '__main__':
-    assert len(sys.argv) == 3
+    if len(sys.argv) != 3:
+        usage()
+        sys.exit(0)
+
     conn = connection_from_file(sys.argv[1])
     contact = sys.argv[2]
     deny = DenyClient(conn, contact)

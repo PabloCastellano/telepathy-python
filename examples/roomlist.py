@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import dbus.glib
 import gobject
 import logging
@@ -76,7 +78,16 @@ class RoomListExample:
             for key in info:
                 print "\t", repr(str(key)), " => ", repr(info[key])
 
+def usage():
+    print "Usage:\n" \
+            "\tpython %s [account-file]\n" \
+            % (sys.argv[0])
+
 if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        usage()
+        sys.exit(0)
+
     conn = connection_from_file(sys.argv[1])
 
     ex = RoomListExample(conn)
@@ -91,3 +102,4 @@ if __name__ == '__main__':
 
     print "disconnecting"
     conn[CONN_INTERFACE].Disconnect()
+

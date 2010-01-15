@@ -1,4 +1,4 @@
-
+#!/usr/bin/python
 """
 Example Telepathy chatroom client.
 """
@@ -45,7 +45,16 @@ class ChatroomClient:
             telepathy.CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, text)
         return True
 
+def usage():
+    print "Usage:\n" \
+            "\tpython %s [account-file] [chatroom]\n" \
+            % (sys.argv[0])
+
 if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        usage()
+        sys.exit(0)
+
     account_file, chatroom = sys.argv[1], sys.argv[2]
     conn = connection_from_file(account_file)
     client = ChatroomClient(conn, chatroom)

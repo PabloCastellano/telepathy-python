@@ -1,3 +1,7 @@
+#!/usr/bin/python
+"""
+Registration example
+"""
 
 import dbus.glib
 import gobject
@@ -26,7 +30,16 @@ def status_changed_cb(state, reason):
 
         loop.quit()
 
+def usage():
+    print "Usage:\n" \
+            "\tpython %s [account-file]\n" \
+            % (sys.argv[0])
+
 if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        usage()
+        sys.exit(0)
+
     manager, protocol, account = read_account(sys.argv[1])
     account['register'] = True
     conn = connect(manager, protocol, account)

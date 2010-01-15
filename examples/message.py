@@ -1,3 +1,8 @@
+#!/usr/bin/python
+"""
+Telepathy example which lets to send a message to any contact.
+"""
+
 import dbus.glib
 import gobject
 import logging
@@ -93,9 +98,17 @@ class Message:
         print 'error sending message: code %d' % error
         self.quit()
 
+def usage():
+    print "Usage:\n" \
+            "Send [message] to [contact]:\n" \
+            "\tpython %s [account-file] [contact] [message]\n" \
+            "Receive one message from [contact]:\n" \
+            "\tpython %s [account-file] [contact]\n" \
+            % (sys.argv[0], sys.argv[0])
+
 if __name__ == '__main__':
-    if len(sys.argv[2:]) < 1:
-        print 'usage: python %s managerfile recipient [message]' % sys.argv[0]
+    if len(sys.argv[2:]) not in (1, 2):
+        usage()
         sys.exit(1)
 
     msg = Message(*sys.argv[2:])

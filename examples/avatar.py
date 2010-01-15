@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
 Telepathy example which requests the avatar for the user's own handle and
 displays it in a Gtk window.
@@ -45,7 +46,16 @@ def connection_ready_cb(connection):
     window.show_all()
     window.connect('destroy', gtk.main_quit)
 
+def usage():
+    print "Usage:\n" \
+            "\tpython %s [account-file]\n" \
+            % (sys.argv[0])
+
 if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        usage()
+        sys.exit(0)
+
     conn = connection_from_file(sys.argv[1], connection_ready_cb)
 
     print 'connecting'

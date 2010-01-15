@@ -1,3 +1,4 @@
+#!/usr/bin/python
 
 import dbus.glib
 import gobject
