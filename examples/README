@@ -1,5 +1,5 @@
 
-These examples (except generate-manager-file.py) all take as their first
+Most of these examples take as their first
 parameter a file which contains account details. An account file contains a set
 of key/value pairs, where the key and the value are separated by a colon and a
 space.
