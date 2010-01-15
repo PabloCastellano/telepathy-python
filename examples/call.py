@@ -21,6 +21,12 @@ from telepathy.interfaces import (
 import logging
 logging.basicConfig()
 
+def get_stream_engine():
+    bus = dbus.Bus()
+    return bus.get_object(
+        'org.freedesktop.Telepathy.StreamEngine',
+        '/org/freedesktop/Telepathy/StreamEngine')
+
 class Call:
     def __init__(self, account_file):
         self.conn = connection_from_file(account_file,
