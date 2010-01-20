@@ -55,8 +55,12 @@ class Debug(_Debug, DBusProperties, logging.Handler):
         logging.Handler.__init__(self)
 
         self._implement_property_get(DEBUG, {'Enabled': lambda: self.enabled})
+        self._implement_property_set(DEBUG, {'Enabled': self._set_enabled})
         logging.getLogger(root).addHandler(self)
         sys.stderr = StdErrWrapper(self, sys.stderr)
+
+    def _set_enabled(self, value):
+        self.enabled = value
 
     def GetMessages(self):
         return self._messages
