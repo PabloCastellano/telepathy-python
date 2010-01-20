@@ -92,8 +92,7 @@ class ChannelManager(object):
 
         self._conn.add_channels([channel], signal=signal)
         if type in self._channels:
-            if handle in self._channels[type]:
-                self._channels[type].setdefault(handle, []).append(channel)
+            self._channels[type].setdefault(handle, []).append(channel)
 
         return channel
 
