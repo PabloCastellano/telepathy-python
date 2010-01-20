@@ -55,7 +55,7 @@ class DBusProperties(dbus.service.Interface):
     def Set(self, interface_name, property_name, value):
         if interface_name in self._prop_setters \
             and property_name in self._prop_setters[interface_name]:
-                return self._prop_setters[interface_name][property_name](value)
+                self._prop_setters[interface_name][property_name](value)
         else:
             raise telepathy.errors.PermissionDenied()
 
