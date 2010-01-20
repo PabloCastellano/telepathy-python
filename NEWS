@@ -1,9 +1,10 @@
-telepathy-python 0.15.15 (UNRELEASED)
+telepathy-python 0.15.15 (2009-01-20)
 =====================================
 
-Enhancements:
+The "square" release.
 
 Fixes:
+  * Register new channels correctly in the channel manager
 
 telepathy-python 0.15.14 (2010-01-19)
 =====================================
