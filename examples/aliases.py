@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Telepathy example which prints out the aliases of all contacts on the
 known list.

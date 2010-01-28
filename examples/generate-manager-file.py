@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 import sys
 import telepathy
 from telepathy.interfaces import CONN_MGR_INTERFACE

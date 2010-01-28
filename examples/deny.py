@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Telepathy example which denies/blocks a specified contact, showing then
 the list of contacts to see the changes.

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Telepathy example which lets to send a message to any contact.
 """

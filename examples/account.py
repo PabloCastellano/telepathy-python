@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 account module, used by telepathy examples to parse the account-file.
 """

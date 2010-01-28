@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Telepathy example which prints the list of members in the channels:
 'subscribe', 'publish', 'hide', 'allow', 'deny', and 'known'.

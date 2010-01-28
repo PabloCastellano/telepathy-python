@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Telepathy example which requests the avatar for the user's own handle and
 displays it in a Gtk window.

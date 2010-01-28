@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # This should eventually land in telepathy-python, so has the same license:
 
